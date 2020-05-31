@@ -53,3 +53,18 @@ listcons t <:? list t' with t <:? t'
 listcons t <:? listcons t' with t <:? t'
 ...| yes t<:t' = yes (<:-listmixed t<:t')
 ...| no n<: = no (n<: ∘ list-mixed-<:-inv)
+
+
+-- properties of subtyping
+
+<:-trans : ∀ {t1 t2 t3} → t1 <: t2 → t2 <: t3 → t1 <: t3
+<:-trans {nil} {t2} {t3} p1 p2 = <:-nil
+<:-trans {list t1} {list .t1} {t3} <:-refl p2 = p2
+<:-trans {list t1} {list t2} {.(list t2)} (<:-list p1) <:-refl = <:-list p1
+<:-trans {list t1} {list t2} {.(list _)} (<:-list p1) (<:-list p2) = <:-list (<:-trans p1 p2)
+<:-trans {listcons t1} {list t2} {.(list t2)} (<:-listcons p1) <:-refl = <:-listcons p1
+<:-trans {listcons t1} {list t2} {.(list _)} (<:-listcons p1) (<:-list p2) = <:-listcons (<:-trans p1 p2)
+<:-trans {listcons t1} {listcons .t1} {t3} <:-refl p2 = p2
+<:-trans {listcons t1} {listcons t2} {.(listcons t2)} (<:-listmixed p1) <:-refl = <:-listmixed p1
+<:-trans {listcons t1} {listcons t2} {.(list _)} (<:-listmixed p1) (<:-listcons p2) = <:-listcons (<:-trans p1 p2)
+<:-trans {listcons t1} {listcons t2} {.(listcons _)} (<:-listmixed p1) (<:-listmixed p2) = <:-listmixed (<:-trans p1 p2)
