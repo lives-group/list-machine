@@ -55,6 +55,20 @@ lub-subtype {listcons t1} {listcons .t1} {.(listcons t1)} lub-0 = <:-refl , <:-r
 lub-subtype {listcons t1} {listcons t2} {.(listcons _)} (lub-7 p) with lub-subtype p
 ...| p1 , p2 = <:-listmixed p1 , <:-listmixed p2
 
+
+-- lub is commutative
+
+lub-comm : ∀ {t1 t2 t3} → t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
+lub-comm lub-0 = lub-0
+lub-comm lub-1 = lub-4
+lub-comm lub-4 = lub-1
+lub-comm (lub-2 p) = lub-2b (lub-comm p)
+lub-comm (lub-2b p) = lub-2 (lub-comm p)
+lub-comm (lub-3 p) = lub-3 (lub-comm p)
+lub-comm lub-5 = lub-6
+lub-comm lub-6 = lub-5
+lub-comm (lub-7 p) = lub-7 (lub-comm p)
+
 -- calculating the least subtype
 
 lub : (t1 t2 : Ty) → ∃ (λ t → t1 ⊓ t2 ~ t)
