@@ -45,10 +45,12 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
   instr-fetch-1-upd     : ∀ {τ τ′} → (listcons τ) ∈ Γ → (idx : τ′ ∈ Γ) → Π ⊢ Γ ⇒ (idx ∷= list τ)
   instr-cons-new        : ∀ {τ τ₀ τ₁} → τ₀ ∈ Γ → τ₁ ∈ Γ → list τ₀ ⊓ τ₁ ~ list τ → Π ⊢ Γ ⇒ (listcons τ ∷ Γ)
   instr-cons-upd        : ∀ {τ τ₀ τ₁ τ₂} → τ₀ ∈ Γ → τ₁ ∈ Γ → (idx : τ₂ ∈ Γ) → list τ₀ ⊓ τ₁ ~ list τ → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
-  
+  instr-halt            : Π ⊢ Γ ⇒ Γ
+  instr-jump            : ∀ {l Γ₁} → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
 
--- blocks
+-- programs
 
+{-
 data Block (Π : PCtx) (Γ : Ctx) : Set where
   block-halt            : Block Π Γ
   block-seq             : ∀ {Γ′} → Π ⊢ Γ ⇒ Γ′ → Block Π Γ′ → Block Π Γ
@@ -58,4 +60,4 @@ data Program (Π : PCtx) : Set where
   blocks-label : ∀ {l Γ} → Π [ l ]= Γ → Block Π Γ → Program Π → Program Π
   blocks-empty : Program Π
 
-
+-}

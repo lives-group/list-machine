@@ -30,27 +30,37 @@ open import Instr blocks
 
 data Val : Ty → Set where
   nil : Val nil
+  []v : ∀ {t} → Val (list t)
   _∷_ : ∀ {t} → Val t → Val (list t) → Val (listcons t)
+  _∷v_ :  ∀ {t} → Val t → Val (list t) → Val (list t)
+
+-- subsumption for values
+
+<:-val : ∀ {t t' : Ty} → t <: t' → Val t → Val t'
+<:-val <:-refl v = v
+<:-val {t' = nil} <:-nil v = v
+<:-val {t' = list t'} <:-nil v = []v
+<:-val {t' = listcons t'} <:-nil v = <:-val <:-nil v ∷ []v
+<:-val (<:-list p) []v = []v
+<:-val (<:-list p) (v ∷v v') = <:-val p v ∷v <:-val (<:-list p) v'
+<:-val (<:-listcons p) (v ∷ v') = <:-val p v ∷v <:-val (<:-list p) v'
+<:-val (<:-listmixed p) (v ∷ v') = <:-val p v ∷ <:-val (<:-list p) v'
 
 -- execution environments
 
 Env : Ctx → Set
 Env Γ = All Val Γ
 
+-- subsumption for contexts
+
+⊂-Ctx : ∀ {Γ Γ'} → Γ ⊂ Γ' → Env Γ → Env Γ'
+⊂-Ctx (env-sub1 refl x₁ p) (px ∷ env) = <:-val x₁ px ∷ (⊂-Ctx p env)
+⊂-Ctx env-sub2 env = []
+
 PEnv : PCtx → Set
 PEnv Π = Allv Env Π
 
 
--- small step evaluation
+-- defining the interpreter
 
-step : ∀ {Π Γ Γ'} → Program Π → Env Γ → Π ⊢ Γ ⇒ Γ' → Env Γ'
-step p env (instr-seq i i') = {!!}
-step p env (instr-branch-list idx x x₁) = {!!}
-step p env (instr-branch-listcons idx x x₁) = {!!}
-step p env (instr-branch-nil x x₁ x₂) = {!!}
-step p env (instr-fetch-0-new x) = {!!}
-step p env (instr-fetch-0-upd x idx) = {!!}
-step p env (instr-fetch-1-new x) = {!!}
-step p env (instr-fetch-1-upd x idx) = {!!}
-step p env (instr-cons-new x x₁ x₂) = {!!}
-step p env (instr-cons-upd x x₁ idx x₂) = {!!}
+
