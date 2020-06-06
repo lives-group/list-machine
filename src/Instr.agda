@@ -3,7 +3,9 @@ open import Data.List
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here ; there ; _∷=_)
 open import Data.Nat using (ℕ)
+open import Data.Product using (_×_ ; proj₁ ; proj₂)
 open import Data.Vec using (Vec ;  _[_]=_ ; here ; there) renaming (_∷_ to _∷v_)
+open import Data.Vec.Relation.Unary.All using (All)
 
 open import Function
 
@@ -17,18 +19,18 @@ open import LeastSuperType
 open import Subtyping
 open import Type
 
-module Instr (blocks : ℕ) where
+module Instr (n : ℕ) where
 
 
 -- block labels
 
 Label : Set
-Label = Fin blocks
+Label = Fin n
 
 -- program typing
 
 PCtx : Set
-PCtx = Vec Ctx blocks
+PCtx = Vec Ctx n
 
 -- intrinsically typed instructions
 
@@ -36,7 +38,7 @@ infix 0 _⊢_⇒_
 
 data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
   instr-seq : ∀ {Γ' Γ''} → Π ⊢ Γ ⇒ Γ' → Π ⊢ Γ' ⇒ Γ'' → Π ⊢ Γ ⇒ Γ''
-  instr-branch-list : ∀ {τ l Γ₁} → (idx : (list τ) ∈ Γ) → Π [ l ]= Γ₁ → (idx ∷= nil) ⊂ Γ₁ → Π ⊢ Γ ⇒ (idx ∷= nil)  
+  instr-branch-list : ∀ {τ l Γ'} → (idx : (list τ) ∈ Γ) → Π [ l ]= Γ' → (idx ∷= nil) ⊂ Γ' → Π ⊢ Γ ⇒ (idx ∷= listcons τ)  
   instr-branch-listcons : ∀ {τ l Γ₁} → (idx : (listcons τ) ∈ Γ) → Π [ l ]= Γ₁ → (idx ∷= nil) ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
   instr-branch-nil      : ∀ {Γ₁ l} → nil ∈ Γ → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
   instr-fetch-0-new     : ∀ {τ} → (listcons τ) ∈ Γ → Π ⊢ Γ ⇒ (τ ∷ Γ)
@@ -45,19 +47,15 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
   instr-fetch-1-upd     : ∀ {τ τ′} → (listcons τ) ∈ Γ → (idx : τ′ ∈ Γ) → Π ⊢ Γ ⇒ (idx ∷= list τ)
   instr-cons-new        : ∀ {τ τ₀ τ₁} → τ₀ ∈ Γ → τ₁ ∈ Γ → list τ₀ ⊓ τ₁ ~ list τ → Π ⊢ Γ ⇒ (listcons τ ∷ Γ)
   instr-cons-upd        : ∀ {τ τ₀ τ₁ τ₂} → τ₀ ∈ Γ → τ₁ ∈ Γ → (idx : τ₂ ∈ Γ) → list τ₀ ⊓ τ₁ ~ list τ → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
-  instr-halt            : Π ⊢ Γ ⇒ Γ
-  instr-jump            : ∀ {l Γ₁} → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
+
 
 -- programs
 
-{-
-data Block (Π : PCtx) (Γ : Ctx) : Set where
-  block-halt            : Block Π Γ
-  block-seq             : ∀ {Γ′} → Π ⊢ Γ ⇒ Γ′ → Block Π Γ′ → Block Π Γ
-  block-jump            : ∀ {l Γ₁} → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Block Π Γ
 
-data Program (Π : PCtx) : Set where
-  blocks-label : ∀ {l Γ} → Π [ l ]= Γ → Block Π Γ → Program Π → Program Π
-  blocks-empty : Program Π
+data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
+  block-halt            : Block Π Γ Γ
+  block-seq             : ∀ {Γ′ Γ''} → Π ⊢ Γ ⇒ Γ′ → Block Π Γ′ Γ'' → Block Π Γ Γ''
+  block-jump            : ∀ {l Γ₁ Γ'} → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Block Π Γ Γ'
 
--}
+Program : PCtx → Set
+Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π

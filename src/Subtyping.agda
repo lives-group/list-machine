@@ -13,7 +13,7 @@ module Subtyping where
 
 data _<:_ : Ty → Ty → Set where
   <:-refl : ∀ {t} → t <: t
-  <:-nil  : ∀ {t} → nil <: t
+  <:-nil  : ∀ {t} → nil <: list t
   <:-list : ∀ {t t'} →
             t <: t'  →
             (list t) <: (list t')
@@ -40,7 +40,9 @@ list-mixed-<:-inv (<:-listmixed p) = p
 -- subtyping test
 
 _<:?_ : Decidable {A = Ty} _<:_
-nil <:? t' = yes <:-nil
+nil <:? nil = yes <:-refl
+nil <:? list t' = yes <:-nil
+nil <:? listcons t' = no (λ ())
 list t <:? nil = no (λ ())
 list t <:? list t' with t <:? t'
 ...| yes t<:t' = yes (<:-list t<:t')
@@ -58,7 +60,9 @@ listcons t <:? listcons t' with t <:? t'
 -- properties of subtyping
 
 <:-trans : ∀ {t1 t2 t3} → t1 <: t2 → t2 <: t3 → t1 <: t3
-<:-trans {nil} {t2} {t3} p1 p2 = <:-nil
+<:-trans {nil} {.nil} {t3} <:-refl p2 = p2
+<:-trans {nil} {.(list _)} {.(list _)} <:-nil <:-refl = <:-nil
+<:-trans {nil} {.(list _)} {.(list _)} <:-nil (<:-list p2) = <:-nil
 <:-trans {list t1} {list .t1} {t3} <:-refl p2 = p2
 <:-trans {list t1} {list t2} {.(list t2)} (<:-list p1) <:-refl = <:-list p1
 <:-trans {list t1} {list t2} {.(list _)} (<:-list p1) (<:-list p2) = <:-list (<:-trans p1 p2)

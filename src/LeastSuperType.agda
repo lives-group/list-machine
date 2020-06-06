@@ -36,7 +36,7 @@ data _⊓_~_ : Ty → Ty → Ty → Set where
 -- relating subtyping and least types
 
 lub-subtype : ∀ {t1 t2 t3} → t1 ⊓ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
-lub-subtype {nil} {nil} {t3} p = <:-nil , <:-nil
+lub-subtype {nil} {nil} {.nil} lub-0 = <:-refl , <:-refl
 lub-subtype {nil} {list t2} {.(list t2)} lub-4 = <:-nil , <:-refl
 lub-subtype {nil} {listcons t2} {.(list t2)} lub-6 = <:-nil , <:-listcons <:-refl
 lub-subtype {list t1} {nil} {.(list t1)} lub-1 = <:-refl , <:-nil
@@ -68,6 +68,41 @@ lub-comm (lub-3 p) = lub-3 (lub-comm p)
 lub-comm lub-5 = lub-6
 lub-comm lub-6 = lub-5
 lub-comm (lub-7 p) = lub-7 (lub-comm p)
+
+
+lub-of-subtype : ∀ {τ₁ τ₂} → τ₁ <: τ₂ → τ₁ ⊓ τ₂ ~ τ₂
+lub-of-subtype <:-refl = lub-0
+lub-of-subtype <:-nil = lub-4
+lub-of-subtype (<:-list p) = lub-3 (lub-of-subtype p)
+lub-of-subtype (<:-listcons p) = lub-2b (lub-3 (lub-of-subtype p))
+lub-of-subtype (<:-listmixed p) = lub-7 (lub-of-subtype p)
+
+lub-subtype-left  : ∀ {τ₁ τ₂ τ₃} → τ₁ ⊓ τ₂ ~ τ₃ → τ₁ <: τ₃
+lub-subtype-left lub-0 = <:-refl
+lub-subtype-left lub-1 = <:-refl
+lub-subtype-left lub-4 = <:-nil
+lub-subtype-left (lub-2 p) = lub-subtype-left p
+lub-subtype-left (lub-2b lub-0) = lub-subtype-left lub-5
+lub-subtype-left (lub-2b (lub-3 p)) = <:-listcons (lub-subtype-left p)
+lub-subtype-left (lub-3 p) = <:-list (lub-subtype-left p)
+lub-subtype-left lub-5 = <:-listcons <:-refl
+lub-subtype-left lub-6 = <:-nil
+lub-subtype-left (lub-7 p) = <:-listmixed (lub-subtype-left p)
+
+lub-subtype-right : ∀ {τ₁ τ₂ τ₃} → τ₁ ⊓ τ₂ ~ τ₃ → τ₂ <: τ₃
+lub-subtype-right lub-0 = <:-refl
+lub-subtype-right lub-1 = <:-nil
+lub-subtype-right lub-4 = <:-refl
+lub-subtype-right (lub-2 lub-0) = lub-subtype-right lub-6
+lub-subtype-right (lub-2 (lub-3 p)) = <:-listcons (lub-subtype-right p)
+lub-subtype-right (lub-2b lub-0) = <:-refl
+lub-subtype-right (lub-2b (lub-3 p)) = <:-list (lub-subtype-right p)
+lub-subtype-right (lub-3 p) = <:-list (lub-subtype-right p)
+lub-subtype-right lub-5 = <:-nil
+lub-subtype-right lub-6 = <:-listcons <:-refl
+lub-subtype-right (lub-7 p) = <:-listmixed (lub-subtype-right p)
+
+
 
 -- calculating the least subtype
 
