@@ -1,9 +1,8 @@
-target: all
+default: pdf
 
-all : paper.lagda latex/makefile
-	agda paper.lagda --latex --only-scope-checking
-	$(MAKE) -C latex
-
-clean:
-	rm *.agdai
-	$(MAKE) -C latex clean
+pdf:
+	lhs2TeX --agda paper.lagda > paper.tex
+	pdflatex paper
+	pdflatex paper
+	bibtex paper
+	pdflatex paper

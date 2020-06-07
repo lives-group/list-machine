@@ -34,7 +34,6 @@ ENTRY
     institution
     journal
     key
-    location
     month
     note
     number
@@ -426,44 +425,6 @@ FUNCTION { output.coden }       % UTAH
   if$
 }
 
-%
-% Sometimes articleno starts with the word 'Article' or 'Paper.
-% (this is a bug of acmdl, sigh)
-% We strip them.  We assume eid or articleno is already on stack
-%
-
-FUNCTION { strip.articleno.or.eid }
-{
-  't :=
-  t #1 #7 substring$ "Article" = 
-    {t #8 t text.length$ substring$ 't :=}
-    { }
-  if$
-  t #1 #7 substring$ "article" = 
-    {t #8 t text.length$ substring$ 't :=}
-    { }
-  if$
-  t #1 #5 substring$ "Paper" = 
-    {t #6 t text.length$ substring$ 't :=}
-    { }
-  if$
-  t #1 #5 substring$ "paper" = 
-    {t #6 t text.length$ substring$ 't :=}
-    { }
-  if$
-  % Strip any left trailing space or ~
-  t #1 #1 substring$ " " =
-    {t #2 t text.length$ substring$ 't :=}
-    { }
-  if$ 
-  t #1 #1 substring$ "~" =
-    {t #2 t text.length$ substring$ 't :=}
-    { }
-  if$
-  t 
-}
-
-
 FUNCTION { format.articleno }
 {
   articleno empty.or.unknown not eid empty.or.unknown not and
@@ -479,8 +440,8 @@ FUNCTION { format.articleno }
           { }
         if$
         eid empty.or.unknown
-          { "Article \bibinfo{articleno}{" articleno strip.articleno.or.eid * "}" * }
-          { "Article \bibinfo{articleno}{" eid strip.articleno.or.eid * "}" * }
+          { "Article \bibinfo{articleno}{" articleno * "}" * }
+          { "Article \bibinfo{articleno}{" eid * "}" * }
         if$
      }
   if$
@@ -717,15 +678,16 @@ FUNCTION { output.eprint } %
            }
            { "[" archiveprefix "l" change.case$ "]" * * * }
          if$
-	 "{" eprint "}" * * *
+         "{" *
          primaryclass empty.or.unknown
            { eprintclass empty.or.unknown
              { }
-             { "~[" eprintclass "]" * * * }
+             { eprintclass "/" * * }
              if$
            }
-           { "~[" primaryclass "]" * * * }
+           { primaryclass "/" * * }
          if$
+         eprint "}" * *
          writeln
     }
   if$
@@ -1270,8 +1232,6 @@ FUNCTION { format.btitle }
 FUNCTION { format.emphasize.booktitle }
 { booktitle format.a.title.with.edition }
 
-
-
 FUNCTION { format.city }
 {
   % jtb: if the preceding string (the title of the conference) is non-empty,
@@ -1281,7 +1241,7 @@ FUNCTION { format.city }
   duplicate$ empty.or.unknown
     { }
     {
-      city empty.or.unknown location empty.or.unknown and
+      city empty.or.unknown
         {
           date empty.or.unknown
             { }
@@ -1289,19 +1249,9 @@ FUNCTION { format.city }
           if$
         }
         {
-          location empty.or.unknown
-            {
-              date empty.or.unknown
-                { " (" * city * ")" * }
-                { " (" * city * ", " * date * ")" * }
-              if$
-            }
-            {
-              date empty.or.unknown
-                { " (" * location * ")" * }
-                { " (" * location * ", " * date * ")" * }
-              if$
-            }
+          date empty.or.unknown
+            { " (" * city * ")" * }
+            { " (" * city * ", " * date * ")" * }
           if$
         }
       if$
@@ -1358,19 +1308,7 @@ FUNCTION { format.series }
 {
   series empty.or.unknown
     {""}
-    {" \emph{(\bibinfo{series}{" * series "}" *
-     volume empty.or.unknown
-       {
-         number empty.or.unknown
-            {")}" *}
-            {", \bibinfo{number}{" number "})}" * * *}
-          if$
-       }
-       {", Vol.~\bibinfo{volume}{" volume "})}" * * *
-        "volume and number" number either.or.check
-       }
-     if$
-    }
+    {" \emph{(\bibinfo{series}{" * series "})}" *}
   if$
 }
 
@@ -2302,10 +2240,7 @@ FUNCTION { inproceedings }
         { format.in.emphasize.booktitle format.city "booktitle"  output.check.dot.space
           format.series output.removenospace
           format.editors.fml output % BV 2011/09/27 Moved dot to comma
-          series empty.or.unknown
-              { format.bvolume.noseries output }
-              {}
-          if$
+          format.bvolume.noseries output
           new.sentence
           organization output
           publisher "publisher" bibinfo.output.check % jtb: require publisher (?)
@@ -2403,17 +2338,10 @@ FUNCTION { misc }
   fin.entry
 }
 
-FUNCTION { online } { manual }
+FUNCTION { online } { misc }
 
-FUNCTION { game } { manual }
+FUNCTION { game } { misc }
 
-FUNCTION { artifactsoftware } { manual }
-
-FUNCTION { artifactdataset } { manual }
-
-FUNCTION { software } { manual }
-
-FUNCTION { dataset } { manual }
 
 FUNCTION { phdthesis }
 {

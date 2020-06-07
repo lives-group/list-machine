@@ -1,0 +1,704 @@
+\documentclass[sigconf]{acmart}
+
+\usepackage{booktabs} % For formal tables
+\usepackage[utf8x]{inputenc}
+\usepackage{ucs}
+\usepackage{graphicx}
+\usepackage{amsmath,amsthm}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{stmaryrd}
+\usepackage{ifpdf}
+\ifpdf
+\usepackage{hyperref}
+\fi
+\usepackage{float}
+\usepackage{proof}
+
+% Copyright
+%\setcopyright{none}
+\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+%\setcopyright{rightsretained}
+%\setcopyright{usgov}
+%\setcopyright{usgovmixed}
+%\setcopyright{cagov}
+%\setcopyright{cagovmixed}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+\setcopyright{acmcopyright}
+\copyrightyear{2020}
+\acmYear{2020}
+
+
+\acmConference[SBLP '20]{SBLP '20: Brazilian Symposium on Programming Languages}{October 19--23, 2020}{Natal, Brazil}
+\acmBooktitle{SBLP '20: Brazilian Symposium on Programming Languages,
+  October 19--23, 2020, Natal, Brazil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% color formatting stuff %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newtheorem{Lemma}{Lemma}
+\newtheorem{Theorem}{Theorem}
+\theoremstyle{definition}
+\newtheorem{Example}{Example}
+
+\usepackage{color}
+\newcommand{\redFG}[1]{\textcolor[rgb]{0.6,0,0}{#1}}
+\newcommand{\greenFG}[1]{\textcolor[rgb]{0,0.4,0}{#1}}
+\newcommand{\blueFG}[1]{\textcolor[rgb]{0,0,0.8}{#1}}
+\newcommand{\orangeFG}[1]{\textcolor[rgb]{0.8,0.4,0}{#1}}
+\newcommand{\purpleFG}[1]{\textcolor[rgb]{0.4,0,0.4}{#1}}
+\newcommand{\yellowFG}[1]{\textcolor{yellow}{#1}}
+\newcommand{\brownFG}[1]{\textcolor[rgb]{0.5,0.2,0.2}{#1}}
+\newcommand{\blackFG}[1]{\textcolor[rgb]{0,0,0}{#1}}
+\newcommand{\whiteFG}[1]{\textcolor[rgb]{1,1,1}{#1}}
+\newcommand{\yellowBG}[1]{\colorbox[rgb]{1,1,0.2}{#1}}
+\newcommand{\brownBG}[1]{\colorbox[rgb]{1.0,0.7,0.4}{#1}}
+
+\newcommand{\ColourStuff}{
+  \newcommand{\red}{\redFG}
+  \newcommand{\green}{\greenFG}
+  \newcommand{\blue}{\blueFG}
+  \newcommand{\orange}{\orangeFG}
+  \newcommand{\purple}{\purpleFG}
+  \newcommand{\yellow}{\yellowFG}
+  \newcommand{\brown}{\brownFG}
+  \newcommand{\black}{\blackFG}
+  \newcommand{\white}{\whiteFG}
+}
+
+\newcommand{\MonochromeStuff}{
+  \newcommand{\red}{\blackFG}
+  \newcommand{\green}{\blackFG}
+  \newcommand{\blue}{\blackFG}
+  \newcommand{\orange}{\blackFG}
+  \newcommand{\purple}{\blackFG}
+  \newcommand{\yellow}{\blackFG}
+  \newcommand{\brown}{\blackFG}
+  \newcommand{\black}{\blackFG}
+  \newcommand{\white}{\blackFG}
+}
+
+\ColourStuff
+
+
+
+%%%%%%%%%%%%%%%%%%%%
+%% lhs2TeX stuff  %%
+%%%%%%%%%%%%%%%%%%%%
+
+
+%% ODER: format ==         = "\mathrel{==}"
+%% ODER: format /=         = "\neq "
+%
+%
+\makeatletter
+\@ifundefined{lhs2tex.lhs2tex.sty.read}%
+  {\@namedef{lhs2tex.lhs2tex.sty.read}{}%
+   \newcommand\SkipToFmtEnd{}%
+   \newcommand\EndFmtInput{}%
+   \long\def\SkipToFmtEnd#1\EndFmtInput{}%
+  }\SkipToFmtEnd
+
+\newcommand\ReadOnlyOnce[1]{\@ifundefined{#1}{\@namedef{#1}{}}\SkipToFmtEnd}
+\usepackage{amstext}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\DeclareFontFamily{OT1}{cmtex}{}
+\DeclareFontShape{OT1}{cmtex}{m}{n}
+  {<5><6><7><8>cmtex8
+   <9>cmtex9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmtex10}{}
+\DeclareFontShape{OT1}{cmtex}{m}{it}
+  {<-> ssub * cmtt/m/it}{}
+\newcommand{\texfamily}{\fontfamily{cmtex}\selectfont}
+\DeclareFontShape{OT1}{cmtt}{bx}{n}
+  {<5><6><7><8>cmtt8
+   <9>cmbtt9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmbtt10}{}
+\DeclareFontShape{OT1}{cmtex}{bx}{n}
+  {<-> ssub * cmtt/bx/n}{}
+\newcommand{\tex}[1]{\text{\texfamily#1}}	% NEU
+
+\newcommand{\Sp}{\hskip.33334em\relax}
+
+
+\newcommand{\Conid}[1]{\mathit{#1}}
+\newcommand{\Varid}[1]{\mathit{#1}}
+\newcommand{\anonymous}{\kern0.06em \vbox{\hrule\@width.5em}}
+\newcommand{\plus}{\mathbin{+\!\!\!+}}
+\newcommand{\bind}{\mathbin{>\!\!\!>\mkern-6.7mu=}}
+\newcommand{\rbind}{\mathbin{=\mkern-6.7mu<\!\!\!<}}% suggested by Neil Mitchell
+\newcommand{\sequ}{\mathbin{>\!\!\!>}}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\usepackage{polytable}
+
+%mathindent has to be defined
+\@ifundefined{mathindent}%
+  {\newdimen\mathindent\mathindent\leftmargini}%
+  {}%
+
+\def\resethooks{%
+  \global\let\SaveRestoreHook\empty
+  \global\let\ColumnHook\empty}
+\newcommand*{\savecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\savecolumns[#1]}}
+\newcommand*{\restorecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\restorecolumns[#1]}}
+\newcommand*{\aligncolumn}[2]%
+  {\g@addto@macro\ColumnHook{\column{#1}{#2}}}
+
+\resethooks
+
+\newcommand{\onelinecommentchars}{\quad-{}- }
+\newcommand{\commentbeginchars}{\enskip\{-}
+\newcommand{\commentendchars}{-\}\enskip}
+
+\newcommand{\visiblecomments}{%
+  \let\onelinecomment=\onelinecommentchars
+  \let\commentbegin=\commentbeginchars
+  \let\commentend=\commentendchars}
+
+\newcommand{\invisiblecomments}{%
+  \let\onelinecomment=\empty
+  \let\commentbegin=\empty
+  \let\commentend=\empty}
+
+\visiblecomments
+
+\newlength{\blanklineskip}
+\setlength{\blanklineskip}{0.66084ex}
+
+\newcommand{\hsindent}[1]{\quad}% default is fixed indentation
+\let\hspre\empty
+\let\hspost\empty
+\newcommand{\NB}{\textbf{NB}}
+\newcommand{\Todo}[1]{$\langle$\textbf{To do:}~#1$\rangle$}
+
+\EndFmtInput
+\makeatother
+%
+%
+%
+%
+%
+%
+% This package provides two environments suitable to take the place
+% of hscode, called "plainhscode" and "arrayhscode". 
+%
+% The plain environment surrounds each code block by vertical space,
+% and it uses \abovedisplayskip and \belowdisplayskip to get spacing
+% similar to formulas. Note that if these dimensions are changed,
+% the spacing around displayed math formulas changes as well.
+% All code is indented using \leftskip.
+%
+% Changed 19.08.2004 to reflect changes in colorcode. Should work with
+% CodeGroup.sty.
+%
+\ReadOnlyOnce{polycode.fmt}%
+\makeatletter
+
+\newcommand{\hsnewpar}[1]%
+  {{\parskip=0pt\parindent=0pt\par\vskip #1\noindent}}
+
+% can be used, for instance, to redefine the code size, by setting the
+% command to \small or something alike
+\newcommand{\hscodestyle}{}
+
+% The command \sethscode can be used to switch the code formatting
+% behaviour by mapping the hscode environment in the subst directive
+% to a new LaTeX environment.
+
+\newcommand{\sethscode}[1]%
+  {\expandafter\let\expandafter\hscode\csname #1\endcsname
+   \expandafter\let\expandafter\endhscode\csname end#1\endcsname}
+
+% "compatibility" mode restores the non-polycode.fmt layout.
+
+\newenvironment{compathscode}%
+  {\par\noindent
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed\)%
+   \par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\compaths}{\sethscode{compathscode}}
+
+% "plain" mode is the proposed default.
+% It should now work with \centering.
+% This required some changes. The old version
+% is still available for reference as oldplainhscode.
+
+\newenvironment{plainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newenvironment{oldplainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+% Here, we make plainhscode the default environment.
+
+\newcommand{\plainhs}{\sethscode{plainhscode}}
+\newcommand{\oldplainhs}{\sethscode{oldplainhscode}}
+\plainhs
+
+% The arrayhscode is like plain, but makes use of polytable's
+% parray environment which disallows page breaks in code blocks.
+
+\newenvironment{arrayhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\parray}%
+  {\endparray\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newcommand{\arrayhs}{\sethscode{arrayhscode}}
+
+% The mathhscode environment also makes use of polytable's parray 
+% environment. It is supposed to be used only inside math mode 
+% (I used it to typeset the type rules in my thesis).
+
+\newenvironment{mathhscode}%
+  {\parray}{\endparray}
+
+\newcommand{\mathhs}{\sethscode{mathhscode}}
+
+% texths is similar to mathhs, but works in text mode.
+
+\newenvironment{texthscode}%
+  {\(\parray}{\endparray\)}
+
+\newcommand{\texths}{\sethscode{texthscode}}
+
+% The framed environment places code in a framed box.
+
+\def\codeframewidth{\arrayrulewidth}
+\RequirePackage{calc}
+
+\newenvironment{framedhscode}%
+  {\parskip=\abovedisplayskip\par\noindent
+   \hscodestyle
+   \arrayrulewidth=\codeframewidth
+   \tabular{@{}|p{\linewidth-2\arraycolsep-2\arrayrulewidth-2pt}|@{}}%
+   \hline\framedhslinecorrect\\{-1.5ex}%
+   \let\endoflinesave=\\
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \framedhslinecorrect\endoflinesave{.5ex}\hline
+   \endtabular
+   \parskip=\belowdisplayskip\par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\framedhslinecorrect}[2]%
+  {#1[#2]}
+
+\newcommand{\framedhs}{\sethscode{framedhscode}}
+
+% The inlinehscode environment is an experimental environment
+% that can be used to typeset displayed code inline.
+
+\newenvironment{inlinehscode}%
+  {\(\def\column##1##2{}%
+   \let\>\undefined\let\<\undefined\let\\\undefined
+   \newcommand\>[1][]{}\newcommand\<[1][]{}\newcommand\\[1][]{}%
+   \def\fromto##1##2##3{##3}%
+   \def\nextline{}}{\) }%
+
+\newcommand{\inlinehs}{\sethscode{inlinehscode}}
+
+% The joincode environment is a separate environment that
+% can be used to surround and thereby connect multiple code
+% blocks.
+
+\newenvironment{joincode}%
+  {\let\orighscode=\hscode
+   \let\origendhscode=\endhscode
+   \def\endhscode{\def\hscode{\endgroup\def\@currenvir{hscode}\\}\begingroup}
+   %\let\SaveRestoreHook=\empty
+   %\let\ColumnHook=\empty
+   %\let\resethooks=\empty
+   \orighscode\def\hscode{\endgroup\def\@currenvir{hscode}}}%
+  {\origendhscode
+   \global\let\hscode=\orighscode
+   \global\let\endhscode=\origendhscode}%
+
+\makeatother
+\EndFmtInput
+%
+
+\DeclareMathAlphabet{\mathkw}{OT1}{cmss}{bx}{n}
+
+\newcommand{\D}[1]{\blue{\mathsf{#1}}}
+\newcommand{\Con}[1]{\red{\mathsf{#1}}}
+\newcommand{\F}[1]{\green{\mathsf{#1}}}
+\newcommand{\V}[1]{\purple{\mathit{#1}}}
+
+
+\begin{document}
+
+\title{A Certified Interpreter for the List Machine Benchmark}
+
+\author{Samuel Feitosa}
+\authornotemark[1]
+\email{samuel.feitosa@ifsc.edu.br}
+\affiliation{%
+  \institution{Departamento de Informática}
+  \streetaddress{Instituto Federal de Santa Catarina}
+  \city{Caçador}
+  \state{Santa Catarina}
+  \country{Brazil}
+}
+
+\author{Rodrigo Ribeiro}
+\email{rodrigo.ribeiro@ufop.edu.br}
+\affiliation{%
+  \institution{Prog. Pós Graduação em Ciência da Computação}
+  \streetaddress{Universidade Federal de Ouro Preto}
+  \city{Ouro Preto}
+  \state{Minas Gerais}
+  \country{Brazil}}
+
+
+\begin{abstract}
+This is the abstract...
+\end{abstract}
+
+\begin{CCSXML}\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\V{ccs2012>}{}\<[E]%
+\\
+\>[B]{}\V{concept>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 id>10011007.10011006.10011039.10011311</concept\char95 id>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 desc>Software}\;\V{and}\;\V{its}\;\V{engineering\char126 Semantics</concept\char95 desc>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 significance>500</concept\char95 significance>}{}\<[E]%
+\\
+\>[B]{}\V{/concept>}{}\<[E]%
+\\
+\>[B]{}\V{concept>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 id>10011007.10011006.10011041.10010943</concept\char95 id>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 desc>Software}\;\V{and}\;\V{its}\;\V{engineering\char126 Interpreters</concept\char95 desc>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 significance>500</concept\char95 significance>}{}\<[E]%
+\\
+\>[B]{}\V{/concept>}{}\<[E]%
+\\
+\>[B]{}\V{concept>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 id>10003752.10003790.10011740</concept\char95 id>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 desc>Theory}\;\V{of}\;\V{computation\char126 Type}\;\V{theory</concept\char95 desc>}{}\<[E]%
+\\
+\>[B]{}\V{concept\char95 significance>500</concept\char95 significance>}{}\<[E]%
+\\
+\>[B]{}\V{/concept>}{}\<[E]%
+\\
+\>[B]{}\V{/ccs2012>}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~Semantics}
+\ccsdesc[500]{Software and its engineering~Interpreters}
+\ccsdesc[500]{Theory of computation~Type theory}
+
+\keywords{Dependent types, formal semantics}
+
+\maketitle
+
+
+
+\section{Introduction}
+
+\section{An Overview of Agda}\label{sec:agda}
+
+Agda is a dependently-typed functional programming language based on
+Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
+and an infinite hierarchy of types of types, \ensuremath{\D{Set}\;\V{l}}, where \ensuremath{\V{l}} is a
+natural number, are built-in. Everything else is a user-defined
+type. The type \ensuremath{\D{Set}}, also known as \ensuremath{\D{Set}_{\D{0}}}, is the type of all
+``small'' types, such as \ensuremath{\D{Bool}}, \ensuremath{\D{String}} and \ensuremath{\D{List}\;\D{Bool}}.  The type
+\ensuremath{\D{Set}_{\D{1}}} is the type of \ensuremath{\D{Set}} and ``others like it'', such as \ensuremath{\D{Set}\;\to \;\D{Bool}}, \ensuremath{\D{String}\;\to \;\D{Set}}, and \ensuremath{\D{Set}\;\to \;\D{Set}}. We have that \ensuremath{\D{Set}\;\V{l}} is an
+element of the type \ensuremath{\D{Set}\;(\V{l+1})}, for every $l \geq 0$. This
+stratification of types is used to keep Agda consistent as a logical
+theory~\cite{Sorensen2006}.
+
+An ordinary (non-dependent) function type is written \ensuremath{\V{A}\;\to \;\V{B}} and a
+dependent one is written \ensuremath{(\V{x}\;\mathbin{:}\;\V{A})\;\to \;\V{B}}, where type \ensuremath{\V{B}} depends on
+\ensuremath{\V{x}}, or \ensuremath{\D{\forall}\;(\V{x}\;\mathbin{:}\;\V{A})\;\to \;\V{B}}. Agda allows the definition of \emph{implicit
+parameters}, i.e.,  parameters whose values can be inferred from the
+context, by surrounding them in curly braces: \ensuremath{\D{\forall}\;\{\mskip1.5mu \V{x}\;\mathbin{:}\;\V{A}\mskip1.5mu\}\;\to \;\V{B}}. To
+avoid clutter, we'll omit implicit arguments from the source code
+presentation. The reader can safely assume that every free variable in
+a type is an implicit parameter.
+
+As an example of Agda code, consider the following data type of
+length-indexed lists, also known as vectors.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\mathkw{data}\;\D{\mathbb{N}}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{zero}\;\mathbin{:}\;\D{\mathbb{N}}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{suc}\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{\mathbb{N}}{}\<[E]%
+\\[\blanklineskip]%
+\>[3]{}\mathkw{data}\;\D{Vec}\;(\V{A}\;\mathbin{:}\;\D{Set})\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{\lbrack\:\rbrack}\;{}\<[9]%
+\>[9]{}\mathbin{:}\;\D{Vec}\;\V{A}\;\Con{zero}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{\_::\_}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\to \;\V{A}\;\to \;\D{Vec}\;\V{A}\;\V{n}\;\to \;\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Constructor \ensuremath{\Con{\lbrack\:\rbrack}} builds empty vectors. The cons-operator (\ensuremath{\Con{\_::\_}})
+inserts a new element in front of a vector of $n$ elements (of type
+\ensuremath{\D{Vec}\;\V{A}\;\V{n}}) and returns a value of type \ensuremath{\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n})}. The
+\ensuremath{\D{Vec}} datatype is an example of a dependent type, i.e., a type
+that uses a value (that denotes its length). The usefulness of
+dependent types can be illustrated with the definition of a safe list
+head function: \ensuremath{\F{head}} can be defined to accept only non-empty
+vectors, i.e.,~values of type \ensuremath{\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n})}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\F{head}\;\mathbin{:}\;\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n})\;\to \;\V{A}{}\<[E]%
+\\
+\>[3]{}\F{head}\;(\V{x}\;\Con{::}\;\V{xs})\;\mathrel{=}\;\V{x}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+In \ensuremath{\F{head}}'s definition, constructor \ensuremath{\Con{\lbrack\:\rbrack}} is not used. The
+Agda type-checker can figure out, from \ensuremath{\F{head}}'s parameter type,
+that argument \ensuremath{\Con{\lbrack\:\rbrack}} to \ensuremath{\F{head}} is not type-correct.
+
+
+
+Another useful data type is the finite type, \ensuremath{\D{Fin}}\footnote{Note that Agda supports the overloading of data type constructor names.
+Constructor \ensuremath{\Con{zero}} can refer to type \ensuremath{\D{\mathbb{N}}} or \ensuremath{\D{Fin}}, depending on the
+context where the name is used.}, which is defined in
+Agda's standard library as:
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\mathkw{data}\;\D{Fin}\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{zero}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;(\Con{suc}\;\V{n}){}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{suc}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{Fin}\;(\Con{suc}\;\V{n}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Type \ensuremath{\D{Fin}\;\V{n}} has exactly \ensuremath{\V{n}} inhabitants
+(elements), i.e., it is isomorphic to the set $\{0,...,n - 1\}$.
+An application of such type is to define a safe vector
+lookup function, which avoids the access of invalid positions.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\F{lookup}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{A}\;\V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{Vec}\;\V{A}\;\V{n}\;\to \;\V{A}{}\<[E]%
+\\
+\>[3]{}\F{lookup}\;\Con{zero}\;(\V{x}\;\Con{::}\;\anonymous )\;\mathrel{=}\;\V{x}{}\<[E]%
+\\
+\>[3]{}\F{lookup}\;(\Con{suc}\;\V{idx})\;(\anonymous \;\Con{::}\;\V{xs})\;\mathrel{=}\;\F{lookup}\;\V{idx}\;\V{xs}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Thanks to the propositions-as-types principle,\footnote{It is also known as
+  Curry-Howard ``isomorphism''~\cite{Sorensen2006}.} we can interpret
+types as logical formulas and terms as proofs. An example is the
+representation of equality as the following Agda type:
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\mathkw{data}\;\D{\_ \equiv \_}\;\{\mskip1.5mu \V{l}\mskip1.5mu\}\;\{\mskip1.5mu \V{A}\;\mathbin{:}\;\D{Set}\;\V{l}\mskip1.5mu\}\;(\V{x}\;\mathbin{:}\;\V{A})\;\mathbin{:}\;\V{A}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{refl}\;\mathbin{:}\;\V{x}\;\D{\equiv}\;\V{x}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+This type is called propositional equality. It defines that there is
+a unique evidence for equality, constructor \ensuremath{\Con{refl}} (for reflexivity),
+that asserts that the only value equal to \ensuremath{\V{x}} is itself. Given a predicate \ensuremath{\V{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set}}
+and a vector \ensuremath{\V{xs}}, the type \ensuremath{\D{All}\;\V{P}\;\V{xs}} is used to build proofs that \ensuremath{\V{P}} holds for all
+elements in \ensuremath{\V{xs}} and it is defined as:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{6}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{41}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\mathkw{data}\;\D{All}\;(\V{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set})\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\;\to \;{}\<[41]%
+\>[41]{}\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{3}{}\<[6]%
+\>[6]{}\Con{\lbrack\:\rbrack}\;\mathbin{:}\;\D{All}\;\V{P}\;\Con{\lbrack\:\rbrack}{}\<[E]%
+\\
+\>[3]{}\hsindent{3}{}\<[6]%
+\>[6]{}\Con{\_::\_}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{x}\;\V{xs}\mskip1.5mu\}\;\to \;\V{P}\;\V{x}\;\to \;\D{All}\;\V{P}\;\V{xs}\;\to \;\D{All}\;\V{P}\;(\V{x}\;\Con{::}\;\V{xs}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+The first constructor specifies that \ensuremath{\D{All}\;\V{P}} holds for the empty vector and
+constructor \ensuremath{\Con{\_::\_}} builds a proof of \ensuremath{\D{All}\;\V{P}\;(\V{x}\;\Con{::}\;\V{xs})} from proofs of
+\ensuremath{\V{P}\;\V{x}} and \ensuremath{\D{All}\;\V{P}\;\V{xs}}. Since this type has the same structure of vectors,
+some functions on \ensuremath{\D{Vec}} have similar definitions for type \ensuremath{\D{All}}. As an example
+used in our formalization, consider the function \ensuremath{\F{lookup}}, which extracts a
+proof of \ensuremath{\V{P}} for the element at position \ensuremath{\V{v}\;\Con{::}\;\D{Fin}\;\V{n}} in a \ensuremath{\D{Vec}}:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\F{lookup}\;\mathbin{:}\;\{\mskip1.5mu \V{xs}\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{All}\;\V{P}\;\V{xs}\;\to \;\V{P}\;\V{x}{}\<[E]%
+\\
+\>[4]{}\F{lookup}\;\Con{zero}\;(\V{px}\;\Con{::}\;\anonymous )\;\mathrel{=}\;\V{px}{}\<[E]%
+\\
+\>[4]{}\F{lookup}\;(\Con{suc}\;\V{idx})\;(\anonymous \;\Con{::}\;\V{pxs})\;\mathrel{=}\;\F{lookup}\;\V{idx}\;\V{pxs}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+An important application of dependent types is to encode programming languages
+syntax. The role of dependent types in this domain is to encode programs that
+only allow well-typed and well-scoped terms~\cite{Benton2012}. Intuitively, we encode
+the static semantics of the object language in the host language AST's
+constructor, leaving the responsibility of checking type safety to the
+host's language type checker. As an example, consider the following simple
+expression language.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{7}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\mathkw{data}\;\D{Expr}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{True}\;\Con{False}\;\mathbin{:}\;\D{Expr}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{Num}\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{Expr}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{\_\land\_}\;\Con{\_+\_}\;\mathbin{:}\;\D{Expr}\;\to \;\D{Expr}\;\to \;\D{Expr}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Using this data type,\footnote{Agda supports the definition of mixfix operators.
+We can use underscores to mark arguments positions.} we can construct expressions
+that denote terms that should not be considered well-typed like
+\ensuremath{(\Con{Num}\;\V{1})\;\F{+}\;\Con{True}}. Using this approach, we need to specify the static semantics
+as another definition, which should consider all possible cases to avoid the
+definition of ill-typed terms.
+
+A better approach is to combine the static semantics and language syntax into
+a single definition, as shown below.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{7}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\mathkw{data}\;\D{Ty}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{Nat}\;\Con{Bool}\;\mathbin{:}\;\D{Ty}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}\mathkw{data}\;\D{Expr}\;\mathbin{:}\;\D{Ty}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{True}\;\Con{False}\;\mathbin{:}\;\D{Expr}\;\Con{Bool}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{Num}\;\mathbin{:}\;\Con{Nat}\;\to \;\D{Expr}\;\Con{Nat}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{\_\land\_}\;\mathbin{:}\;\D{Expr}\;\Con{Bool}\;\to \;\D{Expr}\;\Con{Bool}\;\to \;\D{Expr}\;\Con{Bool}{}\<[E]%
+\\
+\>[4]{}\hsindent{3}{}\<[7]%
+\>[7]{}\Con{\_+\_}\;\mathbin{:}\;\D{Expr}\;\Con{Nat}\;\to \;\D{Expr}\;\Con{Nat}\;\to \;\D{Expr}\;\Con{Nat}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+In this definition, the \ensuremath{\D{Expr}} type is indexed by a value of type \ensuremath{\D{Ty}} which
+indicates the type of the expression being built. In this approach, Agda's
+type system can enforce that only well-typed terms could be written.
+%A definition which uses the expression |(Num 1) + True| will be rejected by Agda's type checker automatically.
+Agda's type checker will automatically reject a definition which uses the expression \ensuremath{(\Con{Num}\;\V{1})\;\F{+}\;\Con{True}}.
+
+%Dependently typed pattern matching is built by using the so-called
+%|with| construct, that allows for matching intermediate
+%values~\cite{McBride2004}. If the matched value has a dependent type,
+%then its result can affect the form of other values. For example,
+%consider the following code that defines a type for natural number
+%parity. If the natural number is even, it can be represented as the
+%sum of two equal natural numbers; if it is odd, it is equal to one
+%plus the sum of two equal values. Pattern matching on a value of
+%|Parity n| allows to discover if $n = j + j$ or $n = S (k + k)$,
+%for some $j$ and $k$ in each branch of |with|.  Note that the
+%value of $n$ is specialized accordingly, using information ``learned''
+%by the type-checker.
+%\begin{spec}
+%data Parity : Nat -> Set where
+%   Even : forall {n : Nat} -> Parity (n + n)
+%   Odd  : forall {n : Nat} -> Parity (S (n + n))
+%
+%parity : (n : Nat) -> Parity n
+%parity = -- definition omitted
+
+%natToBin : Nat -> List Bool
+%natToBin zero = []
+%natToBin k with (parity k)
+%   natToBin (j + j)     | Even = false :: natToBin j
+%   natToBin (succ (j + j)) | Odd  = true  :: natToBin j
+%\end{spec}
+
+For further information about Agda, see~\cite{Norell2009,Stump16}.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{main}
+\end{document}
+\endinput
