@@ -9,6 +9,9 @@
 \usepackage{url}
 \usepackage{stmaryrd}
 \usepackage{ifpdf}
+\usepackage{mathtools}
+\usepackage{semantic}
+
 \ifpdf
 \usepackage{hyperref}
 \fi
@@ -141,7 +144,15 @@ module paper where
 
 
 \begin{abstract}
-This is the abstract...
+Formal models are an important tool in the programming languages research
+community. However, such models are full of intricacies and, due to that,
+they are subject to subtle errors. Such failures motivated the usage of
+tools to ensure the correctness of these formalisms. One way to eliminate
+such errors is to encode models in a dependently-typed language in order
+to ensure ``correctness-by-construction''.
+
+In this work, we use follow this idea to build the verified interpreter
+for the list machine benchmark in the Agda programming language.
 \end{abstract}
 
 \begin{CCSXML}
@@ -191,8 +202,35 @@ This is the abstract...
 
 \section{Introduction}
 
-\section{An Overview of Agda}\label{sec:agda}
+The development of new programming language design, linguistic construct
+or type system involves its careful formalization in order to express
+its core ideas in a concise way. However, such models have many details
+and complexities which hinders its correctness assurances.
+Because of such problems, the programming languages research community
+started to use tools, like proof assistants~\cite{Stump16,Chlipala13},
+and benchmark problems to validate them and stress its suitability for
+such tasks~\cite{Aydemir05,Pientka18,Appel07}.
 
+
+The rest of this paper is organized as follows. Section~\ref{sec:background}
+presents a brief introduction to Agda and reviews the list machine benchmark.
+In Section~\ref{sec:typing}, we
+describe the type system for PEGs and its relation with the original
+well-formedness predicate proposed by Ford~\cite{Ford2004}.
+Section~\ref{sec:interpreter} describes the intrinsically typed syntax for PEGs
+and its interpreter. Limitations of our approach are discussed
+in Section~\ref{sec:discussion}. Related work is discussed in
+Section~\ref{sec:related}, and Section~\ref{sec:conclusion} concludes.
+
+All the source code in this article has been formalized in Agda
+version 2.6.0 using Standard Library 1.0. All source code produced,
+including the \LaTeX~ source of this
+article, are available on-line~\cite{peg-rep}.
+
+
+\section{Background}\label{sec:background}
+
+\paragraph{An Overview of Agda}
 %format String = "\D{String}"
 %format Bool = "\D{Bool}"
 %format forall = "\D{\forall}"
@@ -314,7 +352,7 @@ constructor |_::_| builds a proof of |All P (x :: xs)| from proofs of
 |P x| and |All P xs|. Since this type has the same structure of vectors,
 some functions on |Vec| have similar definitions for type |All|. As an example
 used in our formalization, consider the function |lookup|, which extracts a
-proof of |P| for the element at position |v :: Fin n| in a |Vec|:
+proof of |P| for the element at position |v : Fin n| in a |Vec|:
 \begin{spec}
    lookup : {xs : Vec A n} -> Fin n -> All P xs -> P x
    lookup zero (px :: _) = px
@@ -397,6 +435,154 @@ Agda's type checker will automatically reject a definition which uses the expres
 %\end{spec}
 
 For further information about Agda, see~\cite{Norell2009,Stump16}.
+
+\paragraph{The List Machine Benchmark}
+
+\begin{equation}
+\inference{}
+          {(r, (\iota_1;\iota_2);\iota_3) \xmapsto{p} (r, \iota_1;(\iota_2;\iota_3))}[step-seq]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_0]=r'}
+          {(r, (\textbf{fetch-field}~v~0~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-0]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_1]=r'}
+          {(r, (\textbf{fetch-field}~v~1~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-1]
+\end{equation}
+
+\begin{equation}
+\inference{r(v_0) = a_0~~~r(v_1)=a_1~~~r[v':=cons(a_0,a_1)]=r'}
+          {(r, (\textbf{cons}~v_0~v_1~v';\iota)) \xmapsto{p} (r', \iota)}[step-cons]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)}
+          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota)}[step-branch-not-taken]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = nil~~~p(l)=\iota'}
+          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota')}[step-branch-taken]
+\end{equation}
+
+\begin{equation}
+\inference{p(l)=\iota'}
+          {(r, \textbf{jump}~l) \xmapsto{p} (r, \iota')}[step-jump]
+\end{equation}
+
+\begin{equation}
+\inference{(r, \iota) \xmapsto{p} (r', \iota')~~~(p, r', \iota')}
+          {(p, r, \iota) \Downarrow}[run-step]
+\end{equation}
+
+\begin{equation}
+\inference{}
+          {(p, r, \textbf{halt}) \Downarrow}[run-halt]
+\end{equation}
+
+\begin{equation}
+\inference{\{\}[\textbf{v}_0:=\text{nil}]=r~~~p(\textbf{L}_0)=\iota~~~(p,r,\iota)\Downarrow}
+          {p \Downarrow}[run-prog]
+\end{equation}
+
+%\subsection{Typing}
+
+%\subsubsection{Subtyping}
+
+\begin{equation}
+\inference{}
+          {\tau \subset \tau}[subtype-refl]
+\end{equation}
+
+\begin{equation}
+\inference{}
+          {\text{nil} \subset \text{list}~\tau}[subtype-nil]
+\end{equation}
+
+\begin{equation}
+\inference{\tau \subset \tau'}
+          {\text{list}~\tau \subset \text{list}~\tau'}[subtype-list]
+\end{equation}
+
+\begin{equation}
+\inference{\tau \subset \tau'}
+          {\text{listcons}~\tau \subset \text{list}~\tau'}[subtype-listcons]
+\end{equation}
+
+\begin{equation}
+\inference{\tau \subset \tau'}
+          {\text{listcons}~\tau \subset \text{listcons}~\tau'}[subtype-listmixed]
+\end{equation}
+
+%\subsubsection{Instruction typing}
+
+\begin{equation}
+\inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'~~~\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[check-instr-seq]
+\end{equation}
+
+\begin{equation}
+\inference{\Gamma(v) = \text{list}~\tau~~~\Pi(l) = \Gamma_1~~~\Gamma[v:=\text{nil}]=\Gamma'~~~\Gamma' \subset \Gamma_1}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}(v: \text{listcons}~\tau,~\Gamma')}[check-instr-branch-list]
+\end{equation}
+
+\begin{equation}
+\inference{\Gamma(v) = \text{listcons}~\tau~~~\Pi(l) = \Gamma_1~~~\Gamma[v:=\text{nil}]=\Gamma'~~~\Gamma' \subset \Gamma_1}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[check-instr-branch-listcons]
+\end{equation}
+
+\begin{equation}
+\inference{\Gamma(v) = \text{nil}~~~\Pi(l) = \Gamma_1~~~\Gamma \subset \Gamma_1}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[check-instr-branch-nil]
+\end{equation}
+
+\begin{equation}
+\inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\tau]=\Gamma'}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[check-instr-fetch-0]
+\end{equation}
+
+\begin{equation}
+\inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\text{list}~\tau]=\Gamma'}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[check-instr-fetch-1]
+\end{equation}
+
+\begin{equation}
+\inference{\Gamma(v_0) = \tau_0~~~~~~~~~\Gamma(v_1) = \tau_1 \\ (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau~~~\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[check-instr-cons]
+\end{equation}
+
+%\subsubsection{Block typings}
+
+\begin{equation}
+\inference{}
+          {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[check-block-halt]
+\end{equation}
+
+\begin{equation}
+\inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'~~~\Pi;\Gamma'\vdash_{\text{block}} \iota_2}
+          {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[check-block-seq]
+\end{equation}
+
+\begin{equation}
+\inference{\Pi(l)=\Gamma_1~~~\Gamma \subset \Gamma_1}
+          {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[check-block-jump]
+\end{equation}
+
+%\subsubsection{Program typings}
+
+\begin{equation}
+\inference{\Pi(l)=\Gamma~~~\Pi;\Gamma\vdash_{\text{block}} \iota~~~\Pi\vdash_{\text{blocks}} p}
+          {\Pi\vdash_{\text{blocks}} l: \iota;~p}[check-blocks-label]
+\end{equation}
+
+\begin{equation}
+\inference{}
+          {\Pi\vdash_{\text{blocks}} \textbf{end}}[check-blocks-empty]
+\end{equation}
+
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{main}
