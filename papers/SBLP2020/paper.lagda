@@ -205,35 +205,61 @@ for the list machine benchmark in the Agda programming language.
 The development of a new programming language design, linguistic construct
 or type system involves its careful formalization in order to express
 its core ideas in a concise way. However, such models have many details
-and complexities which hinders its correctness assurances.
+and complexities which can hinders its correctness assurances.
 Because of such problems, the programming languages research community
 started to use tools, like proof assistants~\cite{Stump16,Chlipala13},
 and benchmark problems to validate them and stress its suitability for
-such tasks~\cite{Aydemir05,Pientka18,Appel07}.
+such specification tasks~\cite{Aydemir05,Pientka18,Appel07}.
 
+A popular approach for specifying formal semantics is the
+use of definitional interpreters, which represents the meaning of a
+programming language as an interpreter written in some
+meta-language~\cite{Reynolds72}. A major advantage of such approach
+is the possibility of validating the semantics through execution.
+Recently, definitional interpreters were used to formalize type
+soundness theorems for some advanced typing features~\cite{Amin17}
+and the semantics of imperative programming languages in which static
+semantics is ensured by dependently-typed
+syntax\footnote{Also known as intrinsically-typed.}~\cite{Poulsen18}.
+In this work, we follow Poulsen et. al and use an intrinsically-typed
+representation to build a definitional interpreter for a low-level virtual
+machine developed by Appel and Leroy as a benchmark problem closer to
+real-world implementations like typed assembly languages~\cite{CraryM99} and
+proof carrying code~\cite{Necula97}.
 
-The rest of this paper is organized as follows. Section~\ref{sec:background}
-presents a brief introduction to Agda and reviews the list machine benchmark.
-In Section~\ref{sec:typing}, we
-describe the type system for PEGs and its relation with the original
-well-formedness predicate proposed by Ford~\cite{Ford2004}.
-Section~\ref{sec:interpreter} describes the intrinsically typed syntax for PEGs
-and its interpreter. Limitations of our approach are discussed
-in Section~\ref{sec:discussion}. Related work is discussed in
-Section~\ref{sec:related}, and Section~\ref{sec:conclusion} concludes.
+More specifically, we contribute:
+
+\begin{itemize}
+  \item We show how all the details of the list machine type system
+        can be encoded as dependently-typed syntax which avoids, by construction,
+        the presence of stuck states in its definitional interpreter.
+  \item We provide a provably correct implementations for testing the subtyping
+        relation and to calculate the least common super type of two input
+        types for the machine registers.
+\end{itemize}
+
+The rest of this paper is organized as follows. Section~\ref{sec:agda}
+presents a brief introduction to Agda and Section~\ref{sec:list}
+reviews the list machine benchmark and presents its syntax and type system.
+We describe the intrinsically-typed representation for the list machine syntax,
+the subtyping relation and the least common super type algorithm in
+Section~\ref{sec:typing}. The list machine semantics and its realization as
+a definitional interpreter are presented in Section~\ref{sec:semantics}.
+Related work is discussed in Section~\ref{sec:related},
+and Section~\ref{sec:conclusion} concludes.
 
 All the source code in this article has been formalized in Agda
-version 2.6.0 using Standard Library 1.0. All source code produced,
-including the \LaTeX~ source of this
-article, are available on-line~\cite{peg-rep}.
+version 2.6.1 using Standard Library 1.3. All source code produced,
+including the \LaTeX~source of this article, are available
+on-line~\cite{list-rep}.
 
 
-\section{Background}\label{sec:background}
+\section{An Overview of Agda}\label{sec:agda}
 
-\paragraph{An Overview of Agda}
 %format String = "\D{String}"
 %format Bool = "\D{Bool}"
 %format forall = "\D{\forall}"
+
 Agda is a dependently-typed functional programming language based on
 Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
 and an infinite hierarchy of types of types, |Set l|, where |l| is a
@@ -436,7 +462,7 @@ Agda's type checker will automatically reject a definition which uses the expres
 
 For further information about Agda, see~\cite{Norell2009,Stump16}.
 
-\paragraph{The List Machine Benchmark}
+\section{The List Machine Benchmark}\label{sec:list}
 
 \begin{equation}
 \inference{}
@@ -582,6 +608,15 @@ For further information about Agda, see~\cite{Norell2009,Stump16}.
 \inference{}
           {\Pi\vdash_{\text{blocks}} \textbf{end}}[check-blocks-empty]
 \end{equation}
+
+\section{Instrinsically-typed syntax}\label{sec:typing}
+
+\section{A definitional interpreter}\label{sec:semantics}
+
+\section{Related work}\label{sec:related}
+
+\section{Conclusion}\label{sec:conclusion}
+
 
 
 \bibliographystyle{ACM-Reference-Format}
