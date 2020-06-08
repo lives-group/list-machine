@@ -366,6 +366,13 @@
 
 \begin{document}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%% Title and authors %%
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
 \title{A Certified Interpreter for the List Machine Benchmark}
 
 \author{Samuel Feitosa}
@@ -389,6 +396,12 @@
   \country{Brazil}}
 
 
+%%%%%%%%%%%%%%%%%%%%%%%
+%% Abstract          %%
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
 \begin{abstract}
 Formal models are important tools in the programming languages research
 community. However, such models are full of intricacies and, due to that,
@@ -400,6 +413,13 @@ to ensure its ``correctness-by-construction''.
 In this work, we use this idea to build a verified interpreter
 for the list machine benchmark in the Agda programming language.
 \end{abstract}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ACM codes for areas %%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 \begin{CCSXML}\begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -448,6 +468,12 @@ for the list machine benchmark in the Agda programming language.
 \keywords{Dependent types, formal semantics}
 
 \maketitle
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%% Introduction      %%
+%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
@@ -503,6 +529,12 @@ All the source code in this article has been formalized in Agda
 version 2.6.1 using Standard Library 1.3. All source code produced,
 including the \LaTeX~source of this article, are available
 on-line~\cite{list-rep}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%% Overview of Agda  %%
+%%%%%%%%%%%%%%%%%%%%%%%
+
 
 
 \section{An Overview of Agda}\label{sec:agda}
@@ -578,11 +610,11 @@ that argument \ensuremath{\Con{\lbrack\:\rbrack}} to \ensuremath{\F{head}} is no
 
 
 
-Another useful data type is the finite type, \ensuremath{\D{Fin}}\footnote{Note that Agda supports the overloading of data type constructor names.
-Constructor \ensuremath{\Con{zero}} can refer to type \ensuremath{\D{\mathbb{N}}} or \ensuremath{\D{Fin}}, depending on the
-context where the name is used.}, which is defined in
-Agda's standard library as:
-
+Another useful data type is the finite type,
+\ensuremath{\D{Fin}}\footnote{Note that Agda supports the overloading of
+data type constructor names. Constructor \ensuremath{\Con{zero}} can refer to
+type \ensuremath{\D{\mathbb{N}}} or \ensuremath{\D{Fin}}, depending on the context where the name
+is used.}, which is defined in Agda's standard library as:
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -762,7 +794,78 @@ Agda's type checker will automatically reject a definition which uses the expres
 
 For further information about Agda, see~\cite{Norell2009,Stump16}.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% List machine benchmark %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 \section{The List Machine Benchmark}\label{sec:list}
+
+The list machine is a simple pointer virtual machine whose values
+are empty lists and cons-cells:
+\[
+a ::= nil\,\mid\,cons(a_1,a_2)
+\]
+We let meta-variable $a$ to denote an arbitrary value, $v$ denotes a variable
+and $l$ a program label. Following common practice, all meta-variables can
+appear primed or subscripted. The syntax of the virtual machine instructions are
+presented next and their meaning is as usual.
+\[
+\begin{array}{rcll}
+  i & ::=  & \text{jump }l                       & \text{(jump instruction)}\\
+    & \mid & \text{branch-if-nil $v$}            & \text{(if $v = nil$ goto $l$)}\\
+    & \mid & \text{fetch-field $v$ 0 $v'$}       & \text{(fetch the head of $v$ into $v'$)}\\
+    & \mid & \text{fetch-field  $v$ 1 $v'$}      & \text{(fetch the tail of $v$ into $v'$)}\\
+    & \mid & \text{cons $v_0$ $v_1$ $v'$}        & \text{(make a cons cell in v')} \\
+    & \mid & \text{halt}                         & \text{(finishes execution)}\\
+    & \mid & i_1;i_2                             & \text{(sequential composition)}\\
+  p & ::=  & l_i \,:\,i\,;\,p                    & \text{(program: sequence of blocks)}\\
+    & \mid & \text{end}                          & \text{(end of block list)}\\
+\end{array}
+\]
+Programs are just a sequence of blocks which begin with a unique label. 
+
+Each program variable is assigned a list type which is used to guarantee the safety of execute
+fetch-field that demands non-empty list arguments and branch instructions refine the argument type
+according to which branch is taken. In order to express such refinements, types are subject to a
+subtyping relation. We let the meta-variable $\tau$ denote an arbitrary type. 
+\[
+\begin{array}{rcll}
+  \tau & ::=  & \text{nil} & \text{(type for empty lists)}\\
+       & \mid & \text{list }\tau & \text{(lists whose elements have type $\tau$)}\\
+       & \mid & \text{listcons }\tau & \text{(non-empty lists of $\tau$)}\\
+\end{array}
+\]
+We let notation $\tau \subset \tau'$
+denote the subtyping judgement which is defined as follows.
+\[
+\begin{array}{ccc}
+  \inference{}
+            {\tau\subset \tau}
+            [refl]
+  &
+  \inference{}
+            {nil \subset \tau}
+            [nil]
+  &
+  \inference{\tau \subset \tau'}
+            {list\:\tau\subset list\:\tau'}
+            [list]\\\\
+  \multicolumn{3}{c}{
+  \inference{\tau \subset \tau'}
+            {listcons\:\tau\subset list\:\tau'}
+            [listcons]} \\\\
+            \multicolumn{3}{c}{
+            \inference{\tau \subset \tau'}
+            {listcons\:\tau\subset listcons\:\tau'}
+            [mixed]} \\\\
+\end{array}
+\]
+Basically, the subtyping relation specifies that $nil$ (empty list type) is
+subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
+
+
 
 \begin{equation}
 \inference{}
