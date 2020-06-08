@@ -144,14 +144,14 @@ module paper where
 
 
 \begin{abstract}
-Formal models are an important tool in the programming languages research
+Formal models are important tools in the programming languages research
 community. However, such models are full of intricacies and, due to that,
 they are subject to subtle errors. Such failures motivated the usage of
 tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
-to ensure ``correctness-by-construction''.
+to ensure its ``correctness-by-construction''.
 
-In this work, we use follow this idea to build the verified interpreter
+In this work, we use this idea to build a verified interpreter
 for the list machine benchmark in the Agda programming language.
 \end{abstract}
 
@@ -202,7 +202,7 @@ for the list machine benchmark in the Agda programming language.
 
 \section{Introduction}
 
-The development of new programming language design, linguistic construct
+The development of a new programming language design, linguistic construct
 or type system involves its careful formalization in order to express
 its core ideas in a concise way. However, such models have many details
 and complexities which hinders its correctness assurances.
