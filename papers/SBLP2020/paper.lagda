@@ -258,10 +258,12 @@ More specifically, we contribute:
 \begin{itemize}
   \item We show how all the details of the list machine type system
         can be encoded as dependently-typed syntax which avoids, by construction,
-        the presence of stuck states in its definitional interpreter.
+        the presence of stuck states in its definitional interpreter. In essence,
+        the defined interpreter is a type soundness theorem for the
+        list machine~\cite{Amin17}.
   \item We provide a provably correct implementations for testing the subtyping
         relation and to calculate the least common super type of two input
-        types for the machine registers.
+        types.
 \end{itemize}
 
 The rest of this paper is organized as follows. Section~\ref{sec:agda}
@@ -463,7 +465,8 @@ In this definition, the |Expr| type is indexed by a value of type |Ty| which
 indicates the type of the expression being built. In this approach, Agda's
 type system can enforce that only well-typed terms could be written.
 %A definition which uses the expression |(Num 1) + True| will be rejected by Agda's type checker automatically.
-Agda's type checker will automatically reject a definition which uses the expression |(Num 1) + True|.
+Agda's type checker will automatically reject a definition which
+uses the expression |(Num 1) + True|.
 
 %Dependently typed pattern matching is built by using the so-called
 %|with| construct, that allows for matching intermediate
@@ -564,87 +567,11 @@ denote the subtyping judgement which is defined as follows.
 \]
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
+The other rules shows the that the $list$ and $listcons$ type constructors are
+compatible with subtyping relation.
 
 
 
-\begin{equation}
-\inference{}
-          {(r, (\iota_1;\iota_2);\iota_3) \xmapsto{p} (r, \iota_1;(\iota_2;\iota_3))}[step-seq]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_0]=r'}
-          {(r, (\textbf{fetch-field}~v~0~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-0]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_1]=r'}
-          {(r, (\textbf{fetch-field}~v~1~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-1]
-\end{equation}
-
-\begin{equation}
-\inference{r(v_0) = a_0~~~r(v_1)=a_1~~~r[v':=cons(a_0,a_1)]=r'}
-          {(r, (\textbf{cons}~v_0~v_1~v';\iota)) \xmapsto{p} (r', \iota)}[step-cons]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)}
-          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota)}[step-branch-not-taken]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = nil~~~p(l)=\iota'}
-          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota')}[step-branch-taken]
-\end{equation}
-
-\begin{equation}
-\inference{p(l)=\iota'}
-          {(r, \textbf{jump}~l) \xmapsto{p} (r, \iota')}[step-jump]
-\end{equation}
-
-\begin{equation}
-\inference{(r, \iota) \xmapsto{p} (r', \iota')~~~(p, r', \iota')}
-          {(p, r, \iota) \Downarrow}[run-step]
-\end{equation}
-
-\begin{equation}
-\inference{}
-          {(p, r, \textbf{halt}) \Downarrow}[run-halt]
-\end{equation}
-
-\begin{equation}
-\inference{\{\}[\textbf{v}_0:=\text{nil}]=r~~~p(\textbf{L}_0)=\iota~~~(p,r,\iota)\Downarrow}
-          {p \Downarrow}[run-prog]
-\end{equation}
-
-%\subsection{Typing}
-
-%\subsubsection{Subtyping}
-
-\begin{equation}
-\inference{}
-          {\tau \subset \tau}[subtype-refl]
-\end{equation}
-
-\begin{equation}
-\inference{}
-          {\text{nil} \subset \text{list}~\tau}[subtype-nil]
-\end{equation}
-
-\begin{equation}
-\inference{\tau \subset \tau'}
-          {\text{list}~\tau \subset \text{list}~\tau'}[subtype-list]
-\end{equation}
-
-\begin{equation}
-\inference{\tau \subset \tau'}
-          {\text{listcons}~\tau \subset \text{list}~\tau'}[subtype-listcons]
-\end{equation}
-
-\begin{equation}
-\inference{\tau \subset \tau'}
-          {\text{listcons}~\tau \subset \text{listcons}~\tau'}[subtype-listmixed]
-\end{equation}
 
 %\subsubsection{Instruction typing}
 
