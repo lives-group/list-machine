@@ -1,6 +1,6 @@
 open import Data.List
 open import Data.Product
-open import Data.String
+open import Data.String renaming (_≟_ to _≟s_)
 
 open import Function
 
@@ -35,38 +35,16 @@ data _⊂_ : Ctx → Ctx → Set where
 ⊂-[]-left : ∀ {t Γ} → ¬ ([] ⊂ (t ∷ Γ))
 ⊂-[]-left (env-sub1 () x₁ p)
 
-⊂-∷-inv : ∀ {t t' Γ Γ' x} → ((x , t) ∷ Γ) ⊂ ((x , t') ∷ Γ') → (t <: t') × (Γ ⊂ Γ')
-⊂-∷-inv (env-sub1 refl x₁ p) = x₁ , p
+⊂-∷-inv : ∀ {t t' Γ Γ' x x'} → ((x , t) ∷ Γ) ⊂ ((x' , t') ∷ Γ') → (x ≡ x') × (t <: t') × (Γ ⊂ Γ')
+⊂-∷-inv (env-sub1 refl x₁ p) = refl , x₁ , p
 
 -- decidability of subtyping between contexts
 
-open import Data.String.Properties
-
-postulate 
-  _⊂?_ : Decidable {A = Ctx} _⊂_
-
-{-
-Γ ⊂? [] = yes env-sub2
-[] ⊂? ((x , t) ∷ Γ') = no ⊂-[]-left
-((x , t) ∷ Γ) ⊂? ((x' , t') ∷ Γ') with x Data.String.≟ x' | t <:? t' | Γ ⊂? Γ'
-... | yes refl | yes t<:t' | yes Γ⊂Γ' = yes (env-sub1 refl t<:t' Γ⊂Γ')
-... | no neq | _ | _ = no (neq ∘ {!!})
-... | _ | no neq | _ = no (neq ∘ proj₁ ∘ {!!})
-... | _ | _ | no neq = no (neq ∘ proj₂ ∘ {!⊂-∷-inv!})
--}
-
-{-
-...| yes t<:t' | yes Γ⊂Γ' = yes (env-sub1 refl t<:t' Γ⊂Γ')
-...| no  neq   | _        = no (neq ∘ proj₁ ∘ ⊂-∷-inv)
-...| _         | no neq   = no (neq ∘ proj₂ ∘ ⊂-∷-inv)
--}
-
-{-
 _⊂?_ : Decidable {A = Ctx} _⊂_
 Γ ⊂? [] = yes env-sub2
-[] ⊂? ((x , t) ∷ Γ') = no ⊂-[]-left
-((x , t) ∷ Γ) ⊂? ((x' , t') ∷ Γ') with t <:? t' | Γ ⊂? Γ'
-...| yes t<:t' | yes Γ⊂Γ' = yes (env-sub1 refl t<:t' Γ⊂Γ')
-...| no  neq   | _        = no (neq ∘ proj₁ ∘ ⊂-∷-inv)
-...| _         | no neq   = no (neq ∘ proj₂ ∘ ⊂-∷-inv)
--}
+[] ⊂? ((s , t) ∷ Γ') = no ⊂-[]-left
+((s , t) ∷ Γ) ⊂? ((s' , t') ∷ Γ') with s ≟s s' | t <:? t' | Γ ⊂? Γ' 
+...| yes refl | yes p    | yes q    = yes (env-sub1 refl p q)
+...| yes refl | yes p    | no neq   = no (neq ∘ proj₂ ∘ proj₂ ∘ ⊂-∷-inv)
+...| yes refl | no  neq  | _        = no (neq ∘ proj₁ ∘ proj₂ ∘ ⊂-∷-inv)
+...| no  neq  | _        | _        = no (neq ∘ proj₁ ∘ ⊂-∷-inv)
