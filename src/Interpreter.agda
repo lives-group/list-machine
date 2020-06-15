@@ -49,7 +49,7 @@ data Val : Ty → Set where
 -- execution environments
 
 Env : Ctx → Set
-Env Γ = All Val Γ
+Env Γ = All (λ (x , τ) → Val τ) Γ
 
 -- subsumption for contexts
 
@@ -62,7 +62,7 @@ PEnv Π = Allv Env Π
 
 -- updating the environment
 
-update-env : ∀ {τ τ′ Γ} → Env Γ → (i : τ′ ∈ Γ) → Val τ → Env (i ∷= τ)
+update-env : ∀ {τ τ′ Γ x} → Env Γ → (i : (x , τ′) ∈ Γ) → Val τ → Env (i ∷= (x , τ))
 update-env (x All.∷ xs) (here px₁) v = v All.∷ xs
 update-env (x All.∷ xs) (there i) v = x All.∷ update-env xs i v
 
@@ -83,7 +83,7 @@ run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b) rewrite sy
 run-step (suc n) p env (block-seq (instr-fetch-0-new v) b) with lookup env v
 ...| v₁ ∷ v₂ = run-step n p (v₁ ∷ env) b
 run-step (suc n) p env (block-seq (instr-fetch-0-upd {τ} v v') b) with lookup env v
-...| v₁ ∷ v₂ = run-step n p (update-env env v' v₂) b
+...| v₁ ∷ v₂ = run-step n p (update-env env v' v₁) b
 run-step (suc n) p env (block-seq (instr-fetch-1-new v) b) with lookup env v
 ...| v₁ ∷ v₂ = run-step n p (v₂ ∷ env) b
 run-step (suc n) p env (block-seq (instr-fetch-1-upd v v') b) with lookup env v
