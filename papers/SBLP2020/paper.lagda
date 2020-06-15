@@ -723,9 +723,9 @@ subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
 
 In this section we present the design choices and the steps we took to represent the intrinsically-typed syntax for the list-machine benchmark. We present here the Agda code used in our definitions, not necessarily in a strict lexically-scoped order.
 
-As a design choice, we dropped all names, using \emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings} for labels and variables. This way, we guarantee that names are always well-scoped.
+Some definitions and rules have been slightly tweaked so that they are accepted by the Agda's type-checker. As a design choice, we dropped all names, using \emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings} for labels and variables. This way, we guarantee that names are always well-scoped.
 
-We started our formalization by defining a type |Ty|.
+We started our formalization by defining a type |Ty|, indicating the possible types for the list-machine language.
 
 \begin{spec}
 data Ty : Set where
@@ -736,7 +736,7 @@ data Ty : Set where
 
 We internalize the list-machine type judgments for blocks and instructions in Agda together with its syntax in such a way where only well-typed terms that satisfy typing judgments have meaning. This approach makes the AST contain both syntactic and semantic properties.
 
-To be well-typed, the list-machine syntax needs to check information from two sources: (1) a type context encoded as a list of types to store variable types; and (2) and a program context encoded as a vector\footnote{We use the |Vec| datatype indexed by a |n| which is bound on the module definition and represents the number of labels in the current program.} of type contexts to represent the types of the variables on entry to each basic block.
+To be well-typed, the list-machine syntax needs to refer to information from two sources: (1) a type context encoded as a list of types to store variable types; and (2) and a program context encoded as a vector\footnote{We use the |Vec| datatype indexed by a |n| which is bound on the module definition and represents the number of labels in the current program.} of type contexts to represent the types of the variables on entry to each basic block.
 
 %format Ctx = "\D{Ctx}"
 %format PCtx = "\D{PCtx}"
@@ -749,9 +749,19 @@ PCtx : Set
 PCtx = Vec Ctx n
 \end{spec}
 
-In Agda we use \emph{indexed inductive types} to define the intrinsically-typed syntax. The representation of expressions is defined in the following code.
-
 %format _⊢_⇒_ = "\D{\_\vdash\_\Rightarrow\_}"
+%format Block = "\D{Block}"
+%format Π = "\V{\Pi}"
+%format Γ = "\V{\Gamma}"
+%format Γ' = "\V{\Gamma''}"
+%format ι = "\V{\iota}"
+
+As we saw in the previous section, the typing rules of the list-machine language were split in two segments, one for instructions and one for blocks. We defined two datatypes (|_⊢_⇒_| and |Block|) to hold the well-typed terms accordingly, representing each judgment of the static semantics as a syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
+
+Both definitions are \emph{parameterized} by a program context and a typing context, and \emph{indexed}\footnote{An index can vary in the result types of the different constructors, while a parameter cannot.} by a resulting typing context. The intuition is that, under program-typing |Π|, the \emph{Hoare triple} |Γ{ι}Γ'| relates precondition |Γ| to postcondition |Γ'|. It is important to note that instead of manipulating syntax directly, the meta-program manipulates structures representing the type judgments as well. Such representation scheme makes the Agda's type-checker allow only well-typed blocks and instructions to be created and manipulated.
+
+The representation of instructions is defined as follows.
+
 %format ∈ = "\D{\in}"
 %format ⊓ = "\D{\sqcap}"
 %format ~ = "\D{\sim}"
@@ -762,10 +772,9 @@ In Agda we use \emph{indexed inductive types} to define the intrinsically-typed 
 %format ⊢ = "\D{\vdash}"
 %format ⇒ = "\D{\Rightarrow}"
 %format ⊂ = "\D{\subset}"
+%format [ = "\D{[}"
+%format ]= = "\D{]=}"
 
-%format Π = "\V{\Pi}"
-%format Γ = "\V{\Gamma}"
-%format Γ' = "\V{\Gamma''}"
 %format Γ'' = "\V{\Gamma''''}"
 %format Γ₁ = "\V{\Gamma_1}"
 %format τ = "\V{\tau}"
@@ -791,35 +800,53 @@ In Agda we use \emph{indexed inductive types} to define the intrinsically-typed 
 data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
   instr-seq              : ∀ {Γ' Γ''} → Π ⊢ Γ ⇒ Γ'
                          → Π ⊢ Γ' ⇒ Γ'' → Π ⊢ Γ ⇒ Γ''
-  instr-branch-list      : ∀ {τ l Γ'} → (idx : (list τ) ∈ Γ)
-                         → Π [ l ]= Γ' → (idx ∷= nil) ⊂ Γ'
-                         → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
-  instr-branch-listcons  : ∀ {τ l Γ₁} → (idx : (listcons τ) ∈ Γ)
-                         → Π [ l ]= Γ₁ → (idx ∷= nil) ⊂ Γ₁
+  instr-branch-list      : ∀ {τ l Γ' x} → (idx : (x , list τ) ∈ Γ)
+                         → Π [ l ]= Γ' → (idx ∷= (x , nil)) ⊂ Γ'
+                         → Π ⊢ Γ ⇒ (idx ∷= (x , listcons τ))
+  instr-branch-listcons  : ∀ {τ l Γ₁ x}
+                         → (idx : (x , listcons τ) ∈ Γ)
+                         → Π [ l ]= Γ₁ → (idx ∷= (x , nil)) ⊂ Γ₁
                          → Π ⊢ Γ ⇒ Γ
-  instr-branch-nil       : ∀ {Γ₁ l} → nil ∈ Γ → Π [ l ]= Γ₁
-                         → Γ ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
-  instr-fetch-0-new      : ∀ {τ} → (listcons τ) ∈ Γ
-                         → Π ⊢ Γ ⇒ (τ ∷ Γ)
-  instr-fetch-0-upd      : ∀ {τ τ'} → (listcons τ) ∈ Γ
-                         → (idx : τ' ∈ Γ)
-                         → Π ⊢ Γ ⇒ (idx ∷= list τ)
-  instr-fetch-1-new      : ∀ {τ} → (listcons τ) ∈ Γ
-                         → Π ⊢ Γ ⇒ (list τ ∷ Γ)
-  instr-fetch-1-upd      : ∀ {τ τ'} → (listcons τ) ∈ Γ
-                         → (idx : τ' ∈ Γ) → Π ⊢ Γ ⇒ (idx ∷= list τ)
-  instr-cons-new         : ∀ {τ τ₀ τ₁} → τ₀ ∈ Γ → τ₁ ∈ Γ
+  instr-branch-nil       : ∀ {Γ₁ l x} → (x , nil) ∈ Γ
+                         → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
+  instr-fetch-0-new      : ∀ {τ x x'} → (x , listcons τ) ∈ Γ
+                         → Π ⊢ Γ ⇒ ((x' , τ) ∷ Γ)
+  instr-fetch-0-upd      : ∀ {τ τ' x x'} → (x , listcons τ) ∈ Γ
+                         → (idx : (x' , τ') ∈ Γ)
+                         → Π ⊢ Γ ⇒ (idx ∷= (x' , τ))
+  instr-fetch-1-new      : ∀ {τ x x'} → (x , listcons τ) ∈ Γ
+                         → Π ⊢ Γ ⇒ ((x' , list τ) ∷ Γ)
+  instr-fetch-1-upd      : ∀ {τ τ' x x'} → (x , listcons τ) ∈ Γ
+                         → (idx : (x' , τ') ∈ Γ)
+                         → Π ⊢ Γ ⇒ (idx ∷= (x' , list τ))
+  instr-cons-new         : ∀ {τ τ₀ τ₁ x₀ x₁ x'} → (x₀ , τ₀) ∈ Γ
+                         → (x₁ , τ₁) ∈ Γ → list τ₀ ⊓ τ₁ ~ list τ
+                         → Π ⊢ Γ ⇒ ((x' , listcons τ) ∷ Γ)
+  instr-cons-upd         : ∀ {τ τ₀ τ₁ τ₂ x₀ x₁ x'} → (x₀ , τ₀) ∈ Γ
+                         → (x₁ , τ₁) ∈ Γ → (idx : (x' , τ₂) ∈ Γ)
                          → list τ₀ ⊓ τ₁ ~ list τ
-                         → Π ⊢ Γ ⇒ (listcons τ ∷ Γ)
-  instr-cons-upd         : ∀ {τ τ₀ τ₁ τ₂} → τ₀ ∈ Γ → τ₁ ∈ Γ
-                         → (idx : τ₂ ∈ Γ) → list τ₀ ⊓ τ₁ ~ list τ
-                         → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
+                         → Π ⊢ Γ ⇒ (idx ∷= (x' , listcons τ))
 \end{spec}
 
-%format Block = "\D{Block}"
+%format _∈_ = "\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}"
+
+In our approach, all name binding is done with statically checked \emph{de Bruijn} indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless, position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn} index |(x , τ) ∈ Γ|, which witnesses the existence of an element |(x , τ)| in |Γ|, as defined by the standard library |_∈_| operator. This technique is well-known for avoiding out-of-bound errors.
+
+\paragraph{Sequencing instructions}{The constructor |instr-seq| can be used to express a sequence of instructions. From the execution of two instructions, it produces a modified typing context containing the changes performed by both instructions.}
+
+\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label |l| when the received variable is |nil|. All these constructors type-check the typing context of the intended label with the current typing context. We use |Π [ l ]= Γ₁|, meaning that there exist a typing context |Γ₁| in program typing |Π| related to label |l|. And we use |Γ ⊂ Γ₁| as a proof of subtyping between |Γ| and |Γ₁|.}
+
+\paragraph{Fetching information from list}{There are four constructors which can be used to fetch information from a given list. The constructor |instr-fetch-0-new| receives a non-empty list (|listcons|), and is used to retrieve the head of this list and store it in a fresh new variable. The resulting typing context adds the information about the new variable. Constructor |instr-fetch-0-upd| is also used to retrieve the head element of a list, however storing its value in an existing variable, represented by the \emph{de Bruijn} index |idx : (x' , τ') ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd| are similar, fetching the tail of a list instead of the head.}
+
+%format _⊓_~_ = "\D{\_\sqcap\_\sim\_}"
+
+\paragraph{List construction}{The |instr-cons-new| and |instr-cons-upd| constructors are used to create a new list. The first creates a new variable, and the second updates a existing variable. The list is created from two variables, |(x₀ , τ₀) ∈ Γ| and |(x₁ , τ₁) ∈ Γ|, which are represented as \emph{de Bruijn} indices. The type of the new list is defined by the least common supertype\footnote{A complete explanation about the least common supertype can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the constructor |_⊓_~_|\footnote{The code of this definition is omitted here, but can be found in our online repository.}. The resulting typing context adds information about the newly created list.}
+
 %format block-halt = "\Con{block\textrm{-}halt}"
 %format block-seq = "\Con{block\textrm{-}seq}"
 %format block-jump = "\Con{block\textrm{-}jump}"
+
+The representation of blocks is defined as follows.
 
 \begin{spec}
 data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
@@ -830,9 +857,12 @@ data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
               → Γ ⊂ Γ₁ → Block Π Γ Γ'
 \end{spec}
 
-Both definitions are \emph{parameterized} by a program context and a typing context, and \emph{indexed}\footnote{An index can vary in the result types of the different constructors, while a parameter cannot.} by a resulting typing context. It is important to note that instead of manipulating syntax directly, the meta-program manipulates structures representing the type judgments as well. Such representation scheme makes the Agda's type-checker allow only well-typed blocks and instructions to be created and manipulated.
+Constructor |block-halt| can be used to stop the execution of a given block, |block-seq| has a similar meaning to instruction sequence, and |block-jump| is used to perform a direct jump (without any condition), receiving a label and checking if the current context typing is subtype of the intended one.
 
 %format λ = "\lambda"
+%format Program = "\D{Program}"
+
+And finally, a |Program| is a sequence of instruction blocks, each preceded by a label. We use the |All| datatype to express this relationship.
 
 \begin{spec}
 Program : PCtx → Set
