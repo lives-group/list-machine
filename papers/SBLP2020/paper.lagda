@@ -25,8 +25,8 @@ module paper where
 
 % Copyright
 %\setcopyright{none}
-\setcopyright{acmcopyright}
-%\setcopyright{acmlicensed}
+%\setcopyright{acmcopyright}
+\setcopyright{acmlicensed}
 %\setcopyright{rightsretained}
 %\setcopyright{usgov}
 %\setcopyright{usgovmixed}
@@ -258,12 +258,10 @@ More specifically, we contribute:
 \begin{itemize}
   \item We show how all the details of the list machine type system
         can be encoded as dependently-typed syntax which avoids, by construction,
-        the presence of stuck states in its definitional interpreter. In essence,
-        the defined interpreter is a type soundness theorem for the
-        list machine~\cite{Amin17}.
+        the presence of stuck states in its definitional interpreter.
   \item We provide a provably correct implementations for testing the subtyping
         relation and to calculate the least common super type of two input
-        types.
+        types for the machine registers.
 \end{itemize}
 
 The rest of this paper is organized as follows. Section~\ref{sec:agda}
@@ -465,8 +463,7 @@ In this definition, the |Expr| type is indexed by a value of type |Ty| which
 indicates the type of the expression being built. In this approach, Agda's
 type system can enforce that only well-typed terms could be written.
 %A definition which uses the expression |(Num 1) + True| will be rejected by Agda's type checker automatically.
-Agda's type checker will automatically reject a definition which
-uses the expression |(Num 1) + True|.
+Agda's type checker will automatically reject a definition which uses the expression |(Num 1) + True|.
 
 %Dependently typed pattern matching is built by using the so-called
 %|with| construct, that allows for matching intermediate
@@ -567,11 +564,87 @@ denote the subtyping judgement which is defined as follows.
 \]
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
-The other rules shows the that the $list$ and $listcons$ type constructors are
-compatible with subtyping relation.
 
 
 
+\begin{equation}
+\inference{}
+          {(r, (\iota_1;\iota_2);\iota_3) \xmapsto{p} (r, \iota_1;(\iota_2;\iota_3))}[step-seq]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_0]=r'}
+          {(r, (\textbf{fetch-field}~v~0~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-0]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_1]=r'}
+          {(r, (\textbf{fetch-field}~v~1~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-1]
+\end{equation}
+
+\begin{equation}
+\inference{r(v_0) = a_0~~~r(v_1)=a_1~~~r[v':=cons(a_0,a_1)]=r'}
+          {(r, (\textbf{cons}~v_0~v_1~v';\iota)) \xmapsto{p} (r', \iota)}[step-cons]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)}
+          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota)}[step-branch-not-taken]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = nil~~~p(l)=\iota'}
+          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota')}[step-branch-taken]
+\end{equation}
+
+\begin{equation}
+\inference{p(l)=\iota'}
+          {(r, \textbf{jump}~l) \xmapsto{p} (r, \iota')}[step-jump]
+\end{equation}
+
+\begin{equation}
+\inference{(r, \iota) \xmapsto{p} (r', \iota')~~~(p, r', \iota')}
+          {(p, r, \iota) \Downarrow}[run-step]
+\end{equation}
+
+\begin{equation}
+\inference{}
+          {(p, r, \textbf{halt}) \Downarrow}[run-halt]
+\end{equation}
+
+\begin{equation}
+\inference{\{\}[\textbf{v}_0:=\text{nil}]=r~~~p(\textbf{L}_0)=\iota~~~(p,r,\iota)\Downarrow}
+          {p \Downarrow}[run-prog]
+\end{equation}
+
+%\subsection{Typing}
+
+%\subsubsection{Subtyping}
+
+\begin{equation}
+\inference{}
+          {\tau \subset \tau}[subtype-refl]
+\end{equation}
+
+\begin{equation}
+\inference{}
+          {\text{nil} \subset \text{list}~\tau}[subtype-nil]
+\end{equation}
+
+\begin{equation}
+\inference{\tau \subset \tau'}
+          {\text{list}~\tau \subset \text{list}~\tau'}[subtype-list]
+\end{equation}
+
+\begin{equation}
+\inference{\tau \subset \tau'}
+          {\text{listcons}~\tau \subset \text{list}~\tau'}[subtype-listcons]
+\end{equation}
+
+\begin{equation}
+\inference{\tau \subset \tau'}
+          {\text{listcons}~\tau \subset \text{listcons}~\tau'}[subtype-listmixed]
+\end{equation}
 
 %\subsubsection{Instruction typing}
 
@@ -641,7 +714,226 @@ compatible with subtyping relation.
 
 \section{Instrinsically-typed syntax}\label{sec:typing}
 
+%format Ty = "\D{Ty}"
+%format nil = "\Con{nil}"
+%format list = "\Con{list}"
+%format listcons = "\Con{listcons}"
+%format → = "\rightarrow"
+%format ∀ = "\D{\forall}"
+
+In this section we present the design choices and the steps we took to represent the intrinsically-typed syntax for the list-machine benchmark. We present here the Agda code used in our definitions, not necessarily in a strict lexically-scoped order.
+
+As a design choice, we dropped all names, using \emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings} for labels and variables. This way, we guarantee that names are always well-scoped.
+
+We started our formalization by defining a type |Ty|.
+
+\begin{spec}
+data Ty : Set where
+  nil       : Ty
+  list      : Ty → Ty
+  listcons  : Ty → Ty
+\end{spec}
+
+We internalize the list-machine type judgments for blocks and instructions in Agda together with its syntax in such a way where only well-typed terms that satisfy typing judgments have meaning. This approach makes the AST contain both syntactic and semantic properties.
+
+To be well-typed, the list-machine syntax needs to check information from two sources: (1) a type context encoded as a list of types to store variable types; and (2) and a program context encoded as a vector\footnote{We use the |Vec| datatype indexed by a |n| which is bound on the module definition and represents the number of labels in the current program.} of type contexts to represent the types of the variables on entry to each basic block.
+
+%format Ctx = "\D{Ctx}"
+%format PCtx = "\D{PCtx}"
+
+\begin{spec}
+Ctx : Set
+Ctx = List Ty
+  
+PCtx : Set
+PCtx = Vec Ctx n
+\end{spec}
+
+In Agda we use \emph{indexed inductive types} to define the intrinsically-typed syntax. The representation of expressions is defined in the following code.
+
+%format _⊢_⇒_ = "\D{\_\vdash\_\Rightarrow\_}"
+%format ∈ = "\D{\in}"
+%format ⊓ = "\D{\sqcap}"
+%format ~ = "\D{\sim}"
+%format ∷ = "\Con{::}"
+%format ∷= = "\F{::=}"
+%format Ctx = "\D{Ctx}"
+%format PCtx = "\D{PCtx}"
+%format ⊢ = "\D{\vdash}"
+%format ⇒ = "\D{\Rightarrow}"
+%format ⊂ = "\D{\subset}"
+
+%format Π = "\V{\Pi}"
+%format Γ = "\V{\Gamma}"
+%format Γ' = "\V{\Gamma''}"
+%format Γ'' = "\V{\Gamma''''}"
+%format Γ₁ = "\V{\Gamma_1}"
+%format τ = "\V{\tau}"
+%format τ = "\V{\tau}"
+%format τ' = "\V{\tau''}"
+%format τ'' = "\V{\tau''''}"
+%format τ₀ = "\V{\tau_0}"
+%format τ₁ = "\V{\tau_1}"
+%format τ₂ = "\V{\tau_2}"
+
+%format instr-seq = "\Con{instr\textrm{-}seq}"
+%format instr-branch-list = "\Con{instr\textrm{-}branch\textrm{-}list}"
+%format instr-branch-listcons = "\Con{instr\textrm{-}branch\textrm{-}listcons}"
+%format instr-branch-nil = "\Con{instr\textrm{-}branch\textrm{-}nil}"
+%format instr-fetch-0-new = "\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}"
+%format instr-fetch-0-upd = "\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}"
+%format instr-fetch-1-new = "\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}"
+%format instr-fetch-1-upd = "\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}"
+%format instr-cons-new = "\Con{instr\textrm{-}cons\textrm{-}new}"
+%format instr-cons-upd = "\Con{instr\textrm{-}cons\textrm{-}upd}"
+
+\begin{spec}
+data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
+  instr-seq              : ∀ {Γ' Γ''} → Π ⊢ Γ ⇒ Γ'
+                         → Π ⊢ Γ' ⇒ Γ'' → Π ⊢ Γ ⇒ Γ''
+  instr-branch-list      : ∀ {τ l Γ'} → (idx : (list τ) ∈ Γ)
+                         → Π [ l ]= Γ' → (idx ∷= nil) ⊂ Γ'
+                         → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
+  instr-branch-listcons  : ∀ {τ l Γ₁} → (idx : (listcons τ) ∈ Γ)
+                         → Π [ l ]= Γ₁ → (idx ∷= nil) ⊂ Γ₁
+                         → Π ⊢ Γ ⇒ Γ
+  instr-branch-nil       : ∀ {Γ₁ l} → nil ∈ Γ → Π [ l ]= Γ₁
+                         → Γ ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
+  instr-fetch-0-new      : ∀ {τ} → (listcons τ) ∈ Γ
+                         → Π ⊢ Γ ⇒ (τ ∷ Γ)
+  instr-fetch-0-upd      : ∀ {τ τ'} → (listcons τ) ∈ Γ
+                         → (idx : τ' ∈ Γ)
+                         → Π ⊢ Γ ⇒ (idx ∷= list τ)
+  instr-fetch-1-new      : ∀ {τ} → (listcons τ) ∈ Γ
+                         → Π ⊢ Γ ⇒ (list τ ∷ Γ)
+  instr-fetch-1-upd      : ∀ {τ τ'} → (listcons τ) ∈ Γ
+                         → (idx : τ' ∈ Γ) → Π ⊢ Γ ⇒ (idx ∷= list τ)
+  instr-cons-new         : ∀ {τ τ₀ τ₁} → τ₀ ∈ Γ → τ₁ ∈ Γ
+                         → list τ₀ ⊓ τ₁ ~ list τ
+                         → Π ⊢ Γ ⇒ (listcons τ ∷ Γ)
+  instr-cons-upd         : ∀ {τ τ₀ τ₁ τ₂} → τ₀ ∈ Γ → τ₁ ∈ Γ
+                         → (idx : τ₂ ∈ Γ) → list τ₀ ⊓ τ₁ ~ list τ
+                         → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
+\end{spec}
+
+%format Block = "\D{Block}"
+%format block-halt = "\Con{block\textrm{-}halt}"
+%format block-seq = "\Con{block\textrm{-}seq}"
+%format block-jump = "\Con{block\textrm{-}jump}"
+
+\begin{spec}
+data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
+  block-halt  : Block Π Γ Γ
+  block-seq   : ∀ {Γ' Γ''} → Π ⊢ Γ ⇒ Γ'
+              → Block Π Γ' Γ'' → Block Π Γ Γ''
+  block-jump  : ∀ {l Γ₁ Γ'} → Π [ l ]= Γ₁
+              → Γ ⊂ Γ₁ → Block Π Γ Γ'
+\end{spec}
+
+Both definitions are \emph{parameterized} by a program context and a typing context, and \emph{indexed}\footnote{An index can vary in the result types of the different constructors, while a parameter cannot.} by a resulting typing context. It is important to note that instead of manipulating syntax directly, the meta-program manipulates structures representing the type judgments as well. Such representation scheme makes the Agda's type-checker allow only well-typed blocks and instructions to be created and manipulated.
+
+%format λ = "\lambda"
+
+\begin{spec}
+Program : PCtx → Set
+Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π
+\end{spec}
+
 \section{A definitional interpreter}\label{sec:semantics}
+
+%format Val = "\D{Val}"
+%format []v = "\Con{[]v}"
+%format _∷_ = "\Con{\_::\_}"
+%format _∷v_ = "\Con{\_::v\_}"
+
+\begin{spec}
+data Val : Ty → Set where
+  nil : Val nil
+  []v : ∀ {t} → Val (list t)
+  _∷_ : ∀ {t} → Val t → Val (list t) → Val (listcons t)
+  _∷v_ :  ∀ {t} → Val t → Val (list t) → Val (list t)
+\end{spec}
+
+%format Env = "\D{Env}"
+
+\begin{spec}
+Env : Ctx → Set
+Env Γ = All (λ (x , τ) → Val τ) Γ
+\end{spec}
+
+%format PEnv = "\D{PEnv}"
+%format Allv = "\D{Allv}"
+
+\begin{spec}
+PEnv : PCtx → Set
+PEnv Π = Allv Env Π
+\end{spec}
+
+%format run-step = "\F{run\textrm{-}step}"
+%format []=⇒lookup = "\F{[]\textrm{=}{\Rightarrow}lookup}"
+%format ⊂-Ctx = "\F{\subset\hspace{-3pt}\textrm{-}Ctx}"
+%format update-env = "\F{update\textrm{-}env}"
+%format lookupA = "\F{lookupA}"
+%format <:-val = "\F{\textrm{<:-}val}"
+%format list-<:-inv = "\F{list\textrm{-<:-}inv}"
+%format lub-subtype-left = "\F{lub\textrm{-}subtype\textrm{-}left}"
+%format lub-subtype-right = "\F{lub\textrm{-}subtype\textrm{-}right}"
+%format lub-of-subtype = "\F{lub\textrm{-}of\textrm{-}subtype}"
+
+%format Fuel = "\D{Fuel}"
+%format Program = "\D{Program}"
+%format Maybe = "\D{Maybe}"
+%format sym = "\D{sym}"
+
+%format nothing = "\Con{nothing}"
+%format just = "\Con{just}"
+%format suc = "\Con{suc}"
+%format ∷v = "\Con{::\hspace{-2pt}v}"
+
+%format rewrite = "\mathkw{rewrite}"
+
+\begin{spec}
+run-step  : ∀ {Π Γ Γ'} → Fuel → Program Π → Env Γ
+          → Block Π Γ Γ' → Maybe (Env Γ')
+run-step zero p env b = nothing
+run-step (suc n) p env block-halt = just env
+run-step (suc n) p env (block-seq (instr-seq i₁ i₂) b) =
+  run-step n p env (block-seq i₁ (block-seq i₂ b))
+run-step {Π} (suc n) p env (block-seq (instr-branch-list {τ} {i} v l s) b)
+  with lookup env v 
+... | []v rewrite sym ([]=⇒lookup l) =
+  run-step n p (⊂-Ctx s (update-env env v nil)) (lookupA i p)
+... | v₁ ∷v v₂ = run-step n p (update-env env v (v₁ ∷ v₂)) b
+run-step (suc n) p env (block-seq (instr-branch-listcons v l s) b) =
+  run-step n p env b
+run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
+  rewrite sym ([]=⇒lookup l)
+    = run-step n p (⊂-Ctx s env) (lookupA i p)
+run-step (suc n) p env (block-seq (instr-fetch-0-new v) b)
+  with lookup env v
+...| v₁ ∷ v₂ = run-step n p (v₁ ∷ env) b
+run-step (suc n) p env (block-seq (instr-fetch-0-upd v v') b)
+  with lookup env v
+...| v₁ ∷ v₂ = run-step n p (update-env env v' v₁) b
+run-step (suc n) p env (block-seq (instr-fetch-1-new v) b)
+  with lookup env v
+...| v₁ ∷ v₂ = run-step n p (v₂ ∷ env) b
+run-step (suc n) p env (block-seq (instr-fetch-1-upd v v') b)
+  with lookup env v
+...| v₁ ∷ v₂ = run-step n p (update-env env v' v₂) b
+run-step (suc n) p env (block-seq (instr-cons-new v₀ v₁ s) b)
+  = run-step n p ((<:-val (list-<:-inv (lub-subtype-left
+    (lub-of-subtype (lub-subtype-left s)))) (lookup env v₀)
+    ∷ <:-val (lub-subtype-right s) (lookup env v₁)) ∷ env) b
+run-step (suc n) p env (block-seq (instr-cons-upd v₀ v₁ v' s) b)
+  = run-step n p (update-env env v' (<:-val (list-<:-inv
+    (lub-subtype-left (lub-of-subtype (lub-subtype-left s))))
+    (lookup env v₀) ∷ <:-val (lub-subtype-right s)
+    (lookup env v₁))) b
+run-step (suc n) p env (block-jump {l = i} l s)
+  rewrite sym ([]=⇒lookup l) =
+    run-step n p (⊂-Ctx s env) (lookupA i p) 
+\end{spec}
 
 \section{Related work}\label{sec:related}
 
