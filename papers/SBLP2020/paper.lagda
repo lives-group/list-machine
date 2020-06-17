@@ -578,8 +578,8 @@ Subtyping is extended to contexts as follows.
   \inference{}
             {\Gamma \subset_{env} \{\}}[b1]
   &
-  \inference{\Gamma_1 = (v : \tau') , \Gamma' & \tau' \subset \tau & \Gamma' \subset_{env} \Gamma_2}
-            {\Gamma_1 \subset_{env} v : \tau , \Gamma_2}
+  \inference{\tau' \subset \tau & \Gamma' \subset_{env} \Gamma_2}
+            {v : \tau' , \Gamma' \subset_{env} v : \tau , \Gamma_2}
             [b2]
 \end{array}
 \]

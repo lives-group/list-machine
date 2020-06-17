@@ -878,13 +878,13 @@ Subtyping is extended to contexts as follows.
   \inference{}
             {\Gamma \subset_{env} \{\}}[b1]
   &
-  \inference{\Gamma_1 = (v : \tau') , \Gamma' & \tau' \subset \tau & \Gamma' \subset_{env} \Gamma_2}
-            {\Gamma_1 \subset_{env} v : \tau , \Gamma_2}
+  \inference{\tau' \subset \tau & \Gamma' \subset_{env} \Gamma_2}
+            {v : \tau' , \Gamma' \subset_{env} v : \tau , \Gamma_2}
             [b2]
 \end{array}
 \]
-Variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between labels and typing contexts $\Gamma$.
-Notation $\Pi(l) = \Gamma$ denotes that $\Gamma$ stores the types of variables on the entry point of the block
+Variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between labels and typing contexts $\Gamma$,
+where notation $\Pi(l) = \Gamma$ denotes that $\Gamma$ stores the types of variables on the entry point of the block
 labeled by $l$. 
 
 
