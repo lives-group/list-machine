@@ -822,12 +822,13 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
 \end{spec}
 
 %format _∈_ = "\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}"
+%format _∷=_ = "\F{\_\hspace{-2pt}::=\hspace{-2pt}\_}"
 
 In our approach, all name binding is done with statically checked \emph{de Bruijn} indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless, position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn} index |(x , τ) ∈ Γ|, which witnesses the existence of an element |(x , τ)| in |Γ|, as defined by the standard library |_∈_| operator. This technique is well-known for avoiding out-of-bound errors.
 
 \paragraph{Sequencing instructions}{The constructor |instr-seq| can be used to express a sequence of instructions. From the execution of two instructions, it produces a modified typing context containing the changes performed by both instructions.}
 
-\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label |l| when the received variable is |nil|. All these constructors type-check the typing context of the intended label with the current typing context. We use |Π [ l ]= Γ₁|, meaning that there exist a typing context |Γ₁| in program typing |Π| related to label |l|. And we use |Γ ⊂ Γ₁| as a proof of subtyping between |Γ| and |Γ₁|.}
+\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label |l| when the received variable is |nil|. All these constructors type-check the typing context of the intended label with the current typing context. We use |Π [ l ]= Γ₁|, meaning that there exist a typing context |Γ₁| in program typing |Π| related to label |l|. And we use |Γ ⊂ Γ₁| as a proof of subtyping between |Γ| and |Γ₁|. The operator |_∷=_| is used to update the context |Γ| in the position defined by the index |idx|.}
 
 \paragraph{Fetching information from list}{There are four constructors which can be used to fetch information from a given list. The constructor |instr-fetch-0-new| receives a non-empty list (|listcons|), and is used to retrieve the head of this list and store it in a fresh new variable. The resulting typing context adds the information about the new variable. Constructor |instr-fetch-0-upd| is also used to retrieve the head element of a list, however storing its value in an existing variable, represented by the \emph{de Bruijn} index |idx : (x' , τ') ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd| are similar, fetching the tail of a list instead of the head.}
 
@@ -864,10 +865,14 @@ Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π
 
 \section{A definitional interpreter}\label{sec:semantics}
 
+This section describes the steps to evaluate a program written using the list-machine language. We adapted the small-step semantics presented in Section~\ref{sec:list}, transforming it in a definitional interpreter~\cite{Reynolds72}, which evaluates an intrinsically-typed instruction, transforming a initial memory state into a new one, represented by a run-time environment.
+
 %format Val = "\D{Val}"
 %format []v = "\Con{[]v}"
 %format _∷_ = "\Con{\_::\_}"
 %format _∷v_ = "\Con{\_::v\_}"
+
+\paragraph{Values and environments}{The interpreter presented next needs to encode a run-time environment to hold values associated to variables and their types. This way, we define the notion of a well-typed value as follows.}
 
 \begin{spec}
 data Val : Ty → Set where
@@ -877,15 +882,18 @@ data Val : Ty → Set where
   _∷v_ :  ∀ {t} → Val t → Val (list t) → Val (list t)
 \end{spec}
 
+The datatype |Val| is indexed by a |Ty|, indicating the type associated to each value. The first two represent |nil| values associated with type |nil| and the empty |list|. The last two represent non-empty list, considering the types |listcons| and |list|.
+
 %format Env = "\D{Env}"
+%format PEnv = "\D{PEnv}"
+%format Allv = "\D{Allv}"
+
+We use the datatype |All| (and |Allv| for vectors) to define the notion of well-typed variable environments and well-typed programs. Thus, intuitively, |Env| is like a list of well-typed values. And |PEnv| is like a list of well-typed environments. Both type environments are used to type block instructions and sequence of block instructions.
 
 \begin{spec}
 Env : Ctx → Set
 Env Γ = All (λ (x , τ) → Val τ) Γ
 \end{spec}
-
-%format PEnv = "\D{PEnv}"
-%format Allv = "\D{Allv}"
 
 \begin{spec}
 PEnv : PCtx → Set
@@ -915,48 +923,87 @@ PEnv Π = Allv Env Π
 
 %format rewrite = "\mathkw{rewrite}"
 
+\paragraph{Fuel based evaluation}{Having all the building blocks to make the complete interpreter for the list-machine language, we can start the definition of the |run-step| function. It is important to note that Agda is a total language, i.e., each program developed in it must terminate and all possible patterns must be matched. However, by using the mechanisms for jumping between labels one can write a program which never ends, making it impossible to implement a terminating interpreting function. Following the common practice, we define a fuel based evaluator~\cite{Amin17,Owens2016}. Basically, what we do is to parameterize the interpreter over a step index of \emph{fuel value} (represented as a natural number $n$), which bounds the amount of work the interpreter is allowed to do, and is decremented on each recursive call.}
+
+The evaluation function is defined with the following type.
+
 \begin{spec}
 run-step  : ∀ {Π Γ Γ'} → Fuel → Program Π → Env Γ
           → Block Π Γ Γ' → Maybe (Env Γ')
+\end{spec}
+
+The function |run-step| receives four arguments and returns a |Maybe| value. The first argument is the \emph{fuel}, used to ensure the evaluator always terminates. The second parameter is a |Program Π|, which contains information about all the program blocks. The third parameter is the run-time variable environment. And the last one is the |Block| to be evaluated. This function returns a modified run-time environment (|Env Γ'|) in case of success, or nothing when the \emph{fuel} runs out.
+
+From now on we describe how we implement some parts\footnote{The complete evaluation function can be found in our online repository.} of the dynamic semantics (reduction rules) of the list-machine language in the function |run-step|. We mix the code with the explanation to make it easier for the reader.
+
+\paragraph{Out of fuel}{The interpreter stops abruptly when the \emph{fuel} counter reaches |zero|, and the |run-step| function returns |nothing|. This definition makes our evaluation function structurally recursive on the \emph{fuel} argument. }
+
+\begin{spec}
 run-step zero p env b = nothing
-run-step (suc n) p env block-halt = just env
-run-step (suc n) p env (block-seq (instr-seq i₁ i₂) b) =
-  run-step n p env (block-seq i₁ (block-seq i₂ b))
-run-step {Π} (suc n) p env (block-seq (instr-branch-list {τ} {i} v l s) b)
-  with lookup env v 
-... | []v rewrite sym ([]=⇒lookup l) =
-  run-step n p (⊂-Ctx s (update-env env v nil)) (lookupA i p)
-... | v₁ ∷v v₂ = run-step n p (update-env env v (v₁ ∷ v₂)) b
-run-step (suc n) p env (block-seq (instr-branch-listcons v l s) b) =
-  run-step n p env b
+\end{spec}  
+
+All the next pieces of code match the value |suc fuel| for the first argument of |run-step|, meaning that there is still \emph{fuel} during the recursive processing of this function. 
+
+%run-step (suc n) p env block-halt = just env
+%run-step (suc n) p env (block-seq (instr-seq i₁ i₂) b) =
+%  run-step n p env (block-seq i₁ (block-seq i₂ b))
+%run-step {Π} (suc n) p env (block-seq (instr-branch-list {τ} {i} v l s) b)
+%  with lookup env v 
+%... | []v rewrite sym ([]=⇒lookup l) =
+%  run-step n p (⊂-Ctx s (update-env env v nil)) (lookupA i p)
+%... | v₁ ∷v v₂ = run-step n p (update-env env v (v₁ ∷ v₂)) b
+%run-step (suc n) p env (block-seq (instr-branch-listcons v l s) b) =
+% run-step n p env b
+
+\paragraph{Conditional jump}{We show next only the case when the jump actually occurs, following the rule \emph{step-branch-taken}. In this case, variable |v| has value |nil|, and the step of evaluation should proceed with the block instruction defined in program |p|, with environment |env| respecting the subtyping constraint. We use the function |lookupA| to obtain the block instruction with index |i| on program |p|. Since we use \emph{de Bruijn} indices to represent the label, only valid values are accepted by the intrinsically-typed syntax.}
+
+\begin{spec}
 run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
   rewrite sym ([]=⇒lookup l)
     = run-step n p (⊂-Ctx s env) (lookupA i p)
+\end{spec}
+
+\paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors, both related to the \emph{step-fetch-field-0} rule. The first retrieves the head element of a list, and stores it in a new variable. The |lookup| function projects the value of variable |v| from the run-time environment |env|, and this variable is added to the result environment. The typed \emph{de Bruijn} indices guarantee that the projected value has the type demanded, since the environment |env| is typed by the context |Γ|. Similarly, the second instruction also retrieves the head element of a list, however it needs to update the run-time environment on the position of index |v'|. This process is done by the function |update-env|.}
+
+\begin{spec}  
 run-step (suc n) p env (block-seq (instr-fetch-0-new v) b)
   with lookup env v
 ...| v₁ ∷ v₂ = run-step n p (v₁ ∷ env) b
 run-step (suc n) p env (block-seq (instr-fetch-0-upd v v') b)
   with lookup env v
 ...| v₁ ∷ v₂ = run-step n p (update-env env v' v₁) b
-run-step (suc n) p env (block-seq (instr-fetch-1-new v) b)
-  with lookup env v
-...| v₁ ∷ v₂ = run-step n p (v₂ ∷ env) b
-run-step (suc n) p env (block-seq (instr-fetch-1-upd v v') b)
-  with lookup env v
-...| v₁ ∷ v₂ = run-step n p (update-env env v' v₂) b
+\end{spec}
+
+%run-step (suc n) p env (block-seq (instr-fetch-1-new v) b)
+%  with lookup env v
+%...| v₁ ∷ v₂ = run-step n p (v₂ ∷ env) b
+%run-step (suc n) p env (block-seq (instr-fetch-1-upd v v') b)
+%  with lookup env v
+%...| v₁ ∷ v₂ = run-step n p (update-env env v' v₂) b
+
+\paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected types, we need some extra lemmas. First because when we create a list from variables |v₀| and |v₁|, the result type of this list is the least common subtype between these two. As before, we use the |lookup| function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we extend the run-time environment |env| with the type of the created list. To convince the Agda's type-checker the new environment is well-typed we use subtyping lemmas, such as |<:-val| and |list-<:-inv|, and others lemmas to deal with the least common subtying, such as |lub-subtype-left|, |lub-subtype-right|, and |lub-of-subtype|. These lemmas and their proofs can be found in our repository online. }
+
+\begin{spec}
 run-step (suc n) p env (block-seq (instr-cons-new v₀ v₁ s) b)
   = run-step n p ((<:-val (list-<:-inv (lub-subtype-left
     (lub-of-subtype (lub-subtype-left s)))) (lookup env v₀)
     ∷ <:-val (lub-subtype-right s) (lookup env v₁)) ∷ env) b
-run-step (suc n) p env (block-seq (instr-cons-upd v₀ v₁ v' s) b)
-  = run-step n p (update-env env v' (<:-val (list-<:-inv
-    (lub-subtype-left (lub-of-subtype (lub-subtype-left s))))
-    (lookup env v₀) ∷ <:-val (lub-subtype-right s)
-    (lookup env v₁))) b
-run-step (suc n) p env (block-jump {l = i} l s)
-  rewrite sym ([]=⇒lookup l) =
-    run-step n p (⊂-Ctx s env) (lookupA i p) 
 \end{spec}
+
+It is worth noticing that we do not have any error treatment on this interpreter function, except for when we ran out-of-fuel. Since we are using an intrinsically-typed syntax, only valid instructions are accepted in each step of evaluation.
+
+%run-step (suc n) p env (block-seq (instr-cons-upd v₀ v₁ v' s) b)
+%  = run-step n p (update-env env v' (<:-val (list-<:-inv
+%    (lub-subtype-left (lub-of-subtype (lub-subtype-left s))))
+%    (lookup env v₀) ∷ <:-val (lub-subtype-right s)
+%    (lookup env v₁))) b
+%run-step (suc n) p env (block-jump {l = i} l s)
+%  rewrite sym ([]=⇒lookup l) =
+%    run-step n p (⊂-Ctx s env) (lookupA i p) 
+
+\paragraph{Soundness properties}{Programs written using an intrinsically-typed syntax are type-sound by construction. Since only well-typed programs can be expressed, the \emph{preservation} property is enforced by the host-language type-checker~\cite{Amin17}. By implementing the interpreter in such a total language like Agda, i.e., specifying the dynamic semantics in a functional way, instead of relational, we also show the \emph{progress} property, without the need for an extra proof~\cite{Owens2016}. This approach is promising to be investigated when formalizing even more complex programming languages.}
+
+\section{Type Checker}\label{sec:typechecker}
 
 \section{Related work}\label{sec:related}
 
