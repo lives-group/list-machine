@@ -20,8 +20,8 @@
 
 % Copyright
 %\setcopyright{none}
-\setcopyright{acmcopyright}
-%\setcopyright{acmlicensed}
+%\setcopyright{acmcopyright}
+\setcopyright{acmlicensed}
 %\setcopyright{rightsretained}
 %\setcopyright{usgov}
 %\setcopyright{usgovmixed}
@@ -404,7 +404,7 @@
 
 \begin{abstract}
 Formal models are important tools in the programming languages research
-community. However, such models are full of intricacies and, due to that,
+community. However, such models are full of intrincacies and, due to that,
 they are subject to subtle errors. Such failures motivated the usage of
 tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
@@ -509,12 +509,10 @@ More specifically, we contribute:
 \begin{itemize}
   \item We show how all the details of the list machine type system
         can be encoded as dependently-typed syntax which avoids, by construction,
-        the presence of stuck states in its definitional interpreter. In essence,
-        the defined interpreter is a type soundness theorem for the
-        list machine~\cite{Amin17}.
+        the presence of stuck states in its definitional interpreter.
   \item We provide a provably correct implementations for testing the subtyping
         relation and to calculate the least common super type of two input
-        types.
+        types for the machine registers.
 \end{itemize}
 
 The rest of this paper is organized as follows. Section~\ref{sec:agda}
@@ -765,8 +763,7 @@ In this definition, the \ensuremath{\D{Expr}} type is indexed by a value of type
 indicates the type of the expression being built. In this approach, Agda's
 type system can enforce that only well-typed terms could be written.
 %A definition which uses the expression |(Num 1) + True| will be rejected by Agda's type checker automatically.
-Agda's type checker will automatically reject a definition which
-uses the expression \ensuremath{(\Con{Num}\;\V{1})\;\F{+}\;\Con{True}}.
+Agda's type checker will automatically reject a definition which uses the expression \ensuremath{(\Con{Num}\;\V{1})\;\F{+}\;\Con{True}}.
 
 %Dependently typed pattern matching is built by using the so-called
 %|with| construct, that allows for matching intermediate
@@ -867,10 +864,79 @@ denote the subtyping judgement which is defined as follows.
 \]
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
-The other rules shows the that the $list$ and $listcons$ type constructors are
-compatible with subtyping relation.
+The other rules specifies that type constructors $list$ and $listcons$ respect
+the subtyping relation.
+
+Using the previously defined type syntax and its subtyping relation, we can
+define the typing rules for the list machine. Following common practice, we
+let meta-variable $\Gamma$ denote an environment between variable names and
+its type. Notation $\{\}$ denote an empty environment and $v : \tau , \Gamma'$
+denote the operation of including a new entry for variable $v$ with type $\tau$.
+Subtyping is extended to contexts as follows.
+\[
+\begin{array}{cc}
+  \inference{}
+            {\Gamma \subset_{env} \{\}}[b1]
+  &
+  \inference{\Gamma_1 = (v : \tau') , \Gamma' & \tau' \subset \tau & \Gamma' \subset_{env} \Gamma_2}
+            {\Gamma_1 \subset_{env} v : \tau , \Gamma_2}
+            [b2]
+\end{array}
+\]
+Variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between labels and typing contexts $\Gamma$.
+Notation $\Pi(l) = \Gamma$ denotes that $\Gamma$ stores the types of variables on the entry point of the block
+labeled by $l$. 
 
 
+\begin{equation}
+\inference{}
+          {(r, (\iota_1;\iota_2);\iota_3) \xmapsto{p} (r, \iota_1;(\iota_2;\iota_3))}[step-seq]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_0]=r'}
+          {(r, (\textbf{fetch-field}~v~0~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-0]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_1]=r'}
+          {(r, (\textbf{fetch-field}~v~1~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-1]
+\end{equation}
+
+\begin{equation}
+\inference{r(v_0) = a_0~~~r(v_1)=a_1~~~r[v':=cons(a_0,a_1)]=r'}
+          {(r, (\textbf{cons}~v_0~v_1~v';\iota)) \xmapsto{p} (r', \iota)}[step-cons]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = cons(a_0,a_1)}
+          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota)}[step-branch-not-taken]
+\end{equation}
+
+\begin{equation}
+\inference{r(v) = nil~~~p(l)=\iota'}
+          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota')}[step-branch-taken]
+\end{equation}
+
+\begin{equation}
+\inference{p(l)=\iota'}
+          {(r, \textbf{jump}~l) \xmapsto{p} (r, \iota')}[step-jump]
+\end{equation}
+
+\begin{equation}
+\inference{(r, \iota) \xmapsto{p} (r', \iota')~~~(p, r', \iota')}
+          {(p, r, \iota) \Downarrow}[run-step]
+\end{equation}
+
+\begin{equation}
+\inference{}
+          {(p, r, \textbf{halt}) \Downarrow}[run-halt]
+\end{equation}
+
+\begin{equation}
+\inference{\{\}[\textbf{v}_0:=\text{nil}]=r~~~p(\textbf{L}_0)=\iota~~~(p,r,\iota)\Downarrow}
+          {p \Downarrow}[run-prog]
+\end{equation}
 
 
 %\subsubsection{Instruction typing}
@@ -941,7 +1007,359 @@ compatible with subtyping relation.
 
 \section{Instrinsically-typed syntax}\label{sec:typing}
 
+
+In this section we present the design choices and the steps we took to represent the intrinsically-typed syntax for the list-machine benchmark. We present here the Agda code used in our definitions, not necessarily in a strict lexically-scoped order.
+
+Some definitions and rules have been slightly tweaked so that they are accepted by the Agda's type-checker. As a design choice, we dropped all names, using \emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings} for labels and variables. This way, we guarantee that names are always well-scoped.
+
+We started our formalization by defining a type \ensuremath{\D{Ty}}, indicating the possible types for the list-machine language.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{Ty}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{nil}\;{}\<[13]%
+\>[13]{}\mathbin{:}\;\D{Ty}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{list}\;{}\<[13]%
+\>[13]{}\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{listcons}\;{}\<[13]%
+\>[13]{}\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+We internalize the list-machine type judgments for blocks and instructions in Agda together with its syntax in such a way where only well-typed terms that satisfy typing judgments have meaning. This approach makes the AST contain both syntactic and semantic properties.
+
+To be well-typed, the list-machine syntax needs to refer to information from two sources: (1) a type context encoded as a list of types to store variable types; and (2) and a program context encoded as a vector\footnote{We use the \ensuremath{\D{Vec}} datatype indexed by a \ensuremath{\V{n}} which is bound on the module definition and represents the number of labels in the current program.} of type contexts to represent the types of the variables on entry to each basic block.
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\D{Ctx}\;\mathbin{:}\;\D{Set}{}\<[E]%
+\\
+\>[B]{}\D{Ctx}\;\mathrel{=}\;\D{List}\;\D{Ty}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\D{PCtx}\;\mathbin{:}\;\D{Set}{}\<[E]%
+\\
+\>[B]{}\D{PCtx}\;\mathrel{=}\;\D{Vec}\;\D{Ctx}\;\V{n}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+As we saw in the previous section, the typing rules of the list-machine language were split in two segments, one for instructions and one for blocks. We defined two datatypes (\ensuremath{\D{\_\vdash\_\Rightarrow\_}} and \ensuremath{\D{Block}}) to hold the well-typed terms accordingly, representing each judgment of the static semantics as a syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
+
+Both definitions are \emph{parameterized} by a program context and a typing context, and \emph{indexed}\footnote{An index can vary in the result types of the different constructors, while a parameter cannot.} by a resulting typing context. The intuition is that, under program-typing \ensuremath{\V{\Pi}}, the \emph{Hoare triple} \ensuremath{\V{\Gamma}\;\{\mskip1.5mu \V{\iota}\mskip1.5mu\}\;\V{\Gamma'}} relates precondition \ensuremath{\V{\Gamma}} to postcondition \ensuremath{\V{\Gamma'}}. It is important to note that instead of manipulating syntax directly, the meta-program manipulates structures representing the type judgments as well. Such representation scheme makes the Agda's type-checker allow only well-typed blocks and instructions to be created and manipulated.
+
+The representation of instructions is defined as follows.
+
+
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{26}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{\_\vdash\_\Rightarrow\_}\;(\V{\Pi}\;\mathbin{:}\;\D{PCtx})\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\mathbin{:}\;\D{Ctx}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}seq}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\;\V{\Gamma''}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma'}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma'}\;\D{\Rightarrow}\;\V{\Gamma''}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma''}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}branch\textrm{-}list}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{l}\;\V{\Gamma'}\;\V{x}\mskip1.5mu\}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x}\;\red{,}\,\;\Con{list}\;\V{\tau})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma'}\;\rightarrow\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{nil}))\;\D{\subset}\;\V{\Gamma'}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}branch\textrm{-}listcons}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{l}\;\V{\Gamma_1}\;\V{x}\mskip1.5mu\}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;\rightarrow\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{nil}))\;\D{\subset}\;\V{\Gamma_1}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}branch\textrm{-}nil}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma_1}\;\V{l}\;\V{x}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{nil})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;\rightarrow\;\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;((\V{x'}\;\red{,}\,\;\V{\tau})\;\Con{::}\;\V{\Gamma}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau'}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x'}\;\red{,}\,\;\V{\tau})){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;((\V{x'}\;\red{,}\,\;\Con{list}\;\V{\tau})\;\Con{::}\;\V{\Gamma}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau'}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x'}\;\red{,}\,\;\Con{list}\;\V{\tau})){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}cons\textrm{-}new}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau_0}\;\V{\tau_1}\;\V{x₀}\;\V{x₁}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}\;\rightarrow\;\Con{list}\;\V{\tau_0}\;\D{\sqcap}\;\V{\tau_1}\;\D{\sim}\;\Con{list}\;\V{\tau}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;((\V{x'}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\Con{::}\;\V{\Gamma}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{instr\textrm{-}cons\textrm{-}upd}\;{}\<[26]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau_0}\;\V{\tau_1}\;\V{\tau_2}\;\V{x₀}\;\V{x₁}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau_2})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\Con{list}\;\V{\tau_0}\;\D{\sqcap}\;\V{\tau_1}\;\D{\sim}\;\Con{list}\;\V{\tau}\;{}\<[E]%
+\\
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x'}\;\red{,}\,\;\Con{listcons}\;\V{\tau})){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+In our approach, all name binding is done with statically checked \emph{de Bruijn} indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless, position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn} index \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma}}, which witnesses the existence of an element \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})} in \ensuremath{\V{\Gamma}}, as defined by the standard library \ensuremath{\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}} operator. This technique is well-known for avoiding out-of-bound errors.
+
+\paragraph{Sequencing instructions}{The constructor \ensuremath{\Con{instr\textrm{-}seq}} can be used to express a sequence of instructions. From the execution of two instructions, it produces a modified typing context containing the changes performed by both instructions.}
+
+\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label \ensuremath{\V{l}} when the received variable is \ensuremath{\Con{nil}}. All these constructors type-check the typing context of the intended label with the current typing context. We use \ensuremath{\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}}, meaning that there exist a typing context \ensuremath{\V{\Gamma_1}} in program typing \ensuremath{\V{\Pi}} related to label \ensuremath{\V{l}}. And we use \ensuremath{\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}} as a proof of subtyping between \ensuremath{\V{\Gamma}} and \ensuremath{\V{\Gamma_1}}.}
+
+\paragraph{Fetching information from list}{There are four constructors which can be used to fetch information from a given list. The constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}} receives a non-empty list (\ensuremath{\Con{listcons}}), and is used to retrieve the head of this list and store it in a fresh new variable. The resulting typing context adds the information about the new variable. Constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}} is also used to retrieve the head element of a list, however storing its value in an existing variable, represented by the \emph{de Bruijn} index \ensuremath{\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma}}. The constructors \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}} are similar, fetching the tail of a list instead of the head.}
+
+
+\paragraph{List construction}{The \ensuremath{\Con{instr\textrm{-}cons\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}cons\textrm{-}upd}} constructors are used to create a new list. The first creates a new variable, and the second updates a existing variable. The list is created from two variables, \ensuremath{(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}} and \ensuremath{(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}}, which are represented as \emph{de Bruijn} indices. The type of the new list is defined by the least common supertype\footnote{A complete explanation about the least common supertype can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the constructor \ensuremath{\D{\_\sqcap\_\sim\_}}\footnote{The code of this definition is omitted here, but can be found in our online repository.}. The resulting typing context adds information about the newly created list.}
+
+
+The representation of blocks is defined as follows.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{15}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{42}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{Block}\;(\V{\Pi}\;\mathbin{:}\;\D{PCtx})\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\mathbin{:}\;\D{Ctx}\;\rightarrow\;{}\<[42]%
+\>[42]{}\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{block\textrm{-}halt}\;{}\<[15]%
+\>[15]{}\mathbin{:}\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{block\textrm{-}seq}\;{}\<[15]%
+\>[15]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\;\V{\Gamma''}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma'}\;{}\<[E]%
+\\
+\>[15]{}\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma'}\;\V{\Gamma''}\;\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma''}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{block\textrm{-}jump}\;{}\<[15]%
+\>[15]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{l}\;\V{\Gamma_1}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;{}\<[E]%
+\\
+\>[15]{}\rightarrow\;\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}\;\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+Constructor \ensuremath{\Con{block\textrm{-}halt}} can be used to stop the execution of a given block, \ensuremath{\Con{block\textrm{-}seq}} has a similar meaning to instruction sequence, and \ensuremath{\Con{block\textrm{-}jump}} is used to perform a direct jump (without any condition), receiving a label and checking if the current context typing is subtype of the intended one.
+
+
+And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, each preceded by a label. We use the \ensuremath{\D{All}} datatype to express this relationship.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\D{Program}\;\mathbin{:}\;\D{PCtx}\;\rightarrow\;\D{Set}{}\<[E]%
+\\
+\>[B]{}\D{Program}\;\V{\Pi}\;\mathrel{=}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\D{All}\;(\lambda\;\V{\Gamma}\;\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'})\;\V{\Pi}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
 \section{A definitional interpreter}\label{sec:semantics}
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{11}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{Val}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{nil}\;\mathbin{:}\;\D{Val}\;\Con{nil}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{[]v}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\D{Val}\;(\Con{list}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{\_::\_}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\D{Val}\;\V{t}\;\rightarrow\;\D{Val}\;(\Con{list}\;\V{t})\;\rightarrow\;\D{Val}\;(\Con{listcons}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{\_::v\_}\;\mathbin{:}\;{}\<[11]%
+\>[11]{}\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\D{Val}\;\V{t}\;\rightarrow\;\D{Val}\;(\Con{list}\;\V{t})\;\rightarrow\;\D{Val}\;(\Con{list}\;\V{t}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\D{Env}\;\mathbin{:}\;\D{Ctx}\;\rightarrow\;\D{Set}{}\<[E]%
+\\
+\>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\D{All}\;(\lambda\;(\V{x}\;\red{,}\,\;\V{\tau})\;\rightarrow\;\D{Val}\;\V{\tau})\;\V{\Gamma}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\D{PEnv}\;\mathbin{:}\;\D{PCtx}\;\rightarrow\;\D{Set}{}\<[E]%
+\\
+\>[B]{}\D{PEnv}\;\V{\Pi}\;\mathrel{=}\;\D{Allv}\;\D{Env}\;\V{\Pi}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+
+
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{11}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{run\textrm{-}step}\;{}\<[11]%
+\>[11]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Pi}\;\V{\Gamma}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\D{Fuel}\;\rightarrow\;\D{Program}\;\V{\Pi}\;\rightarrow\;\D{Env}\;\V{\Gamma}\;{}\<[E]%
+\\
+\>[11]{}\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'}\;\rightarrow\;\D{Maybe}\;(\D{Env}\;\V{\Gamma'}){}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;\Con{zero}\;\V{p}\;\V{env}\;\V{b}\;\mathrel{=}\;\Con{nothing}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;\Con{block\textrm{-}halt}\;\mathrel{=}\;\Con{just}\;\V{env}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}seq}\;\V{i₁}\;\V{i₂})\;\V{b})\;\mathrel{=}\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;\V{i₁}\;(\Con{block\textrm{-}seq}\;\V{i₂}\;\V{b})){}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;\{\mskip1.5mu \V{\Pi}\mskip1.5mu\}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}branch\textrm{-}list}\;\{\mskip1.5mu \V{\tau}\mskip1.5mu\}\;\{\mskip1.5mu \V{i}\mskip1.5mu\}\;\V{v}\;\V{l}\;\V{s})\;\V{b}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{[]v}\;\mathkw{rewrite}\;\D{sym}\;(\F{[]\textrm{=}{\Rightarrow}lookup}\;\V{l})\;\mathrel{=}\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{\subset\hspace{-3pt}\textrm{-}Ctx}\;\V{s}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v}\;\Con{nil}))\;(\F{lookupA}\;\V{i}\;\V{p}){}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\V{v₁}\;\Con{::\hspace{-2pt}v}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v}\;(\V{v₁}\;\Con{::}\;\V{v₂}))\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}branch\textrm{-}listcons}\;\V{v}\;\V{l}\;\V{s})\;\V{b})\;\mathrel{=}\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;\V{env}\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}branch\textrm{-}nil}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{i}\mskip1.5mu\}\;\V{v}\;\V{l}\;\V{s})\;\V{b})\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathkw{rewrite}\;\D{sym}\;(\F{[]\textrm{=}{\Rightarrow}lookup}\;\V{l})\;{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{\subset\hspace{-3pt}\textrm{-}Ctx}\;\V{s}\;\V{env})\;(\F{lookupA}\;\V{i}\;\V{p}){}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\V{v})\;\V{b}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\V{v₁}\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;\V{v}\;\V{v'})\;\V{b}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;\V{v₁})\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}\;\V{v})\;\V{b}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\V{v₂}\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}\;\V{v}\;\V{v'})\;\V{b}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;\V{v₂})\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}cons\textrm{-}new}\;\V{v₀}\;\V{v₁}\;\V{s})\;\V{b})\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;((\F{\textrm{<:-}val}\;(\F{list\textrm{-<:-}inv}\;(\F{lub\textrm{-}subtype\textrm{-}left}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}(\F{lub\textrm{-}of\textrm{-}subtype}\;(\F{lub\textrm{-}subtype\textrm{-}left}\;\V{s}))))\;(\F{lookup}\;\V{env}\;\V{v₀}){}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s})\;(\F{lookup}\;\V{env}\;\V{v₁}))\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}cons\textrm{-}upd}\;\V{v₀}\;\V{v₁}\;\V{v'}\;\V{s})\;\V{b})\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;(\F{\textrm{<:-}val}\;(\F{list\textrm{-<:-}inv}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}(\F{lub\textrm{-}subtype\textrm{-}left}\;(\F{lub\textrm{-}of\textrm{-}subtype}\;(\F{lub\textrm{-}subtype\textrm{-}left}\;\V{s})))){}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}(\F{lookup}\;\V{env}\;\V{v₀})\;\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s}){}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}(\F{lookup}\;\V{env}\;\V{v₁})))\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}jump}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{i}\mskip1.5mu\}\;\V{l}\;\V{s})\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathkw{rewrite}\;\D{sym}\;(\F{[]\textrm{=}{\Rightarrow}lookup}\;\V{l})\;\mathrel{=}\;{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{\subset\hspace{-3pt}\textrm{-}Ctx}\;\V{s}\;\V{env})\;(\F{lookupA}\;\V{i}\;\V{p}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
 
 \section{Related work}\label{sec:related}
 

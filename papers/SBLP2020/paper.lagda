@@ -158,7 +158,7 @@ module paper where
 
 \begin{abstract}
 Formal models are important tools in the programming languages research
-community. However, such models are full of intricacies and, due to that,
+community. However, such models are full of intrincacies and, due to that,
 they are subject to subtle errors. Such failures motivated the usage of
 tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
@@ -564,7 +564,28 @@ denote the subtyping judgement which is defined as follows.
 \]
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
+The other rules specifies that type constructors $list$ and $listcons$ respect
+the subtyping relation.
 
+Using the previously defined type syntax and its subtyping relation, we can
+define the typing rules for the list machine. Following common practice, we
+let meta-variable $\Gamma$ denote an environment between variable names and
+its type. Notation $\{\}$ denote an empty environment and $v : \tau , \Gamma'$
+denote the operation of including a new entry for variable $v$ with type $\tau$.
+Subtyping is extended to contexts as follows.
+\[
+\begin{array}{cc}
+  \inference{}
+            {\Gamma \subset_{env} \{\}}[b1]
+  &
+  \inference{\Gamma_1 = (v : \tau') , \Gamma' & \tau' \subset \tau & \Gamma' \subset_{env} \Gamma_2}
+            {\Gamma_1 \subset_{env} v : \tau , \Gamma_2}
+            [b2]
+\end{array}
+\]
+Variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between labels and typing contexts $\Gamma$,
+where notation $\Pi(l) = \Gamma$ denotes that $\Gamma$ stores the types of variables on the entry point of the block
+labeled by $l$. 
 
 
 \begin{equation}
@@ -617,34 +638,6 @@ subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
           {p \Downarrow}[run-prog]
 \end{equation}
 
-%\subsection{Typing}
-
-%\subsubsection{Subtyping}
-
-\begin{equation}
-\inference{}
-          {\tau \subset \tau}[subtype-refl]
-\end{equation}
-
-\begin{equation}
-\inference{}
-          {\text{nil} \subset \text{list}~\tau}[subtype-nil]
-\end{equation}
-
-\begin{equation}
-\inference{\tau \subset \tau'}
-          {\text{list}~\tau \subset \text{list}~\tau'}[subtype-list]
-\end{equation}
-
-\begin{equation}
-\inference{\tau \subset \tau'}
-          {\text{listcons}~\tau \subset \text{list}~\tau'}[subtype-listcons]
-\end{equation}
-
-\begin{equation}
-\inference{\tau \subset \tau'}
-          {\text{listcons}~\tau \subset \text{listcons}~\tau'}[subtype-listmixed]
-\end{equation}
 
 %\subsubsection{Instruction typing}
 
