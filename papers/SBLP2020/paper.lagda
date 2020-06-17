@@ -1005,6 +1005,55 @@ It is worth noticing that we do not have any error treatment on this interpreter
 
 \section{Type Checker}\label{sec:typechecker}
 
+In practice, a source-code of a programming language runs through several phases, including lexing, parsing, scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking. Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of elaborating an untyped syntax to a typed one.
+
+%format lookup-var = "\F{lookup\textrm{-}var}"
+%format map = "\F{map}"
+%format ∃ = "\D{\exists}"
+%format ≟ = "\D{=}"
+%format here = "\Con{here}"
+%format there = "\Con{there}"
+%format proj₁ = "\D{proj_1}"
+%format proj₂ = "\D{proj_2}"
+
+Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope check them, we need to provide an index from a named variable. This process is done by the |lookup-var| function.
+
+\begin{spec}
+lookup-var  : (Γ : Ctx) → (x : String)
+            → Maybe (∃ λ τ → (x , τ) ∈ Γ)
+lookup-var [] x = nothing
+lookup-var ((y , τ) ∷ Γ) x with x ≟ y
+... | yes refl = just (τ , here refl)
+... | (no ¬p) = map  (λ v → proj₁ v , there (proj₂ v))
+                     (lookup-var Γ x)
+\end{spec}
+
+%format check-fetch-field-0 = "\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}"
+%format type-error = "\F{type\textrm{-}error}"
+%format TC = "\D{TC}"
+%format CheckedInstr = "\D{CheckedInstr}"
+
+%format fetch-field-0 = "\Con{fetch\textrm{-}field\textrm{-}0}"
+%format right = "\Con{right}"
+%format ok = "\Con{ok}"
+
+For space reasons, we show how we type check only one instruction. Function |check-fetch-field-0| receives a program context, a typing context, and two named variables, and returns a |TC| value, which is an error message or a |CheckedInstr| indicating that the term type checks.
+
+\begin{spec}
+check-fetch-field-0 : (Π : PCtx) → (Γ : Ctx) → (v : String)
+  → (v' : String) → TC (CheckedInstr Π Γ (fetch-field-0 v v'))
+check-fetch-field-0 Π Γ v v' with lookup-var Γ v , lookup-var Γ v'
+... | nothing , _ = type-error ("variable out of scope: " ++ v)
+... | just (nil , _) , _ = type-error "type error"
+... | just (list τ , _) , _ = type-error "type error"
+... | just (listcons τ , idx) ,  nothing =
+                                 right (ok (instr-fetch-0-new idx))
+... | just (listcons τ , idx) ,  just (τ' , idx') =
+                                 right (ok (instr-fetch-0-upd idx idx'))
+\end{spec}
+
+In the code above, we use the function |lookup-var| to provide the \emph{de Bruijn} indices for each variable, and match the first with its possible forms. The first three cases indicate type errors: (1) when |v| is |nothing| it means an scope error; (2) and (3) are typing errors, since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction is well-typed. The process for type-checking different instructions follows a similar setting.
+
 \section{Related work}\label{sec:related}
 
 \section{Conclusion}\label{sec:conclusion}
