@@ -262,6 +262,9 @@ More specifically, we contribute:
   \item We provide a provably correct implementations for testing the subtyping
         relation and to calculate the least common super type of two input
         types for the machine registers.
+  \item We provide a correct by construction implementation of a type checker for
+        list machine programs. Our type checker produces, as result, an intrinsically-typed
+        representation of the machine code.
 \end{itemize}
 
 The rest of this paper is organized as follows. Section~\ref{sec:agda}
@@ -513,15 +516,15 @@ appear primed or subscripted. The syntax of the virtual machine instructions are
 presented next and their meaning is as usual.
 \[
 \begin{array}{rcll}
-  i & ::=  & \text{jump }l                       & \text{(jump instruction)}\\
-    & \mid & \text{branch-if-nil $v$}            & \text{(if $v = nil$ goto $l$)}\\
-    & \mid & \text{fetch-field $v$ 0 $v'$}       & \text{(fetch the head of $v$ into $v'$)}\\
-    & \mid & \text{fetch-field  $v$ 1 $v'$}      & \text{(fetch the tail of $v$ into $v'$)}\\
-    & \mid & \text{cons $v_0$ $v_1$ $v'$}        & \text{(make a cons cell in v')} \\
-    & \mid & \text{halt}                         & \text{(finishes execution)}\\
-    & \mid & i_1;i_2                             & \text{(sequential composition)}\\
-  p & ::=  & l_i \,:\,i\,;\,p                    & \text{(program: sequence of blocks)}\\
-    & \mid & \text{end}                          & \text{(end of block list)}\\
+  \iota & ::=  & \text{jump }l                       & \text{(jump instruction)}\\
+        & \mid & \text{branch-if-nil $v$}            & \text{(if $v = nil$ goto $l$)}\\
+        & \mid & \text{fetch-field $v$ 0 $v'$}       & \text{(fetch the head of $v$ into $v'$)}\\
+        & \mid & \text{fetch-field  $v$ 1 $v'$}      & \text{(fetch the tail of $v$ into $v'$)}\\
+        & \mid & \text{cons $v_0$ $v_1$ $v'$}        & \text{(make a cons cell in v')} \\
+        & \mid & \text{halt}                         & \text{(finishes execution)}\\
+        & \mid & \iota_1;\iota_2                             & \text{(sequential composition)}\\
+      p & ::=  & l_i \,:\,\iota\,;\,p                    & \text{(program: sequence of blocks)}\\
+        & \mid & \text{end}                          & \text{(end of block list)}\\
 \end{array}
 \]
 Programs are just a sequence of blocks which begin with a unique label. 
@@ -565,13 +568,16 @@ denote the subtyping judgement which is defined as follows.
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
 The other rules specifies that type constructors $list$ and $listcons$ respect
-the subtyping relation.
+the subtyping relation. The list common supertype $\tau = \tau_1 \sqcap \tau_2$ of
+$\tau_1$ and $\tau_2$ is defined as the smallest type such that $\tau_1$ and $\tau_2$
+are subtypes of $\tau$.
 
-Using the previously defined type syntax and its subtyping relation, we can
-define the typing rules for the list machine. Following common practice, we
-let meta-variable $\Gamma$ denote an environment between variable names and
-its type. Notation $\{\}$ denote an empty environment and $v : \tau , \Gamma'$
-denote the operation of including a new entry for variable $v$ with type $\tau$.
+Following common practice, we let meta-variable $\Gamma$ denote an
+environment between variable names and
+its types. Notation $\{\}$ denote an empty environment, $v : \tau , \Gamma$
+denote the operation of including a new entry for variable $v$ with type $\tau$
+in $\Gamma$ and $\Gamma [v := \tau]$ denotes the environment which is identical to $\Gamma$, except
+by the entry which associates variable $v$ with type $\tau$.
 Subtyping is extended to contexts as follows.
 \[
 \begin{array}{cc}
@@ -583,127 +589,94 @@ Subtyping is extended to contexts as follows.
             [b2]
 \end{array}
 \]
-Variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between labels and typing contexts $\Gamma$,
-where notation $\Pi(l) = \Gamma$ denotes that $\Gamma$ stores the types of variables on the entry point of the block
-labeled by $l$. 
+We let variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between
+labels and typing contexts $\Gamma$, where notation $\Pi(l) = \Gamma$ denotes that
+$\Gamma$ stores the types of variables on the entry point of the block labeled by $l$.
+Using the previously defined notations, we can define the typing rules for the list
+machine as a syntax directed judgement $\Pi \vdash_{\text{instr}} \Gamma \{ \iota \} \Gamma'$
+which intuitively means that the instruction $\iota$ transforms an input typing environment,
+$\Gamma$, into an output environment $\Gamma'$ under a fixed program typing $\Pi$. The typing
+rules for the list machine instructions are as follows.
 
-
-\begin{equation}
-\inference{}
-          {(r, (\iota_1;\iota_2);\iota_3) \xmapsto{p} (r, \iota_1;(\iota_2;\iota_3))}[step-seq]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_0]=r'}
-          {(r, (\textbf{fetch-field}~v~0~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-0]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_1]=r'}
-          {(r, (\textbf{fetch-field}~v~1~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-1]
-\end{equation}
-
-\begin{equation}
-\inference{r(v_0) = a_0~~~r(v_1)=a_1~~~r[v':=cons(a_0,a_1)]=r'}
-          {(r, (\textbf{cons}~v_0~v_1~v';\iota)) \xmapsto{p} (r', \iota)}[step-cons]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)}
-          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota)}[step-branch-not-taken]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = nil~~~p(l)=\iota'}
-          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota')}[step-branch-taken]
-\end{equation}
-
-\begin{equation}
-\inference{p(l)=\iota'}
-          {(r, \textbf{jump}~l) \xmapsto{p} (r, \iota')}[step-jump]
-\end{equation}
-
-\begin{equation}
-\inference{(r, \iota) \xmapsto{p} (r', \iota')~~~(p, r', \iota')}
-          {(p, r, \iota) \Downarrow}[run-step]
-\end{equation}
-
-\begin{equation}
-\inference{}
-          {(p, r, \textbf{halt}) \Downarrow}[run-halt]
-\end{equation}
-
-\begin{equation}
-\inference{\{\}[\textbf{v}_0:=\text{nil}]=r~~~p(\textbf{L}_0)=\iota~~~(p,r,\iota)\Downarrow}
-          {p \Downarrow}[run-prog]
-\end{equation}
-
-
-%\subsubsection{Instruction typing}
-
-\begin{equation}
+The first typing rule we consider is the one for sequencing instructions inside a block. Basically,
+the rule just threads the output environment from the first instruction as the input typing for the
+second.
+\[
 \inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'~~~\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[check-instr-seq]
-\end{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
+\]
+The type system proposed by Appel et. al.~\cite{Appel07} has three rules to deal with each of the possible
+types assigned to the branch variable in current typing context. The first rules deal with the $list$ and $listcon$
+types, which specifies that the environment associated to the label $l$, $\Pi(l) = \Gamma_1$, is greater than
+$\Gamma[v := nil]$. The third rule applies whenever $\Gamma(v) = nil$ and it also demands that $\Gamma \subset \Pi(l)$.
 
-\begin{equation}
-\inference{\Gamma(v) = \text{list}~\tau~~~\Pi(l) = \Gamma_1~~~\Gamma[v:=\text{nil}]=\Gamma'~~~\Gamma' \subset \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}(v: \text{listcons}~\tau,~\Gamma')}[check-instr-branch-list]
-\end{equation}
+\[
+\begin{array}{c}
+\inference{\Gamma(v) = \text{list}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
+                     \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}(v: \text{listcons}~\tau,~\Gamma')}
+          [branch-list]
+\\ \\
 
-\begin{equation}
-\inference{\Gamma(v) = \text{listcons}~\tau~~~\Pi(l) = \Gamma_1~~~\Gamma[v:=\text{nil}]=\Gamma'~~~\Gamma' \subset \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[check-instr-branch-listcons]
-\end{equation}
+\inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
+           \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[branch-listcons]
 
-\begin{equation}
+\\ \\
 \inference{\Gamma(v) = \text{nil}~~~\Pi(l) = \Gamma_1~~~\Gamma \subset \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[check-instr-branch-nil]
-\end{equation}
-
-\begin{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}
+          [branch-nil]
+\end{array}
+\]
+Next, we have the \emph{fetch} instruction which can be used to store the head / tail of a list value in
+a variable. Rule \emph{fetch-0} retrieves the head of a value stored in a variable $v$ and \emph{fetch-1}
+does the same for the tail. Note that both rules demand that $\Gamma(v) = listcons\:\tau$, for some type
+$\tau$.
+\[
+\begin{array}{c}
 \inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[check-instr-fetch-0]
-\end{equation}
-
-\begin{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[fetch-0]
+          \\ \\
 \inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\text{list}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[check-instr-fetch-1]
-\end{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[fetch-1]
+\end{array}
+\]
+The \emph{cons} instruction allows us to build a non-empty list value and this rule uses the least
+common supertype operator to check if the result of the operation is really a list type.
+\[
+\inference{\Gamma(v_0) = \tau_0\:\:\:\:\:\:\:\:\Gamma(v_1) = \tau_1 \\
+           (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau\:\:\:\:\:\:\:\:\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[cons]
+\]
+The final rules deal with the well-formedness of blocks and programs. The typing rules for \textbf{halt} instruction and
+program \textbf{end} are completely trivial. Rule \emph{block-seq} does the typing context threading between sequential
+instructions inside a block and rule \emph{block-label} recursively applies the judgment $\vdash_{block}$ on the
+input program.
 
-\begin{equation}
-\inference{\Gamma(v_0) = \tau_0~~~~~~~~~\Gamma(v_1) = \tau_1 \\ (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau~~~\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[check-instr-cons]
-\end{equation}
+\[
+\begin{array}{cc}
+   \inference{}
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[halt]
+   &
 
-%\subsubsection{Block typings}
+   \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
+             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]\\ \\
 
-\begin{equation}
-\inference{}
-          {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[check-block-halt]
-\end{equation}
+   \inference{\Pi(l)=\Gamma_1\\ \Gamma \subset_{env} \Gamma_1}
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[jump]
 
-\begin{equation}
-\inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'~~~\Pi;\Gamma'\vdash_{\text{block}} \iota_2}
-          {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[check-block-seq]
-\end{equation}
+   &
+   \inference{}
+             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty] \\ \\
 
-\begin{equation}
-\inference{\Pi(l)=\Gamma_1~~~\Gamma \subset \Gamma_1}
-          {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[check-block-jump]
-\end{equation}
-
-%\subsubsection{Program typings}
-
-\begin{equation}
-\inference{\Pi(l)=\Gamma~~~\Pi;\Gamma\vdash_{\text{block}} \iota~~~\Pi\vdash_{\text{blocks}} p}
-          {\Pi\vdash_{\text{blocks}} l: \iota;~p}[check-blocks-label]
-\end{equation}
-
-\begin{equation}
-\inference{}
-          {\Pi\vdash_{\text{blocks}} \textbf{end}}[check-blocks-empty]
-\end{equation}
+   \multicolumn{2}{c}{
+   \inference{\Pi(l)=\Gamma\:\:\:\:\:\:\:\:\Pi;\Gamma\vdash_{\text{block}} \iota\:\:\:\:\:\:\:\:\Pi\vdash_{\text{blocks}} p}
+     {\Pi\vdash_{\text{blocks}} l: \iota;~p}[blocks-label]
+    }
+\end{array}
+\]
+Inspired by the typing rules designed by Appel et. al., in the next section, we define an intrisinsically
+typed syntax for list machine programs which ensures that only well-typed programs can be built.
 
 \section{Instrinsically-typed syntax}\label{sec:typing}
 

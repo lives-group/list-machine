@@ -513,6 +513,9 @@ More specifically, we contribute:
   \item We provide a provably correct implementations for testing the subtyping
         relation and to calculate the least common super type of two input
         types for the machine registers.
+  \item We provide a correct by construction implementation of a type checker for
+        list machine programs. Our type checker produces, as result, an intrinsically-typed
+        representation of the machine code.
 \end{itemize}
 
 The rest of this paper is organized as follows. Section~\ref{sec:agda}
@@ -813,15 +816,15 @@ appear primed or subscripted. The syntax of the virtual machine instructions are
 presented next and their meaning is as usual.
 \[
 \begin{array}{rcll}
-  i & ::=  & \text{jump }l                       & \text{(jump instruction)}\\
-    & \mid & \text{branch-if-nil $v$}            & \text{(if $v = nil$ goto $l$)}\\
-    & \mid & \text{fetch-field $v$ 0 $v'$}       & \text{(fetch the head of $v$ into $v'$)}\\
-    & \mid & \text{fetch-field  $v$ 1 $v'$}      & \text{(fetch the tail of $v$ into $v'$)}\\
-    & \mid & \text{cons $v_0$ $v_1$ $v'$}        & \text{(make a cons cell in v')} \\
-    & \mid & \text{halt}                         & \text{(finishes execution)}\\
-    & \mid & i_1;i_2                             & \text{(sequential composition)}\\
-  p & ::=  & l_i \,:\,i\,;\,p                    & \text{(program: sequence of blocks)}\\
-    & \mid & \text{end}                          & \text{(end of block list)}\\
+  \iota & ::=  & \text{jump }l                       & \text{(jump instruction)}\\
+        & \mid & \text{branch-if-nil $v$}            & \text{(if $v = nil$ goto $l$)}\\
+        & \mid & \text{fetch-field $v$ 0 $v'$}       & \text{(fetch the head of $v$ into $v'$)}\\
+        & \mid & \text{fetch-field  $v$ 1 $v'$}      & \text{(fetch the tail of $v$ into $v'$)}\\
+        & \mid & \text{cons $v_0$ $v_1$ $v'$}        & \text{(make a cons cell in v')} \\
+        & \mid & \text{halt}                         & \text{(finishes execution)}\\
+        & \mid & \iota_1;\iota_2                             & \text{(sequential composition)}\\
+      p & ::=  & l_i \,:\,\iota\,;\,p                    & \text{(program: sequence of blocks)}\\
+        & \mid & \text{end}                          & \text{(end of block list)}\\
 \end{array}
 \]
 Programs are just a sequence of blocks which begin with a unique label. 
@@ -865,13 +868,16 @@ denote the subtyping judgement which is defined as follows.
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
 The other rules specifies that type constructors $list$ and $listcons$ respect
-the subtyping relation.
+the subtyping relation. The list common supertype $\tau = \tau_1 \sqcap \tau_2$ of
+$\tau_1$ and $\tau_2$ is defined as the smallest type such that $\tau_1$ and $\tau_2$
+are subtypes of $\tau$.
 
-Using the previously defined type syntax and its subtyping relation, we can
-define the typing rules for the list machine. Following common practice, we
-let meta-variable $\Gamma$ denote an environment between variable names and
-its type. Notation $\{\}$ denote an empty environment and $v : \tau , \Gamma'$
-denote the operation of including a new entry for variable $v$ with type $\tau$.
+Following common practice, we let meta-variable $\Gamma$ denote an
+environment between variable names and
+its types. Notation $\{\}$ denote an empty environment, $v : \tau , \Gamma$
+denote the operation of including a new entry for variable $v$ with type $\tau$
+in $\Gamma$ and $\Gamma [v := \tau]$ denotes the environment which is identical to $\Gamma$, except
+by the entry which associates variable $v$ with type $\tau$.
 Subtyping is extended to contexts as follows.
 \[
 \begin{array}{cc}
@@ -883,127 +889,94 @@ Subtyping is extended to contexts as follows.
             [b2]
 \end{array}
 \]
-Variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between labels and typing contexts $\Gamma$,
-where notation $\Pi(l) = \Gamma$ denotes that $\Gamma$ stores the types of variables on the entry point of the block
-labeled by $l$. 
+We let variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between
+labels and typing contexts $\Gamma$, where notation $\Pi(l) = \Gamma$ denotes that
+$\Gamma$ stores the types of variables on the entry point of the block labeled by $l$.
+Using the previously defined notations, we can define the typing rules for the list
+machine as a syntax directed judgement $\Pi \vdash_{\text{instr}} \Gamma \{ \iota \} \Gamma'$
+which intuitively means that the instruction $\iota$ transforms an input typing environment,
+$\Gamma$, into an output environment $\Gamma'$ under a fixed program typing $\Pi$. The typing
+rules for the list machine instructions are as follows.
 
-
-\begin{equation}
-\inference{}
-          {(r, (\iota_1;\iota_2);\iota_3) \xmapsto{p} (r, \iota_1;(\iota_2;\iota_3))}[step-seq]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_0]=r'}
-          {(r, (\textbf{fetch-field}~v~0~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-0]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)~~~r[v':=a_1]=r'}
-          {(r, (\textbf{fetch-field}~v~1~v';\iota)) \xmapsto{p} (r', \iota)}[step-fetch-field-1]
-\end{equation}
-
-\begin{equation}
-\inference{r(v_0) = a_0~~~r(v_1)=a_1~~~r[v':=cons(a_0,a_1)]=r'}
-          {(r, (\textbf{cons}~v_0~v_1~v';\iota)) \xmapsto{p} (r', \iota)}[step-cons]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = cons(a_0,a_1)}
-          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota)}[step-branch-not-taken]
-\end{equation}
-
-\begin{equation}
-\inference{r(v) = nil~~~p(l)=\iota'}
-          {(r, (\textbf{branch-if-nil}~v~l;\iota)) \xmapsto{p} (r, \iota')}[step-branch-taken]
-\end{equation}
-
-\begin{equation}
-\inference{p(l)=\iota'}
-          {(r, \textbf{jump}~l) \xmapsto{p} (r, \iota')}[step-jump]
-\end{equation}
-
-\begin{equation}
-\inference{(r, \iota) \xmapsto{p} (r', \iota')~~~(p, r', \iota')}
-          {(p, r, \iota) \Downarrow}[run-step]
-\end{equation}
-
-\begin{equation}
-\inference{}
-          {(p, r, \textbf{halt}) \Downarrow}[run-halt]
-\end{equation}
-
-\begin{equation}
-\inference{\{\}[\textbf{v}_0:=\text{nil}]=r~~~p(\textbf{L}_0)=\iota~~~(p,r,\iota)\Downarrow}
-          {p \Downarrow}[run-prog]
-\end{equation}
-
-
-%\subsubsection{Instruction typing}
-
-\begin{equation}
+The first typing rule we consider is the one for sequencing instructions inside a block. Basically,
+the rule just threads the output environment from the first instruction as the input typing for the
+second.
+\[
 \inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'~~~\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[check-instr-seq]
-\end{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
+\]
+The type system proposed by Appel et. al.~\cite{Appel07} has three rules to deal with each of the possible
+types assigned to the branch variable in current typing context. The first rules deal with the $list$ and $listcon$
+types, which specifies that the environment associated to the label $l$, $\Pi(l) = \Gamma_1$, is greater than
+$\Gamma[v := nil]$. The third rule applies whenever $\Gamma(v) = nil$ and it also demands that $\Gamma \subset \Pi(l)$.
 
-\begin{equation}
-\inference{\Gamma(v) = \text{list}~\tau~~~\Pi(l) = \Gamma_1~~~\Gamma[v:=\text{nil}]=\Gamma'~~~\Gamma' \subset \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}(v: \text{listcons}~\tau,~\Gamma')}[check-instr-branch-list]
-\end{equation}
+\[
+\begin{array}{c}
+\inference{\Gamma(v) = \text{list}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
+                     \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}(v: \text{listcons}~\tau,~\Gamma')}
+          [branch-list]
+\\ \\
 
-\begin{equation}
-\inference{\Gamma(v) = \text{listcons}~\tau~~~\Pi(l) = \Gamma_1~~~\Gamma[v:=\text{nil}]=\Gamma'~~~\Gamma' \subset \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[check-instr-branch-listcons]
-\end{equation}
+\inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
+           \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[branch-listcons]
 
-\begin{equation}
+\\ \\
 \inference{\Gamma(v) = \text{nil}~~~\Pi(l) = \Gamma_1~~~\Gamma \subset \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[check-instr-branch-nil]
-\end{equation}
-
-\begin{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}
+          [branch-nil]
+\end{array}
+\]
+Next, we have the \emph{fetch} instruction which can be used to store the head / tail of a list value in
+a variable. Rule \emph{fetch-0} retrieves the head of a value stored in a variable $v$ and \emph{fetch-1}
+does the same for the tail. Note that both rules demand that $\Gamma(v) = listcons\:\tau$, for some type
+$\tau$.
+\[
+\begin{array}{c}
 \inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[check-instr-fetch-0]
-\end{equation}
-
-\begin{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[fetch-0]
+          \\ \\
 \inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\text{list}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[check-instr-fetch-1]
-\end{equation}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[fetch-1]
+\end{array}
+\]
+The \emph{cons} instruction allows us to build a non-empty list value and this rule uses the least
+common supertype operator to check if the result of the operation is really a list type.
+\[
+\inference{\Gamma(v_0) = \tau_0\:\:\:\:\:\:\:\:\Gamma(v_1) = \tau_1 \\
+           (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau\:\:\:\:\:\:\:\:\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[cons]
+\]
+The final rules deal with the well-formedness of blocks and programs. The typing rules for \textbf{halt} instruction and
+program \textbf{end} are completely trivial. Rule \emph{block-seq} does the typing context threading between sequential
+instructions inside a block and rule \emph{block-label} recursively applies the judgment $\vdash_{block}$ on the
+input program.
 
-\begin{equation}
-\inference{\Gamma(v_0) = \tau_0~~~~~~~~~\Gamma(v_1) = \tau_1 \\ (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau~~~\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[check-instr-cons]
-\end{equation}
+\[
+\begin{array}{cc}
+   \inference{}
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[halt]
+   &
 
-%\subsubsection{Block typings}
+   \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
+             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]\\ \\
 
-\begin{equation}
-\inference{}
-          {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[check-block-halt]
-\end{equation}
+   \inference{\Pi(l)=\Gamma_1\\ \Gamma \subset_{env} \Gamma_1}
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[jump]
 
-\begin{equation}
-\inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'~~~\Pi;\Gamma'\vdash_{\text{block}} \iota_2}
-          {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[check-block-seq]
-\end{equation}
+   &
+   \inference{}
+             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty] \\ \\
 
-\begin{equation}
-\inference{\Pi(l)=\Gamma_1~~~\Gamma \subset \Gamma_1}
-          {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[check-block-jump]
-\end{equation}
-
-%\subsubsection{Program typings}
-
-\begin{equation}
-\inference{\Pi(l)=\Gamma~~~\Pi;\Gamma\vdash_{\text{block}} \iota~~~\Pi\vdash_{\text{blocks}} p}
-          {\Pi\vdash_{\text{blocks}} l: \iota;~p}[check-blocks-label]
-\end{equation}
-
-\begin{equation}
-\inference{}
-          {\Pi\vdash_{\text{blocks}} \textbf{end}}[check-blocks-empty]
-\end{equation}
+   \multicolumn{2}{c}{
+   \inference{\Pi(l)=\Gamma\:\:\:\:\:\:\:\:\Pi;\Gamma\vdash_{\text{block}} \iota\:\:\:\:\:\:\:\:\Pi\vdash_{\text{blocks}} p}
+     {\Pi\vdash_{\text{blocks}} l: \iota;~p}[blocks-label]
+    }
+\end{array}
+\]
+Inspired by the typing rules designed by Appel et. al., in the next section, we define an intrisinsically
+typed syntax for list machine programs which ensures that only well-typed programs can be built.
 
 \section{Instrinsically-typed syntax}\label{sec:typing}
 
@@ -1153,7 +1126,7 @@ In our approach, all name binding is done with statically checked \emph{de Bruij
 
 \paragraph{Sequencing instructions}{The constructor \ensuremath{\Con{instr\textrm{-}seq}} can be used to express a sequence of instructions. From the execution of two instructions, it produces a modified typing context containing the changes performed by both instructions.}
 
-\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label \ensuremath{\V{l}} when the received variable is \ensuremath{\Con{nil}}. All these constructors type-check the typing context of the intended label with the current typing context. We use \ensuremath{\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}}, meaning that there exist a typing context \ensuremath{\V{\Gamma_1}} in program typing \ensuremath{\V{\Pi}} related to label \ensuremath{\V{l}}. And we use \ensuremath{\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}} as a proof of subtyping between \ensuremath{\V{\Gamma}} and \ensuremath{\V{\Gamma_1}}.}
+\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label \ensuremath{\V{l}} when the received variable is \ensuremath{\Con{nil}}. All these constructors type-check the typing context of the intended label with the current typing context. We use \ensuremath{\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}}, meaning that there exist a typing context \ensuremath{\V{\Gamma_1}} in program typing \ensuremath{\V{\Pi}} related to label \ensuremath{\V{l}}. And we use \ensuremath{\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}} as a proof of subtyping between \ensuremath{\V{\Gamma}} and \ensuremath{\V{\Gamma_1}}. The operator \ensuremath{\F{\_\hspace{-2pt}::=\hspace{-2pt}\_}} is used to update the context \ensuremath{\V{\Gamma}} in the position defined by the index \ensuremath{\V{idx}}.}
 
 \paragraph{Fetching information from list}{There are four constructors which can be used to fetch information from a given list. The constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}} receives a non-empty list (\ensuremath{\Con{listcons}}), and is used to retrieve the head of this list and store it in a fresh new variable. The resulting typing context adds the information about the new variable. Constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}} is also used to retrieve the head element of a list, however storing its value in an existing variable, represented by the \emph{de Bruijn} index \ensuremath{\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma}}. The constructors \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}} are similar, fetching the tail of a list instead of the head.}
 
@@ -1206,6 +1179,10 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 
 \section{A definitional interpreter}\label{sec:semantics}
 
+This section describes the steps to evaluate a program written using the list-machine language. We adapted the small-step semantics presented in Section~\ref{sec:list}, transforming it in a definitional interpreter~\cite{Reynolds72}, which evaluates an intrinsically-typed instruction, transforming a initial memory state into a new one, represented by a run-time environment.
+
+
+\paragraph{Values and environments}{The interpreter presented next needs to encode a run-time environment to hold values associated to variables and their types. This way, we define the notion of a well-typed value as follows.}
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1229,6 +1206,10 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 \ColumnHook
 \end{hscode}\resethooks
 
+The datatype \ensuremath{\D{Val}} is indexed by a \ensuremath{\D{Ty}}, indicating the type associated to each value. The first two represent \ensuremath{\Con{nil}} values associated with type \ensuremath{\Con{nil}} and the empty \ensuremath{\Con{list}}. The last two represent non-empty list, considering the types \ensuremath{\Con{listcons}} and \ensuremath{\Con{list}}.
+
+
+We use the datatype \ensuremath{\D{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed variable environments and well-typed programs. Thus, intuitively, \ensuremath{\D{Env}} is like a list of well-typed values. And \ensuremath{\D{PEnv}} is like a list of well-typed environments. Both type environments are used to type block instructions and sequence of block instructions.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1238,7 +1219,6 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 \>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\D{All}\;(\lambda\;(\V{x}\;\red{,}\,\;\V{\tau})\;\rightarrow\;\D{Val}\;\V{\tau})\;\V{\Gamma}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
-
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1253,43 +1233,54 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 
 
 
+\paragraph{Fuel based evaluation}{Having all the building blocks to make the complete interpreter for the list-machine language, we can start the definition of the \ensuremath{\F{run\textrm{-}step}} function. It is important to note that Agda is a total language, i.e., each program developed in it must terminate and all possible patterns must be matched. However, by using the mechanisms for jumping between labels one can write a program which never ends, making it impossible to implement a terminating interpreting function. Following the common practice, we define a fuel based evaluator~\cite{Amin17,Owens2016}. Basically, what we do is to parameterize the interpreter over a step index of \emph{fuel value} (represented as a natural number $n$), which bounds the amount of work the interpreter is allowed to do, and is decremented on each recursive call.}
+
+The evaluation function is defined with the following type.
+
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{11}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\F{run\textrm{-}step}\;{}\<[11]%
 \>[11]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Pi}\;\V{\Gamma}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\D{Fuel}\;\rightarrow\;\D{Program}\;\V{\Pi}\;\rightarrow\;\D{Env}\;\V{\Gamma}\;{}\<[E]%
 \\
 \>[11]{}\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'}\;\rightarrow\;\D{Maybe}\;(\D{Env}\;\V{\Gamma'}){}\<[E]%
-\\
+\ColumnHook
+\end{hscode}\resethooks
+
+The function \ensuremath{\F{run\textrm{-}step}} receives four arguments and returns a \ensuremath{\D{Maybe}} value. The first argument is the \emph{fuel}, used to ensure the evaluator always terminates. The second parameter is a \ensuremath{\D{Program}\;\V{\Pi}}, which contains information about all the program blocks. The third parameter is the run-time variable environment. And the last one is the \ensuremath{\D{Block}} to be evaluated. This function returns a modified run-time environment (\ensuremath{\D{Env}\;\V{\Gamma'}}) in case of success, or nothing when the \emph{fuel} runs out.
+
+From now on we describe how we implement some parts\footnote{The complete evaluation function can be found in our online repository.} of the dynamic semantics (reduction rules) of the list-machine language in the function \ensuremath{\F{run\textrm{-}step}}. We mix the code with the explanation to make it easier for the reader.
+
+\paragraph{Out of fuel}{The interpreter stops abruptly when the \emph{fuel} counter reaches \ensuremath{\Con{zero}}, and the \ensuremath{\F{run\textrm{-}step}} function returns \ensuremath{\Con{nothing}}. This definition makes our evaluation function structurally recursive on the \emph{fuel} argument. }
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\F{run\textrm{-}step}\;\Con{zero}\;\V{p}\;\V{env}\;\V{b}\;\mathrel{=}\;\Con{nothing}{}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;\Con{block\textrm{-}halt}\;\mathrel{=}\;\Con{just}\;\V{env}{}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}seq}\;\V{i₁}\;\V{i₂})\;\V{b})\;\mathrel{=}\;{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;\V{i₁}\;(\Con{block\textrm{-}seq}\;\V{i₂}\;\V{b})){}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;\{\mskip1.5mu \V{\Pi}\mskip1.5mu\}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}branch\textrm{-}list}\;\{\mskip1.5mu \V{\tau}\mskip1.5mu\}\;\{\mskip1.5mu \V{i}\mskip1.5mu\}\;\V{v}\;\V{l}\;\V{s})\;\V{b}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
-\\
-\>[B]{}\V{...}\;\mid \;\Con{[]v}\;\mathkw{rewrite}\;\D{sym}\;(\F{[]\textrm{=}{\Rightarrow}lookup}\;\V{l})\;\mathrel{=}\;{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{\subset\hspace{-3pt}\textrm{-}Ctx}\;\V{s}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v}\;\Con{nil}))\;(\F{lookupA}\;\V{i}\;\V{p}){}\<[E]%
-\\
-\>[B]{}\V{...}\;\mid \;\V{v₁}\;\Con{::\hspace{-2pt}v}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v}\;(\V{v₁}\;\Con{::}\;\V{v₂}))\;\V{b}{}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}branch\textrm{-}listcons}\;\V{v}\;\V{l}\;\V{s})\;\V{b})\;\mathrel{=}\;{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;\V{env}\;\V{b}{}\<[E]%
-\\
+\ColumnHook
+\end{hscode}\resethooks
+
+All the next pieces of code match the value \ensuremath{\Con{suc}\;\V{fuel}} for the first argument of \ensuremath{\F{run\textrm{-}step}}, meaning that there is still \emph{fuel} during the recursive processing of this function. 
+
+%run-step (suc n) p env block-halt = just env
+%run-step (suc n) p env (block-seq (instr-seq i₁ i₂) b) =
+%  run-step n p env (block-seq i₁ (block-seq i₂ b))
+%run-step {Π} (suc n) p env (block-seq (instr-branch-list {τ} {i} v l s) b)
+%  with lookup env v 
+%... | []v rewrite sym ([]=⇒lookup l) =
+%  run-step n p (⊂-Ctx s (update-env env v nil)) (lookupA i p)
+%... | v₁ ∷v v₂ = run-step n p (update-env env v (v₁ ∷ v₂)) b
+%run-step (suc n) p env (block-seq (instr-branch-listcons v l s) b) =
+% run-step n p env b
+
+\paragraph{Conditional jump}{We show next only the case when the jump actually occurs, following the rule \emph{step-branch-taken}. In this case, variable \ensuremath{\V{v}} has value \ensuremath{\Con{nil}}, and the step of evaluation should proceed with the block instruction defined in program \ensuremath{\V{p}}, with environment \ensuremath{\V{env}} respecting the subtyping constraint. We use the function \ensuremath{\F{lookupA}} to obtain the block instruction with index \ensuremath{\V{i}} on program \ensuremath{\V{p}}. Since we use \emph{de Bruijn} indices to represent the label, only valid values are accepted by the intrinsically-typed syntax.}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}branch\textrm{-}nil}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{i}\mskip1.5mu\}\;\V{v}\;\V{l}\;\V{s})\;\V{b})\;{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
@@ -1297,7 +1288,15 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
 \>[5]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{\subset\hspace{-3pt}\textrm{-}Ctx}\;\V{s}\;\V{env})\;(\F{lookupA}\;\V{i}\;\V{p}){}\<[E]%
-\\
+\ColumnHook
+\end{hscode}\resethooks
+
+\paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors, both related to the \emph{step-fetch-field-0} rule. The first retrieves the head element of a list, and stores it in a new variable. The \ensuremath{\F{lookup}} function projects the value of variable \ensuremath{\V{v}} from the run-time environment \ensuremath{\V{env}}, and this variable is added to the result environment. The typed \emph{de Bruijn} indices guarantee that the projected value has the type demanded, since the environment \ensuremath{\V{env}} is typed by the context \ensuremath{\V{\Gamma}}. Similarly, the second instruction also retrieves the head element of a list, however it needs to update the run-time environment on the position of index \ensuremath{\V{v'}}. This process is done by the function \ensuremath{\F{update\textrm{-}env}}.}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\V{v})\;\V{b}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
@@ -1311,21 +1310,23 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 \>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
 \\
 \>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;\V{v₁})\;\V{b}{}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}\;\V{v})\;\V{b}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
-\\
-\>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\V{v₂}\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}\;\V{v}\;\V{v'})\;\V{b}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
-\\
-\>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;\V{v₂})\;\V{b}{}\<[E]%
-\\
+\ColumnHook
+\end{hscode}\resethooks
+
+%run-step (suc n) p env (block-seq (instr-fetch-1-new v) b)
+%  with lookup env v
+%...| v₁ ∷ v₂ = run-step n p (v₂ ∷ env) b
+%run-step (suc n) p env (block-seq (instr-fetch-1-upd v v') b)
+%  with lookup env v
+%...| v₁ ∷ v₂ = run-step n p (update-env env v' v₂) b
+
+\paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected types, we need some extra lemmas. First because when we create a list from variables \ensuremath{\V{v₀}} and \ensuremath{\V{v₁}}, the result type of this list is the least common subtype between these two. As before, we use the \ensuremath{\F{lookup}} function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we extend the run-time environment \ensuremath{\V{env}} with the type of the created list. To convince the Agda's type-checker the new environment is well-typed we use subtyping lemmas, such as \ensuremath{\F{\textrm{<:-}val}} and \ensuremath{\F{list\textrm{-<:-}inv}}, and others lemmas to deal with the least common subtying, such as \ensuremath{\F{lub\textrm{-}subtype\textrm{-}left}}, \ensuremath{\F{lub\textrm{-}subtype\textrm{-}right}}, and \ensuremath{\F{lub\textrm{-}of\textrm{-}subtype}}. These lemmas and their proofs can be found in our repository online. }
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}cons\textrm{-}new}\;\V{v₀}\;\V{v₁}\;\V{s})\;\V{b})\;{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
@@ -1336,30 +1337,87 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
 \>[5]{}\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s})\;(\F{lookup}\;\V{env}\;\V{v₁}))\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}cons\textrm{-}upd}\;\V{v₀}\;\V{v₁}\;\V{v'}\;\V{s})\;\V{b})\;{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;(\F{\textrm{<:-}val}\;(\F{list\textrm{-<:-}inv}{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}(\F{lub\textrm{-}subtype\textrm{-}left}\;(\F{lub\textrm{-}of\textrm{-}subtype}\;(\F{lub\textrm{-}subtype\textrm{-}left}\;\V{s})))){}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}(\F{lookup}\;\V{env}\;\V{v₀})\;\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s}){}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}(\F{lookup}\;\V{env}\;\V{v₁})))\;\V{b}{}\<[E]%
-\\
-\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}jump}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{i}\mskip1.5mu\}\;\V{l}\;\V{s})\;{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{rewrite}\;\D{sym}\;(\F{[]\textrm{=}{\Rightarrow}lookup}\;\V{l})\;\mathrel{=}\;{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{\subset\hspace{-3pt}\textrm{-}Ctx}\;\V{s}\;\V{env})\;(\F{lookupA}\;\V{i}\;\V{p}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
+
+It is worth noticing that we do not have any error treatment on this interpreter function, except for when we ran out-of-fuel. Since we are using an intrinsically-typed syntax, only valid instructions are accepted in each step of evaluation.
+
+%run-step (suc n) p env (block-seq (instr-cons-upd v₀ v₁ v' s) b)
+%  = run-step n p (update-env env v' (<:-val (list-<:-inv
+%    (lub-subtype-left (lub-of-subtype (lub-subtype-left s))))
+%    (lookup env v₀) ∷ <:-val (lub-subtype-right s)
+%    (lookup env v₁))) b
+%run-step (suc n) p env (block-jump {l = i} l s)
+%  rewrite sym ([]=⇒lookup l) =
+%    run-step n p (⊂-Ctx s env) (lookupA i p) 
+
+\paragraph{Soundness properties}{Programs written using an intrinsically-typed syntax are type-sound by construction. Since only well-typed programs can be expressed, the \emph{preservation} property is enforced by the host-language type-checker~\cite{Amin17}. By implementing the interpreter in such a total language like Agda, i.e., specifying the dynamic semantics in a functional way, instead of relational, we also show the \emph{progress} property, without the need for an extra proof~\cite{Owens2016}. This approach is promising to be investigated when formalizing even more complex programming languages.}
+
+\section{Type Checker}\label{sec:typechecker}
+
+In practice, a source-code of a programming language runs through several phases, including lexing, parsing, scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking. Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of elaborating an untyped syntax to a typed one.
+
+
+Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope check them, we need to provide an index from a named variable. This process is done by the \ensuremath{\F{lookup\textrm{-}var}} function.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{22}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{lookup\textrm{-}var}\;{}\<[13]%
+\>[13]{}\mathbin{:}\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\rightarrow\;(\V{x}\;\mathbin{:}\;\D{String})\;{}\<[E]%
+\\
+\>[13]{}\rightarrow\;\D{Maybe}\;(\D{\exists}\;\lambda\;\V{\tau}\;\rightarrow\;(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma}){}\<[E]%
+\\
+\>[B]{}\F{lookup\textrm{-}var}\;\Con{\lbrack\:\rbrack}\;\V{x}\;\mathrel{=}\;\Con{nothing}{}\<[E]%
+\\
+\>[B]{}\F{lookup\textrm{-}var}\;((\V{y}\;\red{,}\,\;\V{\tau})\;\Con{::}\;\V{\Gamma})\;\V{x}\;\mathkw{with}\;\V{x}\;\D{=}\;\V{y}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{yes}\;\Con{refl}\;\mathrel{=}\;\Con{just}\;(\V{\tau}\;\red{,}\,\;\Con{here}\;\Con{refl}){}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;(\Con{no}\;\V{¬p})\;\mathrel{=}\;\F{map}\;{}\<[22]%
+\>[22]{}(\lambda\;\V{v}\;\rightarrow\;\D{proj_1}\;\V{v}\;\red{,}\,\;\Con{there}\;(\D{proj_2}\;\V{v}))\;{}\<[E]%
+\\
+\>[22]{}(\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{x}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+
+For space reasons, we show how we type check only one instruction. Function \ensuremath{\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}} receives a program context, a typing context, and two named variables, and returns a \ensuremath{\D{TC}} value, which is an error message or a \ensuremath{\D{CheckedInstr}} indicating that the term type checks.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{34}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}\;\mathbin{:}\;(\V{\Pi}\;\mathbin{:}\;\D{PCtx})\;\rightarrow\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\rightarrow\;(\V{v}\;\mathbin{:}\;\D{String})\;{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\rightarrow\;(\V{v'}\;\mathbin{:}\;\D{String})\;\rightarrow\;\D{TC}\;(\D{CheckedInstr}\;\V{\Pi}\;\V{\Gamma}\;(\Con{fetch\textrm{-}field\textrm{-}0}\;\V{v}\;\V{v'})){}\<[E]%
+\\
+\>[B]{}\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{v'}\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v}\;\red{,}\,\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v'}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{nothing}\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;(\text{\ttfamily \char34 variable~out~of~scope:~\char34}\;\F{++}\;\V{v}){}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{nil}\;\red{,}\,\;\anonymous )\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;\text{\ttfamily \char34 type~error\char34}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{list}\;\V{\tau}\;\red{,}\,\;\anonymous )\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;\text{\ttfamily \char34 type~error\char34}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{listcons}\;\V{\tau}\;\red{,}\,\;\V{idx})\;\red{,}\,\;{}\<[34]%
+\>[34]{}\Con{nothing}\;\mathrel{=}\;{}\<[E]%
+\\
+\>[34]{}\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\V{idx})){}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{listcons}\;\V{\tau}\;\red{,}\,\;\V{idx})\;\red{,}\,\;{}\<[34]%
+\>[34]{}\Con{just}\;(\V{\tau'}\;\red{,}\,\;\V{idx'})\;\mathrel{=}\;{}\<[E]%
+\\
+\>[34]{}\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;\V{idx}\;\V{idx'})){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+In the code above, we use the function \ensuremath{\F{lookup\textrm{-}var}} to provide the \emph{de Bruijn} indices for each variable, and match the first with its possible forms. The first three cases indicate type errors: (1) when \ensuremath{\V{v}} is \ensuremath{\Con{nothing}} it means an scope error; (2) and (3) are typing errors, since the type of variable \ensuremath{\V{v}} should be a \ensuremath{\Con{listcons}}. Last two cases represent that the instruction is well-typed. The process for type-checking different instructions follows a similar setting.
 
 \section{Related work}\label{sec:related}
 
