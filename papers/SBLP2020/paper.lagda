@@ -1153,6 +1153,33 @@ is well-typed. The process for type-checking different instructions follows a si
 
 \section{Least common supertype}
 
+\section{Comparison of Mechanized Proofs}
+  
+\begin{table}[!htb]
+\begin{tabular}{rl||rrr}
+    & Task                                      & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
+1.  & Operational Semantics                     & 126                       & 98                      &                          \\
+2.  & Derive $p \Downarrow$                     & 1                         & 8                       &                          \\ \hline
+3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     &                          \\
+4.  & $\sqcap$ algorithm                        & *                         & *                       &                          \\
+5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
+                                                & 1                         & no                      &                          \\
+6.  & State properties of $\sqcap$              & 12                        & 13                      &                          \\
+7.  & Prove properties of $\sqcap$              & 114                       & 21                      &                          \\
+8.  & State soundness theorem                   & 29                        & 15                      &                          \\
+9.  & Prove soundness of $\vDash_{\textrm{prog}} p : \Pi$
+                                                & 2060                      & 315                     &                          \\ \hline
+10. & Efficient algorithm                       & 22                        & 145                     &                          \\
+11. & Derive $\vdash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
+                                                & 1                         & 1                       &                          \\
+12. & Prove termination of $\vdash_{\textrm{prog}} p : \Pi$
+                                                & 18                        & 0                       &                          \\
+13. & Scalable type-checker                     & yes                       & yes                     &                          \\
+14. & Prove soundness of $\vdash_{\textrm{prog}} p : \Pi$
+                                                & 347                       & 141                     &                         
+\end{tabular}
+\end{table}
+
 \section{Related work}\label{sec:related}
 
 \section{Conclusion}\label{sec:conclusion}
