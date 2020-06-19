@@ -687,11 +687,17 @@ typed syntax for list machine programs which ensures that only well-typed progra
 %format → = "\rightarrow"
 %format ∀ = "\D{\forall}"
 
-In this section we present the design choices and the steps we took to represent the intrinsically-typed syntax for the list-machine benchmark. We present here the Agda code used in our definitions, not necessarily in a strict lexically-scoped order.
+In this section we present the design choices and the steps we took to represent the
+intrinsically-typed syntax for the list-machine benchmark. We present here the Agda
+code used in our definitions, not necessarily in a strict lexically-scoped order.
 
-Some definitions and rules have been slightly tweaked so that they are accepted by the Agda's type-checker. As a design choice, we dropped all names, using \emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings} for labels and variables. This way, we guarantee that names are always well-scoped.
+Some definitions and rules have been slightly tweaked so that they are accepted by
+the Agda's type-checker. As a design choice, we dropped all names, using
+\emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings}
+for labels and variables. This way, we guarantee that names are always well-scoped.
 
-We started our formalization by defining a type |Ty|, indicating the possible types for the list-machine language.
+We started our formalization by defining a type |Ty|, indicating the possible types
+for the list-machine language.
 
 \begin{spec}
 data Ty : Set where
@@ -700,9 +706,16 @@ data Ty : Set where
   listcons  : Ty → Ty
 \end{spec}
 
-We internalize the list-machine type judgments for blocks and instructions in Agda together with its syntax in such a way where only well-typed terms that satisfy typing judgments have meaning. This approach makes the AST contain both syntactic and semantic properties.
+We internalize the list-machine type judgments for blocks and instructions in Agda
+together with its syntax in such a way where only well-typed terms that satisfy typing
+judgments have meaning. This approach makes the AST contain both syntactic and semantic
+properties.
 
-To be well-typed, the list-machine syntax needs to refer to information from two sources: (1) a type context encoded as a list of types to store variable types; and (2) and a program context encoded as a vector\footnote{We use the |Vec| datatype indexed by a |n| which is bound on the module definition and represents the number of labels in the current program.} of type contexts to represent the types of the variables on entry to each basic block.
+To be well-typed, the list-machine syntax needs to refer to information from two sources:
+(1) a type context encoded as a list of types to store variable types; and (2) and a program
+context encoded as a vector\footnote{We use the |Vec| datatype indexed by a |n| which is
+bound on the module definition and represents the number of labels in the current program.}
+of type contexts to represent the types of the variables on entry to each basic block.
 
 %format Ctx = "\D{Ctx}"
 %format PCtx = "\D{PCtx}"
@@ -722,9 +735,19 @@ PCtx = Vec Ctx n
 %format Γ' = "\V{\Gamma''}"
 %format ι = "\V{\iota}"
 
-As we saw in the previous section, the typing rules of the list-machine language were split in two segments, one for instructions and one for blocks. We defined two datatypes (|_⊢_⇒_| and |Block|) to hold the well-typed terms accordingly, representing each judgment of the static semantics as a syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
+As we saw in the previous section, the typing rules of the list-machine language were split
+in two segments, one for instructions and one for blocks. We defined two datatypes (|_⊢_⇒_| and |Block|)
+to hold the well-typed terms accordingly, representing each judgment of the static semantics as a
+syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
 
-Both definitions are \emph{parameterized} by a program context and a typing context, and \emph{indexed}\footnote{An index can vary in the result types of the different constructors, while a parameter cannot.} by a resulting typing context. The intuition is that, under program-typing |Π|, the \emph{Hoare triple} |Γ{ι}Γ'| relates precondition |Γ| to postcondition |Γ'|. It is important to note that instead of manipulating syntax directly, the meta-program manipulates structures representing the type judgments as well. Such representation scheme makes the Agda's type-checker allow only well-typed blocks and instructions to be created and manipulated.
+Both definitions are \emph{parameterized} by a program context and a typing context, and
+\emph{indexed}\footnote{An index can vary in the result types of the different constructors,
+while a parameter cannot.} by a resulting typing context. The intuition is that, under
+program-typing |Π|, the \emph{Hoare triple} |Γ{ι}Γ'| relates precondition |Γ| to
+postcondition |Γ'|. It is important to note that instead of manipulating syntax directly,
+the meta-program manipulates structures representing the type judgments as well. Such
+representation scheme makes the Agda's type-checker allow only well-typed blocks and
+instructions to be created and manipulated.
 
 The representation of instructions is defined as follows.
 
@@ -797,17 +820,46 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
 %format _∈_ = "\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}"
 %format _∷=_ = "\F{\_\hspace{-2pt}::=\hspace{-2pt}\_}"
 
-In our approach, all name binding is done with statically checked \emph{de Bruijn} indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless, position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn} index |(x , τ) ∈ Γ|, which witnesses the existence of an element |(x , τ)| in |Γ|, as defined by the standard library |_∈_| operator. This technique is well-known for avoiding out-of-bound errors.
+In our approach, all name binding is done with statically checked \emph{de Bruijn}
+indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless,
+position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn}
+index |(x , τ) ∈ Γ|, which witnesses the existence of an element |(x , τ)| in |Γ|,
+as defined by the standard library |_∈_| operator. This technique is well-known for
+avoiding out-of-bound errors.
 
-\paragraph{Sequencing instructions}{The constructor |instr-seq| can be used to express a sequence of instructions. From the execution of two instructions, it produces a modified typing context containing the changes performed by both instructions.}
+\paragraph{Sequencing instructions}{The constructor |instr-seq| can be used to
+express a sequence of instructions. From the execution of two instructions, it
+produces a modified typing context containing the changes performed by
+both instructions.}
 
-\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label |l| when the received variable is |nil|. All these constructors type-check the typing context of the intended label with the current typing context. We use |Π [ l ]= Γ₁|, meaning that there exist a typing context |Γ₁| in program typing |Π| related to label |l|. And we use |Γ ⊂ Γ₁| as a proof of subtyping between |Γ| and |Γ₁|. The operator |_∷=_| is used to update the context |Γ| in the position defined by the index |idx|.}
+\paragraph{Conditional jump}{There are three constructors related to a conditional
+jump. They are used to perform a jump to a label |l| when the received variable is |nil|.
+All these constructors type-check the typing context of the intended label with the
+current typing context. We use |Π [ l ]= Γ₁|, meaning that there exist a typing context
+|Γ₁| in program typing |Π| related to label |l|. And we use |Γ ⊂ Γ₁| as a proof of
+subtyping between |Γ| and |Γ₁|. The operator |_∷=_| is used to update the context |Γ|
+in the position defined by the index |idx|.}
 
-\paragraph{Fetching information from list}{There are four constructors which can be used to fetch information from a given list. The constructor |instr-fetch-0-new| receives a non-empty list (|listcons|), and is used to retrieve the head of this list and store it in a fresh new variable. The resulting typing context adds the information about the new variable. Constructor |instr-fetch-0-upd| is also used to retrieve the head element of a list, however storing its value in an existing variable, represented by the \emph{de Bruijn} index |idx : (x' , τ') ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd| are similar, fetching the tail of a list instead of the head.}
+\paragraph{Fetching information from list}{There are four constructors which can be used
+to fetch information from a given list. The constructor |instr-fetch-0-new| receives a
+non-empty list (|listcons|), and is used to retrieve the head of this list and store it
+in a fresh new variable. The resulting typing context adds the information about the new
+variable. Constructor |instr-fetch-0-upd| is also used to retrieve the head element of a
+list, however storing its value in an existing variable, represented by the \emph{de Bruijn}
+index |idx : (x' , τ') ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd|
+are similar, fetching the tail of a list instead of the head.}
 
 %format _⊓_~_ = "\D{\_\sqcap\_\sim\_}"
 
-\paragraph{List construction}{The |instr-cons-new| and |instr-cons-upd| constructors are used to create a new list. The first creates a new variable, and the second updates a existing variable. The list is created from two variables, |(x₀ , τ₀) ∈ Γ| and |(x₁ , τ₁) ∈ Γ|, which are represented as \emph{de Bruijn} indices. The type of the new list is defined by the least common supertype\footnote{A complete explanation about the least common supertype can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the constructor |_⊓_~_|\footnote{The code of this definition is omitted here, but can be found in our online repository.}. The resulting typing context adds information about the newly created list.}
+\paragraph{List construction}{The |instr-cons-new| and |instr-cons-upd| constructors are
+used to create a new list. The first creates a new variable, and the second updates a
+existing variable. The list is created from two variables, |(x₀ , τ₀) ∈ Γ| and |(x₁ , τ₁) ∈ Γ|,
+which are represented as \emph{de Bruijn} indices. The type of the new list is defined by
+the least common supertype\footnote{A complete explanation about the least common supertype
+can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
+constructor |_⊓_~_|\footnote{The code of this definition is omitted here, but can be found
+in our online repository.}. The resulting typing context adds information about the
+newly created list.}
 
 %format block-halt = "\Con{block\textrm{-}halt}"
 %format block-seq = "\Con{block\textrm{-}seq}"
@@ -824,12 +876,16 @@ data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
               → Γ ⊂ Γ₁ → Block Π Γ Γ'
 \end{spec}
 
-Constructor |block-halt| can be used to stop the execution of a given block, |block-seq| has a similar meaning to instruction sequence, and |block-jump| is used to perform a direct jump (without any condition), receiving a label and checking if the current context typing is subtype of the intended one.
+Constructor |block-halt| can be used to stop the execution of a given block, |block-seq| has a
+similar meaning to instruction sequence, and |block-jump| is used to perform a direct jump
+(without any condition), receiving a label and checking if the current context typing is
+subtype of the intended one.
 
 %format λ = "\lambda"
 %format Program = "\D{Program}"
 
-And finally, a |Program| is a sequence of instruction blocks, each preceded by a label. We use the |All| datatype to express this relationship.
+And finally, a |Program| is a sequence of instruction blocks, each preceded by a label.
+We use the |All| datatype to express this relationship.
 
 \begin{spec}
 Program : PCtx → Set
@@ -838,14 +894,19 @@ Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π
 
 \section{A definitional interpreter}\label{sec:semantics}
 
-This section describes the steps to evaluate a program written using the list-machine language. We adapted the small-step semantics presented in Section~\ref{sec:list}, transforming it in a definitional interpreter~\cite{Reynolds72}, which evaluates an intrinsically-typed instruction, transforming a initial memory state into a new one, represented by a run-time environment.
+This section describes the steps to evaluate a program written using the list-machine language.
+We adapted the small-step semantics presented in Section~\ref{sec:list}, transforming it in a
+definitional interpreter~\cite{Reynolds72}, which evaluates an intrinsically-typed instruction,
+transforming a initial memory state into a new one, represented by a run-time environment.
 
 %format Val = "\D{Val}"
 %format []v = "\Con{[]v}"
 %format _∷_ = "\Con{\_::\_}"
 %format _∷v_ = "\Con{\_::v\_}"
 
-\paragraph{Values and environments}{The interpreter presented next needs to encode a run-time environment to hold values associated to variables and their types. This way, we define the notion of a well-typed value as follows.}
+\paragraph{Values and environments}{The interpreter presented next needs to encode a run-time
+environment to hold values associated to variables and their types. This way, we define the
+notion of a well-typed value as follows.}
 
 \begin{spec}
 data Val : Ty → Set where
@@ -855,13 +916,19 @@ data Val : Ty → Set where
   _∷v_ :  ∀ {t} → Val t → Val (list t) → Val (list t)
 \end{spec}
 
-The datatype |Val| is indexed by a |Ty|, indicating the type associated to each value. The first two represent |nil| values associated with type |nil| and the empty |list|. The last two represent non-empty list, considering the types |listcons| and |list|.
+The datatype |Val| is indexed by a |Ty|, indicating the type associated to each value. The
+first two represent |nil| values associated with type |nil| and the empty |list|. The last
+two represent non-empty list, considering the types |listcons| and |list|.
 
 %format Env = "\D{Env}"
 %format PEnv = "\D{PEnv}"
 %format Allv = "\D{Allv}"
 
-We use the datatype |All| (and |Allv| for vectors) to define the notion of well-typed variable environments and well-typed programs. Thus, intuitively, |Env| is like a list of well-typed values. And |PEnv| is like a list of well-typed environments. Both type environments are used to type block instructions and sequence of block instructions.
+We use the datatype |All| (and |Allv| for vectors) to define the notion of well-typed
+variable environments and well-typed programs. Thus, intuitively, |Env| is like a
+list of well-typed values. And |PEnv| is like a list of well-typed environments.
+Both type environments are used to type block instructions and sequence of
+block instructions.
 
 \begin{spec}
 Env : Ctx → Set
@@ -896,7 +963,17 @@ PEnv Π = Allv Env Π
 
 %format rewrite = "\mathkw{rewrite}"
 
-\paragraph{Fuel based evaluation}{Having all the building blocks to make the complete interpreter for the list-machine language, we can start the definition of the |run-step| function. It is important to note that Agda is a total language, i.e., each program developed in it must terminate and all possible patterns must be matched. However, by using the mechanisms for jumping between labels one can write a program which never ends, making it impossible to implement a terminating interpreting function. Following the common practice, we define a fuel based evaluator~\cite{Amin17,Owens2016}. Basically, what we do is to parameterize the interpreter over a step index of \emph{fuel value} (represented as a natural number $n$), which bounds the amount of work the interpreter is allowed to do, and is decremented on each recursive call.}
+\paragraph{Fuel based evaluation}{Having all the building blocks to make the
+complete interpreter for the list-machine language, we can start the definition of
+the |run-step| function. It is important to note that Agda is a total language,
+i.e., each program developed in it must terminate and all possible patterns must
+be matched. However, by using the mechanisms for jumping between labels one can
+write a program which never ends, making it impossible to implement a terminating
+interpreting function. Following the common practice, we define a fuel based
+evaluator~\cite{Amin17,Owens2016}. Basically, what we do is to parameterize the
+interpreter over a step index of \emph{fuel value} (represented as a natural
+number $n$), which bounds the amount of work the interpreter is allowed to do,
+and is decremented on each recursive call.}
 
 The evaluation function is defined with the following type.
 
@@ -905,17 +982,28 @@ run-step  : ∀ {Π Γ Γ'} → Fuel → Program Π → Env Γ
           → Block Π Γ Γ' → Maybe (Env Γ')
 \end{spec}
 
-The function |run-step| receives four arguments and returns a |Maybe| value. The first argument is the \emph{fuel}, used to ensure the evaluator always terminates. The second parameter is a |Program Π|, which contains information about all the program blocks. The third parameter is the run-time variable environment. And the last one is the |Block| to be evaluated. This function returns a modified run-time environment (|Env Γ'|) in case of success, or nothing when the \emph{fuel} runs out.
+The function |run-step| receives four arguments and returns a |Maybe| value. The
+first argument is the \emph{fuel}, used to ensure the evaluator always terminates.
+The second parameter is a |Program Π|, which contains information about all the
+program blocks. The third parameter is the run-time variable environment. And the
+last one is the |Block| to be evaluated. This function returns a modified run-time
+environment (|Env Γ'|) in case of success, or nothing when the \emph{fuel} runs out.
 
-From now on we describe how we implement some parts\footnote{The complete evaluation function can be found in our online repository.} of the dynamic semantics (reduction rules) of the list-machine language in the function |run-step|. We mix the code with the explanation to make it easier for the reader.
+From now on we describe how we implement some parts\footnote{The complete evaluation
+function can be found in our online repository.} of the dynamic semantics (reduction rules)
+of the list-machine language in the function |run-step|. We mix the code with the explanation
+to make it easier for the reader.
 
-\paragraph{Out of fuel}{The interpreter stops abruptly when the \emph{fuel} counter reaches |zero|, and the |run-step| function returns |nothing|. This definition makes our evaluation function structurally recursive on the \emph{fuel} argument. }
+\paragraph{Out of fuel}{The interpreter stops abruptly when the \emph{fuel} counter
+reaches |zero|, and the |run-step| function returns |nothing|. This definition makes our
+evaluation function structurally recursive on the \emph{fuel} argument. }
 
 \begin{spec}
 run-step zero p env b = nothing
 \end{spec}  
 
-All the next pieces of code match the value |suc fuel| for the first argument of |run-step|, meaning that there is still \emph{fuel} during the recursive processing of this function. 
+All the next pieces of code match the value |suc fuel| for the first argument of |run-step|,
+meaning that there is still \emph{fuel} during the recursive processing of this function.
 
 %run-step (suc n) p env block-halt = just env
 %run-step (suc n) p env (block-seq (instr-seq i₁ i₂) b) =
@@ -928,7 +1016,12 @@ All the next pieces of code match the value |suc fuel| for the first argument of
 %run-step (suc n) p env (block-seq (instr-branch-listcons v l s) b) =
 % run-step n p env b
 
-\paragraph{Conditional jump}{We show next only the case when the jump actually occurs, following the rule \emph{step-branch-taken}. In this case, variable |v| has value |nil|, and the step of evaluation should proceed with the block instruction defined in program |p|, with environment |env| respecting the subtyping constraint. We use the function |lookupA| to obtain the block instruction with index |i| on program |p|. Since we use \emph{de Bruijn} indices to represent the label, only valid values are accepted by the intrinsically-typed syntax.}
+\paragraph{Conditional jump}{We show next only the case when the jump actually occurs,
+following the rule \emph{step-branch-taken}. In this case, variable |v| has value |nil|, and
+the step of evaluation should proceed with the block instruction defined in program |p|, with
+environment |env| respecting the subtyping constraint. We use the function |lookupA| to obtain
+the block instruction with index |i| on program |p|. Since we use \emph{de Bruijn} indices to
+represent the label, only valid values are accepted by the intrinsically-typed syntax.}
 
 \begin{spec}
 run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
@@ -936,7 +1029,14 @@ run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
     = run-step n p (⊂-Ctx s env) (lookupA i p)
 \end{spec}
 
-\paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors, both related to the \emph{step-fetch-field-0} rule. The first retrieves the head element of a list, and stores it in a new variable. The |lookup| function projects the value of variable |v| from the run-time environment |env|, and this variable is added to the result environment. The typed \emph{de Bruijn} indices guarantee that the projected value has the type demanded, since the environment |env| is typed by the context |Γ|. Similarly, the second instruction also retrieves the head element of a list, however it needs to update the run-time environment on the position of index |v'|. This process is done by the function |update-env|.}
+\paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors,
+both related to the \emph{step-fetch-field-0} rule. The first retrieves the head element of a list, and
+stores it in a new variable. The |lookup| function projects the value of variable |v| from the run-time
+environment |env|, and this variable is added to the result environment. The typed \emph{de Bruijn}
+indices guarantee that the projected value has the type demanded, since the environment |env| is typed
+by the context |Γ|. Similarly, the second instruction also retrieves the head element of a list, however
+it needs to update the run-time environment on the position of index |v'|. This process is done by the
+function |update-env|.}
 
 \begin{spec}  
 run-step (suc n) p env (block-seq (instr-fetch-0-new v) b)
@@ -954,7 +1054,14 @@ run-step (suc n) p env (block-seq (instr-fetch-0-upd v v') b)
 %  with lookup env v
 %...| v₁ ∷ v₂ = run-step n p (update-env env v' v₂) b
 
-\paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected types, we need some extra lemmas. First because when we create a list from variables |v₀| and |v₁|, the result type of this list is the least common subtype between these two. As before, we use the |lookup| function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we extend the run-time environment |env| with the type of the created list. To convince the Agda's type-checker the new environment is well-typed we use subtyping lemmas, such as |<:-val| and |list-<:-inv|, and others lemmas to deal with the least common subtying, such as |lub-subtype-left|, |lub-subtype-right|, and |lub-of-subtype|. These lemmas and their proofs can be found in our repository online. }
+\paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected
+types, we need some extra lemmas. First because when we create a list from variables |v₀| and |v₁|, the
+result type of this list is the least common subtype between these two. As before, we use the |lookup|
+function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we
+extend the run-time environment |env| with the type of the created list. To convince the Agda's
+type-checker the new environment is well-typed we use subtyping lemmas, such as |<:-val| and |list-<:-inv|,
+and others lemmas to deal with the least common subtying, such as |lub-subtype-left|, |lub-subtype-right|,
+and |lub-of-subtype|. These lemmas and their proofs can be found in our repository online. }
 
 \begin{spec}
 run-step (suc n) p env (block-seq (instr-cons-new v₀ v₁ s) b)
@@ -963,7 +1070,9 @@ run-step (suc n) p env (block-seq (instr-cons-new v₀ v₁ s) b)
     ∷ <:-val (lub-subtype-right s) (lookup env v₁)) ∷ env) b
 \end{spec}
 
-It is worth noticing that we do not have any error treatment on this interpreter function, except for when we ran out-of-fuel. Since we are using an intrinsically-typed syntax, only valid instructions are accepted in each step of evaluation.
+It is worth noticing that we do not have any error treatment on this interpreter function, except for
+when we ran out-of-fuel. Since we are using an intrinsically-typed syntax, only valid instructions
+are accepted in each step of evaluation.
 
 %run-step (suc n) p env (block-seq (instr-cons-upd v₀ v₁ v' s) b)
 %  = run-step n p (update-env env v' (<:-val (list-<:-inv
@@ -974,11 +1083,19 @@ It is worth noticing that we do not have any error treatment on this interpreter
 %  rewrite sym ([]=⇒lookup l) =
 %    run-step n p (⊂-Ctx s env) (lookupA i p) 
 
-\paragraph{Soundness properties}{Programs written using an intrinsically-typed syntax are type-sound by construction. Since only well-typed programs can be expressed, the \emph{preservation} property is enforced by the host-language type-checker~\cite{Amin17}. By implementing the interpreter in such a total language like Agda, i.e., specifying the dynamic semantics in a functional way, instead of relational, we also show the \emph{progress} property, without the need for an extra proof~\cite{Owens2016}. This approach is promising to be investigated when formalizing even more complex programming languages.}
+\paragraph{Soundness properties}{Programs written using an intrinsically-typed syntax are type-sound by
+construction. Since only well-typed programs can be expressed, the \emph{preservation} property is
+enforced by the host-language type-checker~\cite{Amin17}. By implementing the interpreter in such a
+total language like Agda, i.e., specifying the dynamic semantics in a functional way, instead of
+relational, we also show the \emph{progress} property, without the need for an extra proof~\cite{Owens2016}.
+This approach is promising to be investigated when formalizing even more complex programming languages.}
 
 \section{Type Checker}\label{sec:typechecker}
 
-In practice, a source-code of a programming language runs through several phases, including lexing, parsing, scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking. Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of elaborating an untyped syntax to a typed one.
+In practice, a source-code of a programming language runs through several phases, including lexing, parsing,
+scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking.
+Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of
+elaborating an untyped syntax to a typed one.
 
 %format lookup-var = "\F{lookup\textrm{-}var}"
 %format map = "\F{map}"
@@ -989,7 +1106,8 @@ In practice, a source-code of a programming language runs through several phases
 %format proj₁ = "\D{proj_1}"
 %format proj₂ = "\D{proj_2}"
 
-Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope check them, we need to provide an index from a named variable. This process is done by the |lookup-var| function.
+Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope
+check them, we need to provide an index from a named variable. This process is done by the |lookup-var| function.
 
 \begin{spec}
 lookup-var  : (Γ : Ctx) → (x : String)
@@ -1010,7 +1128,9 @@ lookup-var ((y , τ) ∷ Γ) x with x ≟ y
 %format right = "\Con{right}"
 %format ok = "\Con{ok}"
 
-For space reasons, we show how we type check only one instruction. Function |check-fetch-field-0| receives a program context, a typing context, and two named variables, and returns a |TC| value, which is an error message or a |CheckedInstr| indicating that the term type checks.
+For space reasons, we show how we type check only one instruction. Function |check-fetch-field-0|
+receives a program context, a typing context, and two named variables, and returns a |TC| value,
+which is an error message or a |CheckedInstr| indicating that the term type checks.
 
 \begin{spec}
 check-fetch-field-0 : (Π : PCtx) → (Γ : Ctx) → (v : String)
@@ -1025,7 +1145,13 @@ check-fetch-field-0 Π Γ v v' with lookup-var Γ v , lookup-var Γ v'
                                  right (ok (instr-fetch-0-upd idx idx'))
 \end{spec}
 
-In the code above, we use the function |lookup-var| to provide the \emph{de Bruijn} indices for each variable, and match the first with its possible forms. The first three cases indicate type errors: (1) when |v| is |nothing| it means an scope error; (2) and (3) are typing errors, since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction is well-typed. The process for type-checking different instructions follows a similar setting.
+In the code above, we use the function |lookup-var| to provide the \emph{de Bruijn} indices for
+each variable, and match the first with its possible forms. The first three cases indicate
+type errors: (1) when |v| is |nothing| it means an scope error; (2) and (3) are typing errors,
+since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
+is well-typed. The process for type-checking different instructions follows a similar setting.
+
+\section{Least common supertype}
 
 \section{Related work}\label{sec:related}
 

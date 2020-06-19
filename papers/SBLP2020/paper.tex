@@ -981,11 +981,17 @@ typed syntax for list machine programs which ensures that only well-typed progra
 \section{Instrinsically-typed syntax}\label{sec:typing}
 
 
-In this section we present the design choices and the steps we took to represent the intrinsically-typed syntax for the list-machine benchmark. We present here the Agda code used in our definitions, not necessarily in a strict lexically-scoped order.
+In this section we present the design choices and the steps we took to represent the
+intrinsically-typed syntax for the list-machine benchmark. We present here the Agda
+code used in our definitions, not necessarily in a strict lexically-scoped order.
 
-Some definitions and rules have been slightly tweaked so that they are accepted by the Agda's type-checker. As a design choice, we dropped all names, using \emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings} for labels and variables. This way, we guarantee that names are always well-scoped.
+Some definitions and rules have been slightly tweaked so that they are accepted by
+the Agda's type-checker. As a design choice, we dropped all names, using
+\emph{de Bruijn} indices~\cite{DEBRUIJN72} to represent both \emph{name bindings}
+for labels and variables. This way, we guarantee that names are always well-scoped.
 
-We started our formalization by defining a type \ensuremath{\D{Ty}}, indicating the possible types for the list-machine language.
+We started our formalization by defining a type \ensuremath{\D{Ty}}, indicating the possible types
+for the list-machine language.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1008,9 +1014,16 @@ We started our formalization by defining a type \ensuremath{\D{Ty}}, indicating 
 \ColumnHook
 \end{hscode}\resethooks
 
-We internalize the list-machine type judgments for blocks and instructions in Agda together with its syntax in such a way where only well-typed terms that satisfy typing judgments have meaning. This approach makes the AST contain both syntactic and semantic properties.
+We internalize the list-machine type judgments for blocks and instructions in Agda
+together with its syntax in such a way where only well-typed terms that satisfy typing
+judgments have meaning. This approach makes the AST contain both syntactic and semantic
+properties.
 
-To be well-typed, the list-machine syntax needs to refer to information from two sources: (1) a type context encoded as a list of types to store variable types; and (2) and a program context encoded as a vector\footnote{We use the \ensuremath{\D{Vec}} datatype indexed by a \ensuremath{\V{n}} which is bound on the module definition and represents the number of labels in the current program.} of type contexts to represent the types of the variables on entry to each basic block.
+To be well-typed, the list-machine syntax needs to refer to information from two sources:
+(1) a type context encoded as a list of types to store variable types; and (2) and a program
+context encoded as a vector\footnote{We use the \ensuremath{\D{Vec}} datatype indexed by a \ensuremath{\V{n}} which is
+bound on the module definition and represents the number of labels in the current program.}
+of type contexts to represent the types of the variables on entry to each basic block.
 
 
 \begin{hscode}\SaveRestoreHook
@@ -1027,9 +1040,19 @@ To be well-typed, the list-machine syntax needs to refer to information from two
 \end{hscode}\resethooks
 
 
-As we saw in the previous section, the typing rules of the list-machine language were split in two segments, one for instructions and one for blocks. We defined two datatypes (\ensuremath{\D{\_\vdash\_\Rightarrow\_}} and \ensuremath{\D{Block}}) to hold the well-typed terms accordingly, representing each judgment of the static semantics as a syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
+As we saw in the previous section, the typing rules of the list-machine language were split
+in two segments, one for instructions and one for blocks. We defined two datatypes (\ensuremath{\D{\_\vdash\_\Rightarrow\_}} and \ensuremath{\D{Block}})
+to hold the well-typed terms accordingly, representing each judgment of the static semantics as a
+syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
 
-Both definitions are \emph{parameterized} by a program context and a typing context, and \emph{indexed}\footnote{An index can vary in the result types of the different constructors, while a parameter cannot.} by a resulting typing context. The intuition is that, under program-typing \ensuremath{\V{\Pi}}, the \emph{Hoare triple} \ensuremath{\V{\Gamma}\;\{\mskip1.5mu \V{\iota}\mskip1.5mu\}\;\V{\Gamma'}} relates precondition \ensuremath{\V{\Gamma}} to postcondition \ensuremath{\V{\Gamma'}}. It is important to note that instead of manipulating syntax directly, the meta-program manipulates structures representing the type judgments as well. Such representation scheme makes the Agda's type-checker allow only well-typed blocks and instructions to be created and manipulated.
+Both definitions are \emph{parameterized} by a program context and a typing context, and
+\emph{indexed}\footnote{An index can vary in the result types of the different constructors,
+while a parameter cannot.} by a resulting typing context. The intuition is that, under
+program-typing \ensuremath{\V{\Pi}}, the \emph{Hoare triple} \ensuremath{\V{\Gamma}\;\{\mskip1.5mu \V{\iota}\mskip1.5mu\}\;\V{\Gamma'}} relates precondition \ensuremath{\V{\Gamma}} to
+postcondition \ensuremath{\V{\Gamma'}}. It is important to note that instead of manipulating syntax directly,
+the meta-program manipulates structures representing the type judgments as well. Such
+representation scheme makes the Agda's type-checker allow only well-typed blocks and
+instructions to be created and manipulated.
 
 The representation of instructions is defined as follows.
 
@@ -1122,16 +1145,45 @@ The representation of instructions is defined as follows.
 \end{hscode}\resethooks
 
 
-In our approach, all name binding is done with statically checked \emph{de Bruijn} indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless, position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn} index \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma}}, which witnesses the existence of an element \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})} in \ensuremath{\V{\Gamma}}, as defined by the standard library \ensuremath{\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}} operator. This technique is well-known for avoiding out-of-bound errors.
+In our approach, all name binding is done with statically checked \emph{de Bruijn}
+indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless,
+position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn}
+index \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma}}, which witnesses the existence of an element \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})} in \ensuremath{\V{\Gamma}},
+as defined by the standard library \ensuremath{\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}} operator. This technique is well-known for
+avoiding out-of-bound errors.
 
-\paragraph{Sequencing instructions}{The constructor \ensuremath{\Con{instr\textrm{-}seq}} can be used to express a sequence of instructions. From the execution of two instructions, it produces a modified typing context containing the changes performed by both instructions.}
+\paragraph{Sequencing instructions}{The constructor \ensuremath{\Con{instr\textrm{-}seq}} can be used to
+express a sequence of instructions. From the execution of two instructions, it
+produces a modified typing context containing the changes performed by
+both instructions.}
 
-\paragraph{Conditional jump}{There are three constructors related to a conditional jump. They are used to perform a jump to a label \ensuremath{\V{l}} when the received variable is \ensuremath{\Con{nil}}. All these constructors type-check the typing context of the intended label with the current typing context. We use \ensuremath{\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}}, meaning that there exist a typing context \ensuremath{\V{\Gamma_1}} in program typing \ensuremath{\V{\Pi}} related to label \ensuremath{\V{l}}. And we use \ensuremath{\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}} as a proof of subtyping between \ensuremath{\V{\Gamma}} and \ensuremath{\V{\Gamma_1}}. The operator \ensuremath{\F{\_\hspace{-2pt}::=\hspace{-2pt}\_}} is used to update the context \ensuremath{\V{\Gamma}} in the position defined by the index \ensuremath{\V{idx}}.}
+\paragraph{Conditional jump}{There are three constructors related to a conditional
+jump. They are used to perform a jump to a label \ensuremath{\V{l}} when the received variable is \ensuremath{\Con{nil}}.
+All these constructors type-check the typing context of the intended label with the
+current typing context. We use \ensuremath{\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}}, meaning that there exist a typing context
+\ensuremath{\V{\Gamma_1}} in program typing \ensuremath{\V{\Pi}} related to label \ensuremath{\V{l}}. And we use \ensuremath{\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}} as a proof of
+subtyping between \ensuremath{\V{\Gamma}} and \ensuremath{\V{\Gamma_1}}. The operator \ensuremath{\F{\_\hspace{-2pt}::=\hspace{-2pt}\_}} is used to update the context \ensuremath{\V{\Gamma}}
+in the position defined by the index \ensuremath{\V{idx}}.}
 
-\paragraph{Fetching information from list}{There are four constructors which can be used to fetch information from a given list. The constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}} receives a non-empty list (\ensuremath{\Con{listcons}}), and is used to retrieve the head of this list and store it in a fresh new variable. The resulting typing context adds the information about the new variable. Constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}} is also used to retrieve the head element of a list, however storing its value in an existing variable, represented by the \emph{de Bruijn} index \ensuremath{\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma}}. The constructors \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}} are similar, fetching the tail of a list instead of the head.}
+\paragraph{Fetching information from list}{There are four constructors which can be used
+to fetch information from a given list. The constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}} receives a
+non-empty list (\ensuremath{\Con{listcons}}), and is used to retrieve the head of this list and store it
+in a fresh new variable. The resulting typing context adds the information about the new
+variable. Constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}} is also used to retrieve the head element of a
+list, however storing its value in an existing variable, represented by the \emph{de Bruijn}
+index \ensuremath{\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma}}. The constructors \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}}
+are similar, fetching the tail of a list instead of the head.}
 
 
-\paragraph{List construction}{The \ensuremath{\Con{instr\textrm{-}cons\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}cons\textrm{-}upd}} constructors are used to create a new list. The first creates a new variable, and the second updates a existing variable. The list is created from two variables, \ensuremath{(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}} and \ensuremath{(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}}, which are represented as \emph{de Bruijn} indices. The type of the new list is defined by the least common supertype\footnote{A complete explanation about the least common supertype can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the constructor \ensuremath{\D{\_\sqcap\_\sim\_}}\footnote{The code of this definition is omitted here, but can be found in our online repository.}. The resulting typing context adds information about the newly created list.}
+\paragraph{List construction}{The \ensuremath{\Con{instr\textrm{-}cons\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}cons\textrm{-}upd}} constructors are
+used to create a new list. The first creates a new variable, and the second updates a
+existing variable. The list is created from two variables, \ensuremath{(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}} and \ensuremath{(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}},
+which are represented as \emph{de Bruijn} indices. The type of the new list is defined by
+the least common supertype\footnote{A complete explanation about the least common supertype
+can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
+constructor \ensuremath{\D{\_\sqcap\_\sim\_}}\footnote{The code of this definition is omitted here, but can be found
+in our online repository.}. The resulting typing context adds information about the
+newly created list.}
 
 
 The representation of blocks is defined as follows.
@@ -1163,10 +1215,14 @@ The representation of blocks is defined as follows.
 \ColumnHook
 \end{hscode}\resethooks
 
-Constructor \ensuremath{\Con{block\textrm{-}halt}} can be used to stop the execution of a given block, \ensuremath{\Con{block\textrm{-}seq}} has a similar meaning to instruction sequence, and \ensuremath{\Con{block\textrm{-}jump}} is used to perform a direct jump (without any condition), receiving a label and checking if the current context typing is subtype of the intended one.
+Constructor \ensuremath{\Con{block\textrm{-}halt}} can be used to stop the execution of a given block, \ensuremath{\Con{block\textrm{-}seq}} has a
+similar meaning to instruction sequence, and \ensuremath{\Con{block\textrm{-}jump}} is used to perform a direct jump
+(without any condition), receiving a label and checking if the current context typing is
+subtype of the intended one.
 
 
-And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, each preceded by a label. We use the \ensuremath{\D{All}} datatype to express this relationship.
+And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, each preceded by a label.
+We use the \ensuremath{\D{All}} datatype to express this relationship.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1179,10 +1235,15 @@ And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, eac
 
 \section{A definitional interpreter}\label{sec:semantics}
 
-This section describes the steps to evaluate a program written using the list-machine language. We adapted the small-step semantics presented in Section~\ref{sec:list}, transforming it in a definitional interpreter~\cite{Reynolds72}, which evaluates an intrinsically-typed instruction, transforming a initial memory state into a new one, represented by a run-time environment.
+This section describes the steps to evaluate a program written using the list-machine language.
+We adapted the small-step semantics presented in Section~\ref{sec:list}, transforming it in a
+definitional interpreter~\cite{Reynolds72}, which evaluates an intrinsically-typed instruction,
+transforming a initial memory state into a new one, represented by a run-time environment.
 
 
-\paragraph{Values and environments}{The interpreter presented next needs to encode a run-time environment to hold values associated to variables and their types. This way, we define the notion of a well-typed value as follows.}
+\paragraph{Values and environments}{The interpreter presented next needs to encode a run-time
+environment to hold values associated to variables and their types. This way, we define the
+notion of a well-typed value as follows.}
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1206,10 +1267,16 @@ This section describes the steps to evaluate a program written using the list-ma
 \ColumnHook
 \end{hscode}\resethooks
 
-The datatype \ensuremath{\D{Val}} is indexed by a \ensuremath{\D{Ty}}, indicating the type associated to each value. The first two represent \ensuremath{\Con{nil}} values associated with type \ensuremath{\Con{nil}} and the empty \ensuremath{\Con{list}}. The last two represent non-empty list, considering the types \ensuremath{\Con{listcons}} and \ensuremath{\Con{list}}.
+The datatype \ensuremath{\D{Val}} is indexed by a \ensuremath{\D{Ty}}, indicating the type associated to each value. The
+first two represent \ensuremath{\Con{nil}} values associated with type \ensuremath{\Con{nil}} and the empty \ensuremath{\Con{list}}. The last
+two represent non-empty list, considering the types \ensuremath{\Con{listcons}} and \ensuremath{\Con{list}}.
 
 
-We use the datatype \ensuremath{\D{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed variable environments and well-typed programs. Thus, intuitively, \ensuremath{\D{Env}} is like a list of well-typed values. And \ensuremath{\D{PEnv}} is like a list of well-typed environments. Both type environments are used to type block instructions and sequence of block instructions.
+We use the datatype \ensuremath{\D{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed
+variable environments and well-typed programs. Thus, intuitively, \ensuremath{\D{Env}} is like a
+list of well-typed values. And \ensuremath{\D{PEnv}} is like a list of well-typed environments.
+Both type environments are used to type block instructions and sequence of
+block instructions.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1233,7 +1300,17 @@ We use the datatype \ensuremath{\D{All}} (and \ensuremath{\D{Allv}} for vectors)
 
 
 
-\paragraph{Fuel based evaluation}{Having all the building blocks to make the complete interpreter for the list-machine language, we can start the definition of the \ensuremath{\F{run\textrm{-}step}} function. It is important to note that Agda is a total language, i.e., each program developed in it must terminate and all possible patterns must be matched. However, by using the mechanisms for jumping between labels one can write a program which never ends, making it impossible to implement a terminating interpreting function. Following the common practice, we define a fuel based evaluator~\cite{Amin17,Owens2016}. Basically, what we do is to parameterize the interpreter over a step index of \emph{fuel value} (represented as a natural number $n$), which bounds the amount of work the interpreter is allowed to do, and is decremented on each recursive call.}
+\paragraph{Fuel based evaluation}{Having all the building blocks to make the
+complete interpreter for the list-machine language, we can start the definition of
+the \ensuremath{\F{run\textrm{-}step}} function. It is important to note that Agda is a total language,
+i.e., each program developed in it must terminate and all possible patterns must
+be matched. However, by using the mechanisms for jumping between labels one can
+write a program which never ends, making it impossible to implement a terminating
+interpreting function. Following the common practice, we define a fuel based
+evaluator~\cite{Amin17,Owens2016}. Basically, what we do is to parameterize the
+interpreter over a step index of \emph{fuel value} (represented as a natural
+number $n$), which bounds the amount of work the interpreter is allowed to do,
+and is decremented on each recursive call.}
 
 The evaluation function is defined with the following type.
 
@@ -1248,11 +1325,21 @@ The evaluation function is defined with the following type.
 \ColumnHook
 \end{hscode}\resethooks
 
-The function \ensuremath{\F{run\textrm{-}step}} receives four arguments and returns a \ensuremath{\D{Maybe}} value. The first argument is the \emph{fuel}, used to ensure the evaluator always terminates. The second parameter is a \ensuremath{\D{Program}\;\V{\Pi}}, which contains information about all the program blocks. The third parameter is the run-time variable environment. And the last one is the \ensuremath{\D{Block}} to be evaluated. This function returns a modified run-time environment (\ensuremath{\D{Env}\;\V{\Gamma'}}) in case of success, or nothing when the \emph{fuel} runs out.
+The function \ensuremath{\F{run\textrm{-}step}} receives four arguments and returns a \ensuremath{\D{Maybe}} value. The
+first argument is the \emph{fuel}, used to ensure the evaluator always terminates.
+The second parameter is a \ensuremath{\D{Program}\;\V{\Pi}}, which contains information about all the
+program blocks. The third parameter is the run-time variable environment. And the
+last one is the \ensuremath{\D{Block}} to be evaluated. This function returns a modified run-time
+environment (\ensuremath{\D{Env}\;\V{\Gamma'}}) in case of success, or nothing when the \emph{fuel} runs out.
 
-From now on we describe how we implement some parts\footnote{The complete evaluation function can be found in our online repository.} of the dynamic semantics (reduction rules) of the list-machine language in the function \ensuremath{\F{run\textrm{-}step}}. We mix the code with the explanation to make it easier for the reader.
+From now on we describe how we implement some parts\footnote{The complete evaluation
+function can be found in our online repository.} of the dynamic semantics (reduction rules)
+of the list-machine language in the function \ensuremath{\F{run\textrm{-}step}}. We mix the code with the explanation
+to make it easier for the reader.
 
-\paragraph{Out of fuel}{The interpreter stops abruptly when the \emph{fuel} counter reaches \ensuremath{\Con{zero}}, and the \ensuremath{\F{run\textrm{-}step}} function returns \ensuremath{\Con{nothing}}. This definition makes our evaluation function structurally recursive on the \emph{fuel} argument. }
+\paragraph{Out of fuel}{The interpreter stops abruptly when the \emph{fuel} counter
+reaches \ensuremath{\Con{zero}}, and the \ensuremath{\F{run\textrm{-}step}} function returns \ensuremath{\Con{nothing}}. This definition makes our
+evaluation function structurally recursive on the \emph{fuel} argument. }
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1261,7 +1348,8 @@ From now on we describe how we implement some parts\footnote{The complete evalua
 \ColumnHook
 \end{hscode}\resethooks
 
-All the next pieces of code match the value \ensuremath{\Con{suc}\;\V{fuel}} for the first argument of \ensuremath{\F{run\textrm{-}step}}, meaning that there is still \emph{fuel} during the recursive processing of this function. 
+All the next pieces of code match the value \ensuremath{\Con{suc}\;\V{fuel}} for the first argument of \ensuremath{\F{run\textrm{-}step}},
+meaning that there is still \emph{fuel} during the recursive processing of this function.
 
 %run-step (suc n) p env block-halt = just env
 %run-step (suc n) p env (block-seq (instr-seq i₁ i₂) b) =
@@ -1274,7 +1362,12 @@ All the next pieces of code match the value \ensuremath{\Con{suc}\;\V{fuel}} for
 %run-step (suc n) p env (block-seq (instr-branch-listcons v l s) b) =
 % run-step n p env b
 
-\paragraph{Conditional jump}{We show next only the case when the jump actually occurs, following the rule \emph{step-branch-taken}. In this case, variable \ensuremath{\V{v}} has value \ensuremath{\Con{nil}}, and the step of evaluation should proceed with the block instruction defined in program \ensuremath{\V{p}}, with environment \ensuremath{\V{env}} respecting the subtyping constraint. We use the function \ensuremath{\F{lookupA}} to obtain the block instruction with index \ensuremath{\V{i}} on program \ensuremath{\V{p}}. Since we use \emph{de Bruijn} indices to represent the label, only valid values are accepted by the intrinsically-typed syntax.}
+\paragraph{Conditional jump}{We show next only the case when the jump actually occurs,
+following the rule \emph{step-branch-taken}. In this case, variable \ensuremath{\V{v}} has value \ensuremath{\Con{nil}}, and
+the step of evaluation should proceed with the block instruction defined in program \ensuremath{\V{p}}, with
+environment \ensuremath{\V{env}} respecting the subtyping constraint. We use the function \ensuremath{\F{lookupA}} to obtain
+the block instruction with index \ensuremath{\V{i}} on program \ensuremath{\V{p}}. Since we use \emph{de Bruijn} indices to
+represent the label, only valid values are accepted by the intrinsically-typed syntax.}
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1291,7 +1384,14 @@ All the next pieces of code match the value \ensuremath{\Con{suc}\;\V{fuel}} for
 \ColumnHook
 \end{hscode}\resethooks
 
-\paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors, both related to the \emph{step-fetch-field-0} rule. The first retrieves the head element of a list, and stores it in a new variable. The \ensuremath{\F{lookup}} function projects the value of variable \ensuremath{\V{v}} from the run-time environment \ensuremath{\V{env}}, and this variable is added to the result environment. The typed \emph{de Bruijn} indices guarantee that the projected value has the type demanded, since the environment \ensuremath{\V{env}} is typed by the context \ensuremath{\V{\Gamma}}. Similarly, the second instruction also retrieves the head element of a list, however it needs to update the run-time environment on the position of index \ensuremath{\V{v'}}. This process is done by the function \ensuremath{\F{update\textrm{-}env}}.}
+\paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors,
+both related to the \emph{step-fetch-field-0} rule. The first retrieves the head element of a list, and
+stores it in a new variable. The \ensuremath{\F{lookup}} function projects the value of variable \ensuremath{\V{v}} from the run-time
+environment \ensuremath{\V{env}}, and this variable is added to the result environment. The typed \emph{de Bruijn}
+indices guarantee that the projected value has the type demanded, since the environment \ensuremath{\V{env}} is typed
+by the context \ensuremath{\V{\Gamma}}. Similarly, the second instruction also retrieves the head element of a list, however
+it needs to update the run-time environment on the position of index \ensuremath{\V{v'}}. This process is done by the
+function \ensuremath{\F{update\textrm{-}env}}.}
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1320,7 +1420,14 @@ All the next pieces of code match the value \ensuremath{\Con{suc}\;\V{fuel}} for
 %  with lookup env v
 %...| v₁ ∷ v₂ = run-step n p (update-env env v' v₂) b
 
-\paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected types, we need some extra lemmas. First because when we create a list from variables \ensuremath{\V{v₀}} and \ensuremath{\V{v₁}}, the result type of this list is the least common subtype between these two. As before, we use the \ensuremath{\F{lookup}} function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we extend the run-time environment \ensuremath{\V{env}} with the type of the created list. To convince the Agda's type-checker the new environment is well-typed we use subtyping lemmas, such as \ensuremath{\F{\textrm{<:-}val}} and \ensuremath{\F{list\textrm{-<:-}inv}}, and others lemmas to deal with the least common subtying, such as \ensuremath{\F{lub\textrm{-}subtype\textrm{-}left}}, \ensuremath{\F{lub\textrm{-}subtype\textrm{-}right}}, and \ensuremath{\F{lub\textrm{-}of\textrm{-}subtype}}. These lemmas and their proofs can be found in our repository online. }
+\paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected
+types, we need some extra lemmas. First because when we create a list from variables \ensuremath{\V{v₀}} and \ensuremath{\V{v₁}}, the
+result type of this list is the least common subtype between these two. As before, we use the \ensuremath{\F{lookup}}
+function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we
+extend the run-time environment \ensuremath{\V{env}} with the type of the created list. To convince the Agda's
+type-checker the new environment is well-typed we use subtyping lemmas, such as \ensuremath{\F{\textrm{<:-}val}} and \ensuremath{\F{list\textrm{-<:-}inv}},
+and others lemmas to deal with the least common subtying, such as \ensuremath{\F{lub\textrm{-}subtype\textrm{-}left}}, \ensuremath{\F{lub\textrm{-}subtype\textrm{-}right}},
+and \ensuremath{\F{lub\textrm{-}of\textrm{-}subtype}}. These lemmas and their proofs can be found in our repository online. }
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1340,7 +1447,9 @@ All the next pieces of code match the value \ensuremath{\Con{suc}\;\V{fuel}} for
 \ColumnHook
 \end{hscode}\resethooks
 
-It is worth noticing that we do not have any error treatment on this interpreter function, except for when we ran out-of-fuel. Since we are using an intrinsically-typed syntax, only valid instructions are accepted in each step of evaluation.
+It is worth noticing that we do not have any error treatment on this interpreter function, except for
+when we ran out-of-fuel. Since we are using an intrinsically-typed syntax, only valid instructions
+are accepted in each step of evaluation.
 
 %run-step (suc n) p env (block-seq (instr-cons-upd v₀ v₁ v' s) b)
 %  = run-step n p (update-env env v' (<:-val (list-<:-inv
@@ -1351,14 +1460,23 @@ It is worth noticing that we do not have any error treatment on this interpreter
 %  rewrite sym ([]=⇒lookup l) =
 %    run-step n p (⊂-Ctx s env) (lookupA i p) 
 
-\paragraph{Soundness properties}{Programs written using an intrinsically-typed syntax are type-sound by construction. Since only well-typed programs can be expressed, the \emph{preservation} property is enforced by the host-language type-checker~\cite{Amin17}. By implementing the interpreter in such a total language like Agda, i.e., specifying the dynamic semantics in a functional way, instead of relational, we also show the \emph{progress} property, without the need for an extra proof~\cite{Owens2016}. This approach is promising to be investigated when formalizing even more complex programming languages.}
+\paragraph{Soundness properties}{Programs written using an intrinsically-typed syntax are type-sound by
+construction. Since only well-typed programs can be expressed, the \emph{preservation} property is
+enforced by the host-language type-checker~\cite{Amin17}. By implementing the interpreter in such a
+total language like Agda, i.e., specifying the dynamic semantics in a functional way, instead of
+relational, we also show the \emph{progress} property, without the need for an extra proof~\cite{Owens2016}.
+This approach is promising to be investigated when formalizing even more complex programming languages.}
 
 \section{Type Checker}\label{sec:typechecker}
 
-In practice, a source-code of a programming language runs through several phases, including lexing, parsing, scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking. Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of elaborating an untyped syntax to a typed one.
+In practice, a source-code of a programming language runs through several phases, including lexing, parsing,
+scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking.
+Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of
+elaborating an untyped syntax to a typed one.
 
 
-Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope check them, we need to provide an index from a named variable. This process is done by the \ensuremath{\F{lookup\textrm{-}var}} function.
+Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope
+check them, we need to provide an index from a named variable. This process is done by the \ensuremath{\F{lookup\textrm{-}var}} function.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1385,7 +1503,9 @@ Since we use \emph{de Bruijn} indices to represent labels and variables, the fir
 
 
 
-For space reasons, we show how we type check only one instruction. Function \ensuremath{\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}} receives a program context, a typing context, and two named variables, and returns a \ensuremath{\D{TC}} value, which is an error message or a \ensuremath{\D{CheckedInstr}} indicating that the term type checks.
+For space reasons, we show how we type check only one instruction. Function \ensuremath{\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}}
+receives a program context, a typing context, and two named variables, and returns a \ensuremath{\D{TC}} value,
+which is an error message or a \ensuremath{\D{CheckedInstr}} indicating that the term type checks.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1417,7 +1537,13 @@ For space reasons, we show how we type check only one instruction. Function \ens
 \ColumnHook
 \end{hscode}\resethooks
 
-In the code above, we use the function \ensuremath{\F{lookup\textrm{-}var}} to provide the \emph{de Bruijn} indices for each variable, and match the first with its possible forms. The first three cases indicate type errors: (1) when \ensuremath{\V{v}} is \ensuremath{\Con{nothing}} it means an scope error; (2) and (3) are typing errors, since the type of variable \ensuremath{\V{v}} should be a \ensuremath{\Con{listcons}}. Last two cases represent that the instruction is well-typed. The process for type-checking different instructions follows a similar setting.
+In the code above, we use the function \ensuremath{\F{lookup\textrm{-}var}} to provide the \emph{de Bruijn} indices for
+each variable, and match the first with its possible forms. The first three cases indicate
+type errors: (1) when \ensuremath{\V{v}} is \ensuremath{\Con{nothing}} it means an scope error; (2) and (3) are typing errors,
+since the type of variable \ensuremath{\V{v}} should be a \ensuremath{\Con{listcons}}. Last two cases represent that the instruction
+is well-typed. The process for type-checking different instructions follows a similar setting.
+
+\section{Least common supertype}
 
 \section{Related work}\label{sec:related}
 
