@@ -102,7 +102,26 @@ lub-subtype-right lub-5 = <:-nil
 lub-subtype-right lub-6 = <:-listcons <:-refl
 lub-subtype-right (lub-7 p) = <:-listmixed (lub-subtype-right p)
 
-
+lub-least : ∀ {τ₁ τ₂ τ₃ τ₄} → τ₁ ⊓ τ₂ ~ τ₃ → τ₁ <: τ₄ → τ₂ <: τ₄ → τ₃ <: τ₄
+lub-least lub-0 p1 p2 = p2
+lub-least lub-1 p1 p2 = p1
+lub-least lub-4 p1 p2 = p2
+lub-least (lub-2 lub-0) <:-refl (<:-listcons p2) = <:-refl
+lub-least (lub-2 (lub-3 p)) <:-refl (<:-listcons p2) = <:-list (lub-least p <:-refl p2)
+lub-least (lub-2 p) (<:-list p1) (<:-listcons p2) = lub-least p (<:-list p1) (<:-list p2)
+lub-least (lub-2b p) (<:-listcons p1) <:-refl = lub-least p (<:-list p1) <:-refl
+lub-least (lub-2b p) (<:-listcons p1) (<:-list p2) = lub-least p (<:-list p1) (<:-list p2)
+lub-least (lub-3 p) <:-refl <:-refl = <:-list (lub-least p <:-refl <:-refl)
+lub-least (lub-3 p) <:-refl (<:-list p2) = <:-list (lub-least p <:-refl p2)
+lub-least (lub-3 p) (<:-list p1) <:-refl = <:-list (lub-least p p1 <:-refl)
+lub-least (lub-3 p) (<:-list p1) (<:-list p2) = <:-list (lub-least p p1 p2)
+lub-least lub-5 (<:-listcons p1) <:-nil = <:-list p1
+lub-least lub-6 <:-nil (<:-listcons p2) = <:-list p2
+lub-least (lub-7 p) <:-refl <:-refl = <:-listmixed (lub-least p <:-refl <:-refl)
+lub-least (lub-7 p) <:-refl (<:-listmixed p2) = <:-listmixed (lub-least p <:-refl p2)
+lub-least (lub-7 p) (<:-listcons p1) (<:-listcons p2) = <:-listcons (lub-least p p1 p2)
+lub-least (lub-7 p) (<:-listmixed p1) <:-refl = <:-listmixed (lub-least p p1 <:-refl)
+lub-least (lub-7 p) (<:-listmixed p1) (<:-listmixed p2) = <:-listmixed (lub-least p p1 p2)
 
 -- calculating the least subtype
 
@@ -120,4 +139,3 @@ lub (listcons t1) (list t2) with lub t1 t2
 ...| t3 , p = list t3 , lub-2b (lub-3 p)
 lub (listcons t1) (listcons t2) with lub t1 t2
 ...| t3 , p = listcons t3 , lub-7 p
-

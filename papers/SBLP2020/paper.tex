@@ -902,7 +902,7 @@ The first typing rule we consider is the one for sequencing instructions inside 
 the rule just threads the output environment from the first instruction as the input typing for the
 second.
 \[
-\inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'~~~\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
+\inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'\:\:\:\:\:\:\:\:\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
 \]
 The type system proposed by Appel et. al.~\cite{Appel07} has three rules to deal with each of the possible
@@ -996,21 +996,16 @@ for the list-machine language.
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{17}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\mathkw{data}\;\D{Ty}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{nil}\;{}\<[13]%
-\>[13]{}\mathbin{:}\;\D{Ty}{}\<[E]%
+\>[3]{}\Con{nil}\;{}\<[17]%
+\>[17]{}\mathbin{:}\;\D{Ty}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{list}\;{}\<[13]%
-\>[13]{}\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{listcons}\;{}\<[13]%
-\>[13]{}\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}{}\<[E]%
+\>[3]{}\Con{list}\;\Con{listcons}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1019,11 +1014,12 @@ together with its syntax in such a way where only well-typed terms that satisfy 
 judgments have meaning. This approach makes the AST contain both syntactic and semantic
 properties.
 
-To be well-typed, the list-machine syntax needs to refer to information from two sources:
-(1) a type context encoded as a list of types to store variable types; and (2) and a program
-context encoded as a vector\footnote{We use the \ensuremath{\D{Vec}} datatype indexed by a \ensuremath{\V{n}} which is
-bound on the module definition and represents the number of labels in the current program.}
-of type contexts to represent the types of the variables on entry to each basic block.
+In order to be considered well-typed, list-machine machine programs needs to refer
+to information from two sources: (1) a type context encoded as a list of types to store
+variable types; and (2) and a program context encoded as a vector\footnote{We use the
+\ensuremath{\D{Vec}} datatype indexed by a \ensuremath{\V{n}} which is bound on the module definition and represents
+the number of labels in the current program.} of type contexts to represent the types of
+the variables on entry to each basic block.
 
 
 \begin{hscode}\SaveRestoreHook
@@ -1044,15 +1040,20 @@ As we saw in the previous section, the typing rules of the list-machine language
 in two segments, one for instructions and one for blocks. We defined two datatypes (\ensuremath{\D{\_\vdash\_\Rightarrow\_}} and \ensuremath{\D{Block}})
 to hold the well-typed terms accordingly, representing each judgment of the static semantics as a
 syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
-
-Both definitions are \emph{parameterized} by a program context and a typing context, and
-\emph{indexed}\footnote{An index can vary in the result types of the different constructors,
-while a parameter cannot.} by a resulting typing context. The intuition is that, under
-program-typing \ensuremath{\V{\Pi}}, the \emph{Hoare triple} \ensuremath{\V{\Gamma}\;\{\mskip1.5mu \V{\iota}\mskip1.5mu\}\;\V{\Gamma'}} relates precondition \ensuremath{\V{\Gamma}} to
-postcondition \ensuremath{\V{\Gamma'}}. It is important to note that instead of manipulating syntax directly,
-the meta-program manipulates structures representing the type judgments as well. Such
-representation scheme makes the Agda's type-checker allow only well-typed blocks and
+The basic idea is to represent each type system rule as a constructor of the underlying type.
+Such representation scheme makes the Agda's type-checker allow only well-typed blocks and
 instructions to be created and manipulated.
+
+
+%Both definitions are \emph{parameterized} by a program context and a typing context, and
+%\emph{indexed}\footnote{An index can vary in the result types of the different constructors,
+%while a parameter cannot.} by a resulting typing context. The intuition is that, under
+%program-typing |Π|, the \emph{Hoare triple} |Γ{ι}Γ'| relates precondition |Γ| to
+%postcondition |Γ'|. It is important to note that instead of manipulating syntax directly,
+%the meta-program manipulates structures representing the type judgments as well.
+%Such
+%representation scheme makes the Agda's type-checker allow only well-typed blocks and
+%instructions to be created and manipulated.
 
 The representation of instructions is defined as follows.
 
@@ -1181,9 +1182,13 @@ existing variable. The list is created from two variables, \ensuremath{(\V{x₀}
 which are represented as \emph{de Bruijn} indices. The type of the new list is defined by
 the least common supertype\footnote{A complete explanation about the least common supertype
 can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
-constructor \ensuremath{\D{\_\sqcap\_\sim\_}}\footnote{The code of this definition is omitted here, but can be found
-in our online repository.}. The resulting typing context adds information about the
-newly created list.}
+type \ensuremath{\V{\tau_1}\;\D{\sqcap}\;\V{\tau_2}\;\D{\sim}\;\V{\tau}}, which encodes that the least common supertype of \ensuremath{\V{\tau_1}} and \ensuremath{\V{\tau_2}} is \ensuremath{\V{\tau}}.
+The resulting typing context adds information about the newly created list.
+Section~\ref{sec:supertype} will provide details of an algorithm
+for calculating the least common supertype of two given types.}
+
+%\footnote{The code of this definition is omitted here, but can be found
+%in our online repository.}
 
 
 The representation of blocks is defined as follows.
@@ -1470,13 +1475,14 @@ This approach is promising to be investigated when formalizing even more complex
 \section{Type Checker}\label{sec:typechecker}
 
 In practice, a source-code of a programming language runs through several phases, including lexing, parsing,
-scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking.
-Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of
-elaborating an untyped syntax to a typed one.
+scope checking, and most importantly \emph{type checking}. Since we represent programs using a
+intrinsically-typed syntax, scope and type checking is only a matter of elaborating an untyped syntax
+to a typed one.
 
 
 Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope
-check them, we need to provide an index from a named variable. This process is done by the \ensuremath{\F{lookup\textrm{-}var}} function.
+check them, we need to provide an index from a named variable. This process is done by the
+\ensuremath{\F{lookup\textrm{-}var}} function.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1543,7 +1549,132 @@ type errors: (1) when \ensuremath{\V{v}} is \ensuremath{\Con{nothing}} it means 
 since the type of variable \ensuremath{\V{v}} should be a \ensuremath{\Con{listcons}}. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
 
-\section{Least common supertype}
+\subsection{Subtyping and least common supertype}\label{sec:supertype}
+
+
+A key feature of the list machine type system is its subypting which is exposed by the
+the least common supertype relation. We omit the Agda encoding of the subtyping relation for
+space reasons, since it is just an inductive type that encode the rules presented
+in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
+subtyping including its decidability.
+
+The least common supertype relation is used by the least machine type system to refine a
+variable type whenever it is updated by a \emph{cons} instruction. The rules of the
+super type relation are specified as the following inductive type:
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{\_\sqcap\_\sim\_}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub0}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t}\;\D{\sim}\;\V{t}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub1}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{list}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub3}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\\
+\>[3]{}\hsindent{10}{}\<[13]%
+\>[13]{}(\Con{list}\;\V{t})\;\D{\sqcap}\;(\Con{list}\;\V{t1})\;\D{\sim}\;(\Con{list}\;\V{t'}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub5}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{listcons}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub7}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\\
+\>[3]{}\hsindent{10}{}\<[13]%
+\>[13]{}(\Con{listcons}\;\V{t})\;\D{\sqcap}\;(\Con{listcons}\;\V{t1})\;\D{\sim}\;(\Con{listcons}\;\V{t'}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\orange{\texttt{-- some code omitted for brevity}}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
+types. Also, rules ensure that the relation is commutative as proved by a simple
+Agda theorem.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{\sqcap-comm}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t3}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+We omit the complete definition of \ensuremath{\F{\sqcap-comm}} for brevity. In the list machine benchmark definition~\cite{Appel07},
+Appel et. al. also defines that the least common supertype relation is sound and complete with respect to the
+subtyping relation. Again, we omit the definitions of these properties, whose type is presented below.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{\sqcap-subtype}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;(\V{t1}\;\D{<:}\;\V{t3})\;\D{\land}\;(\V{t2}\;\D{<:}\;\V{t3}){}\<[E]%
+\\
+\>[B]{}\F{\sqcap-least}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t1}\;\D{<:}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{<:}\;\V{t4}\;\rightarrow\;\V{t3}\;\D{<:}\;\V{t4}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+An algorithm to construct the least supertype from two input types is
+defined by function \ensuremath{\F{lub}}. Note that the \ensuremath{\F{lub}}'s type ensures that the
+returned type \ensuremath{\V{t}} is indeed the least common supertype of \ensuremath{\V{t1}} and \ensuremath{\V{t2}},
+thus ensuring its correctness by construction.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{lub}\;\mathbin{:}\;(\V{t1}\;\V{t2}\;\mathbin{:}\;\D{Ty})\;\rightarrow\;\D{\exists}\;(\lambda\;\V{t}\;\rightarrow\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\F{lub}\;\Con{nil}\;\Con{nil}\;\mathrel{=}\;\Con{nil}\;\red{,}\,\;\Con{lub0}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{list}\;\V{t1})\;\Con{nil}\;\mathrel{=}\;\Con{list}\;\V{t1}\;\red{,}\,\;\Con{lub1}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{list}\;\V{t1})\;(\Con{list}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{list}\;\V{t3}\;\red{,}\,\;\Con{lub3}\;\V{p}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;\Con{nil}\;\mathrel{=}\;\Con{list}\;\V{t1}\;\red{,}\,\;\Con{lub5}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;(\Con{list}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{list}\;\V{t3}\;\red{,}\,\;\Con{lub2b}\;(\Con{lub3}\;\V{p}){}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;(\Con{listcons}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{listcons}\;\V{t3}\;\red{,}\,\;\Con{lub7}\;\V{p}{}\<[E]%
+\\
+\>[B]{}\orange{\texttt{-- some code omitted for brevity}}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\section{Comparison of Mechanized Proofs}
+
+We implemented 15 tasks from the list machine benchmark in the Agda programming language.
+The total number of lines for each task is summarized in the next table.
+
+\begin{table}[!htb]
+\begin{tabular}{rl|rrr}
+    & Task                                         & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
+1.  & Operational Semantics                        & 126                       & 98                      & 97                       \\
+2.  & Derive $p \Downarrow$                        & 1                         & 8                       &                          \\ \hline
+3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 62                       \\
+4.  & $\sqcap$ algorithm                           & *                         & *                       & 13                       \\
+5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
+                                                   & 1                         & no                      & 1                        \\
+6.  & State properties of $\sqcap$                 & 12                        & 13                      & 6                        \\
+7.  & Prove properties of $\sqcap$                 & 114                       & 21                      & 124                      \\
+8.  & State soundness theorem                      & 29                        & 15                      & *                        \\
+9.  & Prove soundness of $\vDash_{\textrm{prog}} p : \Pi$
+                                                   & 2060                      & 315                     & *                        \\ \hline
+10. & Efficient algorithm                          & 22                        & 145                     & 98                       \\
+11. & Derive $\vdash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
+                                                   & 1                         & 1                       & 1                        \\
+12. & Prove termination of $\vdash_{\textrm{prog}} p : \Pi$
+                                                   & 18                        & 0                       & 0                        \\
+13. & Scalable type-checker                        & yes                       & yes                     & yes                      \\
+14. & Prove soundness of $\vdash_{\textrm{prog}} p : \Pi$
+                                                   & 347                       & 141                     & * 
+\end{tabular}
+\end{table}
 
 \section{Related work}\label{sec:related}
 

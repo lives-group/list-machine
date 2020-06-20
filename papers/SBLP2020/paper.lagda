@@ -602,7 +602,7 @@ The first typing rule we consider is the one for sequencing instructions inside 
 the rule just threads the output environment from the first instruction as the input typing for the
 second.
 \[
-\inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'~~~\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
+\inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'\:\:\:\:\:\:\:\:\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
 \]
 The type system proposed by Appel et. al.~\cite{Appel07} has three rules to deal with each of the possible
@@ -701,9 +701,8 @@ for the list-machine language.
 
 \begin{spec}
 data Ty : Set where
-  nil       : Ty
-  list      : Ty → Ty
-  listcons  : Ty → Ty
+  nil           : Ty
+  list listcons : Ty → Ty
 \end{spec}
 
 We internalize the list-machine type judgments for blocks and instructions in Agda
@@ -711,11 +710,12 @@ together with its syntax in such a way where only well-typed terms that satisfy 
 judgments have meaning. This approach makes the AST contain both syntactic and semantic
 properties.
 
-To be well-typed, the list-machine syntax needs to refer to information from two sources:
-(1) a type context encoded as a list of types to store variable types; and (2) and a program
-context encoded as a vector\footnote{We use the |Vec| datatype indexed by a |n| which is
-bound on the module definition and represents the number of labels in the current program.}
-of type contexts to represent the types of the variables on entry to each basic block.
+In order to be considered well-typed, list-machine machine programs needs to refer
+to information from two sources: (1) a type context encoded as a list of types to store
+variable types; and (2) and a program context encoded as a vector\footnote{We use the
+|Vec| datatype indexed by a |n| which is bound on the module definition and represents
+the number of labels in the current program.} of type contexts to represent the types of
+the variables on entry to each basic block.
 
 %format Ctx = "\D{Ctx}"
 %format PCtx = "\D{PCtx}"
@@ -739,15 +739,20 @@ As we saw in the previous section, the typing rules of the list-machine language
 in two segments, one for instructions and one for blocks. We defined two datatypes (|_⊢_⇒_| and |Block|)
 to hold the well-typed terms accordingly, representing each judgment of the static semantics as a
 syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
-
-Both definitions are \emph{parameterized} by a program context and a typing context, and
-\emph{indexed}\footnote{An index can vary in the result types of the different constructors,
-while a parameter cannot.} by a resulting typing context. The intuition is that, under
-program-typing |Π|, the \emph{Hoare triple} |Γ{ι}Γ'| relates precondition |Γ| to
-postcondition |Γ'|. It is important to note that instead of manipulating syntax directly,
-the meta-program manipulates structures representing the type judgments as well. Such
-representation scheme makes the Agda's type-checker allow only well-typed blocks and
+The basic idea is to represent each type system rule as a constructor of the underlying type.
+Such representation scheme makes the Agda's type-checker allow only well-typed blocks and
 instructions to be created and manipulated.
+
+
+%Both definitions are \emph{parameterized} by a program context and a typing context, and
+%\emph{indexed}\footnote{An index can vary in the result types of the different constructors,
+%while a parameter cannot.} by a resulting typing context. The intuition is that, under
+%program-typing |Π|, the \emph{Hoare triple} |Γ{ι}Γ'| relates precondition |Γ| to
+%postcondition |Γ'|. It is important to note that instead of manipulating syntax directly,
+%the meta-program manipulates structures representing the type judgments as well.
+%Such
+%representation scheme makes the Agda's type-checker allow only well-typed blocks and
+%instructions to be created and manipulated.
 
 The representation of instructions is defined as follows.
 
@@ -857,9 +862,13 @@ existing variable. The list is created from two variables, |(x₀ , τ₀) ∈ �
 which are represented as \emph{de Bruijn} indices. The type of the new list is defined by
 the least common supertype\footnote{A complete explanation about the least common supertype
 can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
-constructor |_⊓_~_|\footnote{The code of this definition is omitted here, but can be found
-in our online repository.}. The resulting typing context adds information about the
-newly created list.}
+type |τ₁ ⊓ τ₂ ~ τ|, which encodes that the least common supertype of |τ₁| and |τ₂| is |τ|.
+The resulting typing context adds information about the newly created list.
+Section~\ref{sec:supertype} will provide details of an algorithm
+for calculating the least common supertype of two given types.}
+
+%\footnote{The code of this definition is omitted here, but can be found
+%in our online repository.}
 
 %format block-halt = "\Con{block\textrm{-}halt}"
 %format block-seq = "\Con{block\textrm{-}seq}"
@@ -1093,9 +1102,9 @@ This approach is promising to be investigated when formalizing even more complex
 \section{Type Checker}\label{sec:typechecker}
 
 In practice, a source-code of a programming language runs through several phases, including lexing, parsing,
-scope checking, and most importantly \emph{type checking}. This sections deals with scope and type checking.
-Since we represent programs using a intrinsically-typed syntax, scope and type checking is only a matter of
-elaborating an untyped syntax to a typed one.
+scope checking, and most importantly \emph{type checking}. Since we represent programs using a
+intrinsically-typed syntax, scope and type checking is only a matter of elaborating an untyped syntax
+to a typed one.
 
 %format lookup-var = "\F{lookup\textrm{-}var}"
 %format map = "\F{map}"
@@ -1107,7 +1116,8 @@ elaborating an untyped syntax to a typed one.
 %format proj₂ = "\D{proj_2}"
 
 Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope
-check them, we need to provide an index from a named variable. This process is done by the |lookup-var| function.
+check them, we need to provide an index from a named variable. This process is done by the
+|lookup-var| function.
 
 \begin{spec}
 lookup-var  : (Γ : Ctx) → (x : String)
@@ -1151,32 +1161,104 @@ type errors: (1) when |v| is |nothing| it means an scope error; (2) and (3) are 
 since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
 
-\section{Least common supertype}
+\subsection{Subtyping and least common supertype}\label{sec:supertype}
+
+%format lub-0 = "\Con{lub0}"
+%format lub-1 = "\Con{lub1}"
+%format lub-4 = "\Con{lub4}"
+%format lub-2 = "\Con{lub2}"
+%format lub-2b = "\Con{lub2b}"
+%format lub-3 = "\Con{lub3}"
+%format lub-5 = "\Con{lub5}"
+%format lub-6 = "\Con{lub6}"
+%format lub-7 = "\Con{lub7}"
+%format lub-comm = "\F{\sqcap-comm}"
+%format lub-subtype = "\F{\sqcap-subtype}"
+%format lub-least = "\F{\sqcap-least}"
+%format <: = "\D{<:}"
+
+A key feature of the list machine type system is its subypting which is exposed by the
+the least common supertype relation. We omit the Agda encoding of the subtyping relation for
+space reasons, since it is just an inductive type that encode the rules presented
+in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
+subtyping including its decidability.
+
+The least common supertype relation is used by the least machine type system to refine a
+variable type whenever it is updated by a \emph{cons} instruction. The rules of the
+super type relation are specified as the following inductive type:
+
+\begin{spec}
+data _⊓_~_ : Ty → Ty → Ty → Set where
+  lub-0 : ∀ {t} → t ⊓ t ~ t
+  lub-1 : ∀ {t} → (list t) ⊓ nil ~ (list t)
+  lub-3 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
+            (list t) ⊓ (list t1) ~ (list t')
+  lub-5 : ∀ {t} → (listcons t) ⊓ nil ~ (list t)
+  lub-7 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
+            (listcons t) ⊓ (listcons t1) ~ (listcons t')
+  -- some code omitted for brevity
+\end{spec}
+Constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
+types. Also, rules ensure that the relation is commutative as proved by a simple
+Agda theorem.
+\begin{spec}
+lub-comm : t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
+\end{spec}
+We omit the complete definition of |lub-comm| for brevity. In the list machine benchmark definition~\cite{Appel07},
+Appel et. al. also defines that the least common supertype relation is sound and complete with respect to the
+subtyping relation. Again, we omit the definitions of these properties, whose type is presented below.
+%format × = "\D{\land}"
+\begin{spec}
+lub-subtype : t1 ⊓ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
+lub-least : t1 ⊓ t2 ~ t3 → t1 <: t3 → t2 <: t4 → t3 <: t4
+\end{spec}
+%format lub = "\F{lub}"
+An algorithm to construct the least supertype from two input types is
+defined by function |lub|. Note that the |lub|'s type ensures that the
+returned type |t| is indeed the least common supertype of |t1| and |t2|,
+thus ensuring its correctness by construction.
+
+\begin{spec}
+lub : (t1 t2 : Ty) → ∃ (λ t → t1 ⊓ t2 ~ t)
+lub nil nil = nil , lub-0
+lub (list t1) nil = list t1 , lub-1
+lub (list t1) (list t2) with lub t1 t2
+...| t3 , p = list t3 , lub-3 p 
+lub (listcons t1) nil = list t1 , lub-5
+lub (listcons t1) (list t2) with lub t1 t2
+...| t3 , p = list t3 , lub-2b (lub-3 p)
+lub (listcons t1) (listcons t2) with lub t1 t2
+...| t3 , p = listcons t3 , lub-7 p
+-- some code omitted for brevity
+\end{spec}
 
 \section{Comparison of Mechanized Proofs}
-  
+
+We implemented 15 tasks from the list machine benchmark in the Agda programming language.
+The total number of lines for each task is summarized in the next table.
+
 \begin{table}[!htb]
 \begin{tabular}{rl||rrr}
-    & Task                                      & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
-1.  & Operational Semantics                     & 126                       & 98                      &                          \\
-2.  & Derive $p \Downarrow$                     & 1                         & 8                       &                          \\ \hline
-3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     &                          \\
-4.  & $\sqcap$ algorithm                        & *                         & *                       &                          \\
+    & Task                                         & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
+1.  & Operational Semantics                        & 126                       & 98                      & 97                       \\
+2.  & Derive $p \Downarrow$                        & 1                         & 8                       &                          \\ \hline
+3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 62                       \\
+4.  & $\sqcap$ algorithm                           & *                         & *                       & 13                       \\
 5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
-                                                & 1                         & no                      &                          \\
-6.  & State properties of $\sqcap$              & 12                        & 13                      &                          \\
-7.  & Prove properties of $\sqcap$              & 114                       & 21                      &                          \\
-8.  & State soundness theorem                   & 29                        & 15                      &                          \\
+                                                   & 1                         & no                      & 1                        \\
+6.  & State properties of $\sqcap$                 & 12                        & 13                      & 6                        \\
+7.  & Prove properties of $\sqcap$                 & 114                       & 21                      & 124                      \\
+8.  & State soundness theorem                      & 29                        & 15                      & *                        \\
 9.  & Prove soundness of $\vDash_{\textrm{prog}} p : \Pi$
-                                                & 2060                      & 315                     &                          \\ \hline
-10. & Efficient algorithm                       & 22                        & 145                     &                          \\
+                                                   & 2060                      & 315                     & *                        \\ \hline
+10. & Efficient algorithm                          & 22                        & 145                     & 98                       \\
 11. & Derive $\vdash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
-                                                & 1                         & 1                       &                          \\
+                                                   & 1                         & 1                       & 1                        \\
 12. & Prove termination of $\vdash_{\textrm{prog}} p : \Pi$
-                                                & 18                        & 0                       &                          \\
-13. & Scalable type-checker                     & yes                       & yes                     &                          \\
+                                                   & 18                        & 0                       & 0                        \\
+13. & Scalable type-checker                        & yes                       & yes                     & yes                      \\
 14. & Prove soundness of $\vdash_{\textrm{prog}} p : \Pi$
-                                                & 347                       & 141                     &                         
+                                                   & 347                       & 141                     & * 
 \end{tabular}
 \end{table}
 
