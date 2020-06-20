@@ -1234,7 +1234,7 @@ lub (listcons t1) (listcons t2) with lub t1 t2
 
 \section{Comparison of Mechanized Proofs}
 
-We implemented 15 tasks from the list machine benchmark in the Agda programming language.
+We implemented 14 tasks from the list machine benchmark in the Agda programming language.
 The total number of lines for each task is summarized in the next table.
 
 \begin{table}[!htb]
@@ -1261,6 +1261,10 @@ The total number of lines for each task is summarized in the next table.
                                                    & 347                       & 141                     & * 
 \end{tabular}
 \end{table}
+
+The total time for parsing and proof checking our Agda implementation was around 10 seconds 
+on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5.
+
 
 \section{Related work}\label{sec:related}
 
