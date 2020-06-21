@@ -127,7 +127,7 @@ module paper where
 
 
 
-\title{A Certified Interpreter for the List Machine Benchmark}
+\title{An Intrinsically Typed Solution for the List Machine Benchmark}
 
 \author{Samuel Feitosa}
 \authornotemark[1]
@@ -1009,7 +1009,7 @@ evaluation function structurally recursive on the \emph{fuel} argument. }
 
 \begin{spec}
 run-step zero p env b = nothing
-\end{spec}  
+\end{spec}
 
 All the next pieces of code match the value |suc fuel| for the first argument of |run-step|,
 meaning that there is still \emph{fuel} during the recursive processing of this function.
@@ -1018,7 +1018,7 @@ meaning that there is still \emph{fuel} during the recursive processing of this 
 %run-step (suc n) p env (block-seq (instr-seq i₁ i₂) b) =
 %  run-step n p env (block-seq i₁ (block-seq i₂ b))
 %run-step {Π} (suc n) p env (block-seq (instr-branch-list {τ} {i} v l s) b)
-%  with lookup env v 
+%  with lookup env v
 %... | []v rewrite sym ([]=⇒lookup l) =
 %  run-step n p (⊂-Ctx s (update-env env v nil)) (lookupA i p)
 %... | v₁ ∷v v₂ = run-step n p (update-env env v (v₁ ∷ v₂)) b
@@ -1235,17 +1235,18 @@ lub (listcons t1) (listcons t2) with lub t1 t2
 \section{Comparison of Mechanized Proofs}
 
 We implemented 14 tasks from the list machine benchmark in the Agda programming language.
-The total number of lines for each task is summarized in the next table.
+The selected tasks considered by us are the ones done by Appel et. al.~\cite{Appel07}.
+The next table summarize the total number of lines for our results together with Appel's. 
 
 \begin{table}[!htb]
 \begin{tabular}{rl||rrr}
     & Task                                         & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
-1.  & Operational Semantics                        & 126                       & 98                      & 97                       \\
-2.  & Derive $p \Downarrow$                        & 1                         & 8                       &                          \\ \hline
+1.  & Operational Semantics                        & 126                       & 98                      & 109                      \\
+2.  & Derive $p \Downarrow$                        & 1                         & 8                       & -                        \\ \hline
 3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 62                       \\
 4.  & $\sqcap$ algorithm                           & *                         & *                       & 13                       \\
 5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
-                                                   & 1                         & no                      & 1                        \\
+                                                   & 1                         & no                      & -                        \\
 6.  & State properties of $\sqcap$                 & 12                        & 13                      & 6                        \\
 7.  & Prove properties of $\sqcap$                 & 114                       & 21                      & 124                      \\
 8.  & State soundness theorem                      & 29                        & 15                      & *                        \\
@@ -1263,10 +1264,56 @@ The total number of lines for each task is summarized in the next table.
 \end{table}
 
 The total time for parsing and proof checking our Agda implementation was around 10 seconds 
-on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5.
+on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5. We briefly comment 
+on our Agda coding of these 14 tasks.
+
+\begin{enumerate}
+  \item \textbf{Operational semantics.} Instead of using a inductive type for representing the operational semantics, we choose to
+        use a definitional interpreter for our intrinsincally-typed representation. Our implementation for the operational
+        semantics is composed by 38 lines for the type syntax and 71 for the definitional interpreter.
+  \item \textbf{Derive $p\,\Downarrow$.} Since we used an definitional intepreter for representing the semantics, we can derive
+        $p\,\Downarrow$ just by executing the interpreter on $p$.
+  \item \textbf{Represent the type system.} Our type system representation consists of the intrinsically-typed encoding of
+        the list machine programs and it is already counted in as part of the operational semantics of our solution.
+  \item \textbf{Least common supertype algorithm.} In order to implement this task, we specified the least common super type
+        as a relation and implemented the algorithm which shows that this relation is indeed a function. In this way, we
+        guarantee its soundness w.r.t. its specification.
+  \item \textbf{Derive an example of type checking.} Our approach to build a derivation for a sample list machine program
+        is just execute the type checker over it. Since our type checker returns an intrinsincally-typed representation of
+        the input and such typed syntax is equivalent to the type system, it can be used to build type derivations.
+  \item \textbf{State properties of the least common supertype.} This is trivial, since it is just a matter to encode the
+        desired properties as Agda function types.
+  \item \textbf{Prove properties of the least common supertype.} Proofs of all proved properties about the least common supertype
+        are simple recursive functions over the least common supertype and subtyping relations definition.
+  \item \textbf{State the soundness theorem for the type system.} Following Amin et. al.~\cite{Amin17}, we represent the soundness
+        theorem statement as the type of our definitional interpreter for the intrinsically-typed syntax for the list machine
+        programs.
+  \item \textbf{Prove the soundness theorem for the type system.} Following Amin et. al.~\cite{Amin17}, the proof of the soundness
+        theorem is just the implementation of the definitional interpreter. Soundness is ensured by construction since the interpreter
+        produces, as result, an environment of well-typed values resulting from the execution of the input program.
+  \item \textbf{Asymptotically efficient algorithm.} Our current implementation of the typechecker takes quadratic time. The reason
+        for this inneficiency is the representation of environments as lists / vectors. The use of better data structures (like finite
+        maps implemented by efficient search trees) can solve this issue. We leave this fix to future work.
+  \item \textbf{Simulate the new algorithm.} This task is just one line of code, since it ammounts to calling the typechecker
+        on the input program.
+  \item \textbf{Prove the termination of the type checker.} This task is trivial in our setting, since all defined Agda functions
+        must be total. The totality is ensured by Agda's termination / totality checker.
+  \item \textbf{Scalable type-checker.} Agda code can be compiled to machine code using its GHC-Haskell backend. Since GHC is
+        an industrial strength compiler, the backend can generate an efficient executable for the machine interpreter and typechecker. 
+  \item \textbf{Prove soundness of type-checker.} In our approach, the soundness of the typechecker is ensured by construction,
+        since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
+\end{enumerate}
 
 
 \section{Related work}\label{sec:related}
+
+\paragraph{Benchmarks for PL mechanization}{
+POPLMark chalenge~\cite{Aydemir05} .... Another chalenge was proposed by Pientka et. al.~\cite{Pientka18}...
+}
+
+\paragraph{Definitional intepreters}{
+The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
+}
 
 \section{Conclusion}\label{sec:conclusion}
 
