@@ -127,7 +127,7 @@ module paper where
 
 
 
-\title{An Intrinsically Typed Solution for the List Machine Benchmark}
+\title{An Intrinsically Typed Solution for the List-Machine Benchmark}
 
 \author{Samuel Feitosa}
 \authornotemark[1]
@@ -162,10 +162,10 @@ community. However, such models are full of intrincacies and, due to that,
 they are subject to subtle errors. Such failures motivated the usage of
 tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
-to ensure its ``correctness-by-construction''.
-
-In this work, we use this idea to build a verified interpreter
-for the list machine benchmark in the Agda programming language.
+to ensure its ``correctness-by-construction''. In this work, we use this
+idea to build a verified interpreter for the list-machine benchmark in the
+Agda programming language, comparing the results with the usual syntactic
+approach.
 \end{abstract}
 
 
@@ -228,10 +228,10 @@ for the list machine benchmark in the Agda programming language.
 
 \section{Introduction}
 
-The development of a new programming language design, linguistic construct
-or type system involves its careful formalization in order to express
+The development of a new programming language design, linguistic construct,
+or type system involves a careful formalization in order to express
 its core ideas in a concise way. However, such models have many details
-and complexities which can hinders its correctness assurances.
+and complexities which can hinder its correctness assurances.
 Because of such problems, the programming languages research community
 started to use tools, like proof assistants~\cite{Stump16,Chlipala13},
 and benchmark problems to validate them and stress its suitability for
@@ -241,44 +241,48 @@ A popular approach for specifying formal semantics is the
 use of definitional interpreters, which represents the meaning of a
 programming language as an interpreter written in some
 meta-language~\cite{Reynolds72}. A major advantage of such approach
-is the possibility of validating the semantics through execution.
+is the possibility to validate the semantics through execution.
 Recently, definitional interpreters were used to formalize type
 soundness theorems for some advanced typing features~\cite{Amin17}
 and the semantics of imperative programming languages in which static
 semantics is ensured by dependently-typed
-syntax\footnote{Also known as intrinsically-typed.}~\cite{Poulsen18}.
+syntax\footnote{Also known as intrinsically-typed.}\cite{Poulsen18}.
 In this work, we follow Poulsen et. al. and use an intrinsically-typed
 representation to build a definitional interpreter for a low-level virtual
 machine developed by Appel and Leroy as a benchmark problem closer to
-real-world implementations like typed assembly languages~\cite{CraryM99} and
+real-world implementations such as typed assembly languages~\cite{CraryM99} and
 proof carrying code~\cite{Necula97}.
 
 More specifically, we contribute:
 
 \begin{itemize}
-  \item We show how all the details of the list machine type system
-        can be encoded as dependently-typed syntax which avoids, by construction,
+  \item We show how all the details of the list-machine type system
+        can be encoded in a dependently-typed syntax setting, which avoids, by construction,
         the presence of stuck states in its definitional interpreter.
-  \item We provide a provably correct implementations for testing the subtyping
+  \item We provide a provably correct implementation for testing the subtyping
         relation and to calculate the least common super type of two input
         types for the machine registers.
-  \item We provide a correct by construction implementation of a type checker for
-        list machine programs. Our type checker produces, as result, an intrinsically-typed
+  \item We provide a correct-by-construction implementation of a type checker for
+        list-machine programs. Our type checker produces, as result, an intrinsically-typed
         representation of the machine code.
+  \item We compare the results of an intrinsic approach encoded in Agda with extrinsic
+        formalizations encoded in Twelf and Coq. We show that such intrinsic encoding avoids
+        unnecessary repetitions and provides some properties for free.
 \end{itemize}
 
 The rest of this paper is organized as follows. Section~\ref{sec:agda}
 presents a brief introduction to Agda and Section~\ref{sec:list}
-reviews the list machine benchmark and presents its syntax and type system.
-We describe the intrinsically-typed representation for the list machine syntax,
-the subtyping relation and the least common super type algorithm in
-Section~\ref{sec:typing}. The list machine semantics and its realization as
-a definitional interpreter are presented in Section~\ref{sec:semantics}.
-Related work is discussed in Section~\ref{sec:related},
-and Section~\ref{sec:conclusion} concludes.
+reviews the list-machine benchmark and presents its syntax and type system.
+We describe the intrinsically-typed representation for the list-machine
+in Section~\ref{sec:typing}. The list-machine semantics and its
+realization as a definitional interpreter are presented in Section~\ref{sec:semantics}.
+The type-checking algorithm, the subtyping relation and the least-common-supertype
+algorithm are presented in Section~\ref{sec:typechecker}. Section~\ref{sec:comparison}
+compares the presented formalization in Agda with Coq and Twelf encodings. Related work is
+discussed in Section~\ref{sec:related}, and Section~\ref{sec:conclusion} concludes.
 
 All the source code in this article has been formalized in Agda
-version 2.6.1 using Standard Library 1.3. All source code produced,
+version 2.6.1 using the Standard Library 1.3. All source code produced,
 including the \LaTeX~source of this article, are available
 on-line~\cite{list-rep}.
 
@@ -400,7 +404,7 @@ representation of equality as the following Agda type:
 %format All = "\D{All}"
 This type is called propositional equality. It defines that there is
 a unique evidence for equality, constructor |refl| (for reflexivity),
-that asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
+which asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
 and a vector |xs|, the type |All P xs| is used to build proofs that |P| holds for all
 elements in |xs| and it is defined as:
 \begin{spec}
@@ -438,9 +442,9 @@ expression language.
       Num : Nat -> Expr
       _&_ _+_ : Expr -> Expr -> Expr
 \end{spec}
-Using this data type,\footnote{Agda supports the definition of mixfix operators.
-We can use underscores to mark arguments positions.} we can construct expressions
-that denote terms that should not be considered well-typed like
+Using this data type\footnote{Agda supports the definition of mixfix operators.
+We can use underscores to mark arguments positions.}, we can construct expressions
+to denote terms that should not be considered well-typed like
 |(Num 1) + True|. Using this approach, we need to specify the static semantics
 as another definition, which should consider all possible cases to avoid the
 definition of ill-typed terms.
@@ -499,18 +503,18 @@ For further information about Agda, see~\cite{Norell2009,Stump16}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% List machine benchmark %%
+%% List-machine benchmark %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\section{The List Machine Benchmark}\label{sec:list}
+\section{The List-Machine Benchmark}\label{sec:list}
 
-The list machine is a simple pointer virtual machine whose values
+The list-machine, proposed by \citet{Appel07}, is a simple pointer virtual machine where values
 are empty lists and cons-cells:
 \[
 a ::= nil\,\mid\,cons(a_1,a_2)
 \]
-We let meta-variable $a$ to denote an arbitrary value, $v$ denotes a variable
+Throughout this text, the meta-variable $a$ is used to denote an arbitrary value, $v$ denotes a variable
 and $l$ a program label. Following common practice, all meta-variables can
 appear primed or subscripted. The syntax of the virtual machine instructions are
 presented next and their meaning is as usual.
@@ -527,12 +531,12 @@ presented next and their meaning is as usual.
         & \mid & \text{end}                          & \text{(end of block list)}\\
 \end{array}
 \]
-Programs are just a sequence of blocks which begin with a unique label. 
+A program is just a sequence of blocks referenced by a unique label. 
 
-Each program variable is assigned a list type which is used to guarantee the safety of execute
+Each program variable is assigned to a list type, \textcolor{red}{which is used to guarantee the safety of execute
 fetch-field that demands non-empty list arguments and branch instructions refine the argument type
-according to which branch is taken. In order to express such refinements, types are subject to a
-subtyping relation. We let the meta-variable $\tau$ denote an arbitrary type. 
+according to which branch is taken.} In order to express such refinements, types are subject to a
+subtyping relation. The meta-variable $\tau$ denotes an arbitrary type. 
 \[
 \begin{array}{rcll}
   \tau & ::=  & \text{nil} & \text{(type for empty lists)}\\
@@ -572,7 +576,7 @@ the subtyping relation. The list common supertype $\tau = \tau_1 \sqcap \tau_2$ 
 $\tau_1$ and $\tau_2$ is defined as the smallest type such that $\tau_1$ and $\tau_2$
 are subtypes of $\tau$.
 
-Following common practice, we let meta-variable $\Gamma$ denote an
+Following common practice, the meta-variable $\Gamma$ denotes an
 environment between variable names and
 its types. Notation $\{\}$ denote an empty environment, $v : \tau , \Gamma$
 denote the operation of including a new entry for variable $v$ with type $\tau$
@@ -589,14 +593,14 @@ Subtyping is extended to contexts as follows.
             [b2]
 \end{array}
 \]
-We let variable $\Pi$ denote \emph{program typings}, i.e. finite mappings between
+The variable $\Pi$ is used to denote \emph{program typings}, i.e. finite mappings between
 labels and typing contexts $\Gamma$, where notation $\Pi(l) = \Gamma$ denotes that
 $\Gamma$ stores the types of variables on the entry point of the block labeled by $l$.
-Using the previously defined notations, we can define the typing rules for the list
-machine as a syntax directed judgement $\Pi \vdash_{\text{instr}} \Gamma \{ \iota \} \Gamma'$
-which intuitively means that the instruction $\iota$ transforms an input typing environment,
-$\Gamma$, into an output environment $\Gamma'$ under a fixed program typing $\Pi$. The typing
-rules for the list machine instructions are as follows.
+Using the previously defined notations, the typing rules for the list-machine are defined
+as a syntax directed judgement $\Pi \vdash_{\text{instr}} \Gamma \{ \iota \} \Gamma'$,
+which intuitively means that the instruction $\iota$ transforms an input typing environment
+$\Gamma$ into an output environment $\Gamma'$ under a fixed program typing $\Pi$. The typing
+rules for the list-machine instructions are defined as follows.
 
 The first typing rule we consider is the one for sequencing instructions inside a block. Basically,
 the rule just threads the output environment from the first instruction as the input typing for the
@@ -605,9 +609,9 @@ second.
 \inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'\:\:\:\:\:\:\:\:\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
 \]
-The type system proposed by Appel et. al.~\cite{Appel07} has three rules to deal with each of the possible
-types assigned to the branch variable in current typing context. The first rules deal with the $list$ and $listcon$
-types, which specifies that the environment associated to the label $l$, $\Pi(l) = \Gamma_1$, is greater than
+The type system proposed by \citet{Appel07} has three rules to deal with each of the possible
+types assigned to the branch variable in the current typing context. The first two rules deal with the $list$ and $listcon$
+types, specifying that the environment associated to the label $l$, $\Pi(l) = \Gamma_1$, is greater than
 $\Gamma[v := nil]$. The third rule applies whenever $\Gamma(v) = nil$ and it also demands that $\Gamma \subset \Pi(l)$.
 
 \[
@@ -623,21 +627,21 @@ $\Gamma[v := nil]$. The third rule applies whenever $\Gamma(v) = nil$ and it als
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[branch-listcons]
 
 \\ \\
-\inference{\Gamma(v) = \text{nil}~~~\Pi(l) = \Gamma_1~~~\Gamma \subset \Gamma_1}
+\inference{\Gamma(v) = \text{nil}\:\:\:\:\Pi(l) = \Gamma_1\:\:\:\:\Gamma \subset \Gamma_1}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}
           [branch-nil]
 \end{array}
 \]
-Next, we have the \emph{fetch} instruction which can be used to store the head / tail of a list value in
+Next, we have the \emph{fetch} instructions, which can be used to store the head / tail of a list value in
 a variable. Rule \emph{fetch-0} retrieves the head of a value stored in a variable $v$ and \emph{fetch-1}
 does the same for the tail. Note that both rules demand that $\Gamma(v) = listcons\:\tau$, for some type
 $\tau$.
 \[
 \begin{array}{c}
-\inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\tau]=\Gamma'}
+\inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\Gamma[v':=\tau]=\Gamma'}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[fetch-0]
           \\ \\
-\inference{\Gamma(v) = \text{listcons}~\tau~~~\Gamma[v':=\text{list}~\tau]=\Gamma'}
+\inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\Gamma[v':=\text{list}~\tau]=\Gamma'}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[fetch-1]
 \end{array}
 \]
@@ -648,7 +652,7 @@ common supertype operator to check if the result of the operation is really a li
            (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau\:\:\:\:\:\:\:\:\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[cons]
 \]
-The final rules deal with the well-formedness of blocks and programs. The typing rules for \textbf{halt} instruction and
+The final rules deal with the well-formedness of blocks and programs. The typing rules for the \textbf{halt} instruction and
 program \textbf{end} are completely trivial. Rule \emph{block-seq} does the typing context threading between sequential
 instructions inside a block and rule \emph{block-label} recursively applies the judgment $\vdash_{block}$ on the
 input program.
@@ -675,8 +679,8 @@ input program.
     }
 \end{array}
 \]
-Inspired by the typing rules designed by Appel et. al., in the next section, we define an intrisinsically
-typed syntax for list machine programs which ensures that only well-typed programs can be built.
+Inspired by the presented typing rules, in the next section, we define an intrisinsically
+typed syntax for list-machine programs which ensures that only well-typed programs can be built.
 
 \section{Instrinsically-typed syntax}\label{sec:typing}
 
@@ -687,7 +691,7 @@ typed syntax for list machine programs which ensures that only well-typed progra
 %format → = "\rightarrow"
 %format ∀ = "\D{\forall}"
 
-In this section we present the design choices and the steps we took to represent the
+In this section we introduce the design choices and the steps we took to represent the
 intrinsically-typed syntax for the list-machine benchmark. We present here the Agda
 code used in our definitions, not necessarily in a strict lexically-scoped order.
 
@@ -706,14 +710,14 @@ data Ty : Set where
 \end{spec}
 
 We internalize the list-machine type judgments for blocks and instructions in Agda
-together with its syntax in such a way where only well-typed terms that satisfy typing
+together with its syntax in such a way where only well-typed terms that satisfying typing
 judgments have meaning. This approach makes the AST contain both syntactic and semantic
 properties.
 
-In order to be considered well-typed, list-machine machine programs needs to refer
-to information from two sources: (1) a type context encoded as a list of types to store
-variable types; and (2) and a program context encoded as a vector\footnote{We use the
-|Vec| datatype indexed by a |n| which is bound on the module definition and represents
+In order to be considered well-typed, list-machine machine programs need to refer
+to information from two sources: (1) a type context encoded as a list to store
+variable types; and (2) a program context encoded as a vector\footnote{We use the
+|Vec| datatype indexed by an |n| which is bound on the module definition and represents
 the number of labels in the current program.} of type contexts to represent the types of
 the variables on entry to each basic block.
 
@@ -738,8 +742,8 @@ PCtx = Vec Ctx n
 As we saw in the previous section, the typing rules of the list-machine language were split
 in two segments, one for instructions and one for blocks. We defined two datatypes (|_⊢_⇒_| and |Block|)
 to hold the well-typed terms accordingly, representing each judgment of the static semantics as a
-syntactical constructor. In Agda we use \emph{indexed inductive types} to define a intrinsically-typed syntax.
-The basic idea is to represent each type system rule as a constructor of the underlying type.
+syntactical constructor. In Agda we use \emph{indexed inductive types} to define an intrinsically-typed syntax.
+The basic idea is to represent each type system rule as a constructor typed by an output context.
 Such representation scheme makes the Agda's type-checker allow only well-typed blocks and
 instructions to be created and manipulated.
 
@@ -837,7 +841,8 @@ express a sequence of instructions. From the execution of two instructions, it
 produces a modified typing context containing the changes performed by
 both instructions.}
 
-\paragraph{Conditional jump}{There are three constructors related to a conditional
+\paragraph{Conditional jump}{There are three constructors (|instr-branch-list|,
+|instr-branch-listcons|, and |instr-branch-nil|) related to a conditional
 jump. They are used to perform a jump to a label |l| when the received variable is |nil|.
 All these constructors type-check the typing context of the intended label with the
 current typing context. We use |Π [ l ]= Γ₁|, meaning that there exist a typing context
@@ -847,25 +852,25 @@ in the position defined by the index |idx|.}
 
 \paragraph{Fetching information from list}{There are four constructors which can be used
 to fetch information from a given list. The constructor |instr-fetch-0-new| receives a
-non-empty list (|listcons|), and is used to retrieve the head of this list and store it
+non-empty list (of type |listcons τ|), and is used to retrieve the head of this list and store it
 in a fresh new variable. The resulting typing context adds the information about the new
 variable. Constructor |instr-fetch-0-upd| is also used to retrieve the head element of a
 list, however storing its value in an existing variable, represented by the \emph{de Bruijn}
 index |idx : (x' , τ') ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd|
-are similar, fetching the tail of a list instead of the head.}
+are similar, but fetching the tail of a list instead of the head.}
 
 %format _⊓_~_ = "\D{\_\sqcap\_\sim\_}"
 
 \paragraph{List construction}{The |instr-cons-new| and |instr-cons-upd| constructors are
-used to create a new list. The first creates a new variable, and the second updates a
+used to create a new list. The first creates a new variable, and the second updates an
 existing variable. The list is created from two variables, |(x₀ , τ₀) ∈ Γ| and |(x₁ , τ₁) ∈ Γ|,
 which are represented as \emph{de Bruijn} indices. The type of the new list is defined by
 the least common supertype\footnote{A complete explanation about the least common supertype
 can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
 type |τ₁ ⊓ τ₂ ~ τ|, which encodes that the least common supertype of |τ₁| and |τ₂| is |τ|.
 The resulting typing context adds information about the newly created list.
-Section~\ref{sec:supertype} will provide details of an algorithm
-for calculating the least common supertype of two given types.}
+\textcolor{red}{Section~\ref{sec:supertype} will provide details of an algorithm
+for calculating the least common supertype of two given types.}}
 
 %\footnote{The code of this definition is omitted here, but can be found
 %in our online repository.}
@@ -894,7 +899,7 @@ subtype of the intended one.
 %format Program = "\D{Program}"
 
 And finally, a |Program| is a sequence of instruction blocks, each preceded by a label.
-We use the |All| datatype to express this relationship.
+We use the |All| datatype to express this relation.
 
 \begin{spec}
 Program : PCtx → Set
@@ -927,7 +932,7 @@ data Val : Ty → Set where
 
 The datatype |Val| is indexed by a |Ty|, indicating the type associated to each value. The
 first two represent |nil| values associated with type |nil| and the empty |list|. The last
-two represent non-empty list, considering the types |listcons| and |list|.
+two represent non-empty lists, considering the types |listcons| and |list|.
 
 %format Env = "\D{Env}"
 %format PEnv = "\D{PEnv}"
@@ -936,7 +941,7 @@ two represent non-empty list, considering the types |listcons| and |list|.
 We use the datatype |All| (and |Allv| for vectors) to define the notion of well-typed
 variable environments and well-typed programs. Thus, intuitively, |Env| is like a
 list of well-typed values. And |PEnv| is like a list of well-typed environments.
-Both type environments are used to type block instructions and sequence of
+Both type environments are used to type block instructions and sequences of
 block instructions.
 
 \begin{spec}
@@ -976,7 +981,7 @@ PEnv Π = Allv Env Π
 complete interpreter for the list-machine language, we can start the definition of
 the |run-step| function. It is important to note that Agda is a total language,
 i.e., each program developed in it must terminate and all possible patterns must
-be matched. However, by using the mechanisms for jumping between labels one can
+be matched. However, by using the mechanisms for jumping between labels, one can
 write a program which never ends, making it impossible to implement a terminating
 interpreting function. Following the common practice, we define a fuel based
 evaluator~\cite{Amin17,Owens2016}. Basically, what we do is to parameterize the
@@ -996,7 +1001,7 @@ first argument is the \emph{fuel}, used to ensure the evaluator always terminate
 The second parameter is a |Program Π|, which contains information about all the
 program blocks. The third parameter is the run-time variable environment. And the
 last one is the |Block| to be evaluated. This function returns a modified run-time
-environment (|Env Γ'|) in case of success, or nothing when the \emph{fuel} runs out.
+environment (|Env Γ'|) in case of success, or nothing when (and only) the \emph{fuel} runs out.
 
 From now on we describe how we implement some parts\footnote{The complete evaluation
 function can be found in our online repository.} of the dynamic semantics (reduction rules)
@@ -1026,7 +1031,7 @@ meaning that there is still \emph{fuel} during the recursive processing of this 
 % run-step n p env b
 
 \paragraph{Conditional jump}{We show next only the case when the jump actually occurs,
-following the rule \emph{step-branch-taken}. In this case, variable |v| has value |nil|, and
+following the rule \emph{step-branch-taken} of \cite{Appel07}. In this case, variable |v| has value |nil|, and
 the step of evaluation should proceed with the block instruction defined in program |p|, with
 environment |env| respecting the subtyping constraint. We use the function |lookupA| to obtain
 the block instruction with index |i| on program |p|. Since we use \emph{de Bruijn} indices to
@@ -1039,13 +1044,13 @@ run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
 \end{spec}
 
 \paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors,
-both related to the \emph{step-fetch-field-0} rule. The first retrieves the head element of a list, and
+both related to the \emph{step-fetch-field-0} rule~\cite{Appel07}. The first retrieves the head element of a list, and
 stores it in a new variable. The |lookup| function projects the value of variable |v| from the run-time
 environment |env|, and this variable is added to the result environment. The typed \emph{de Bruijn}
 indices guarantee that the projected value has the type demanded, since the environment |env| is typed
 by the context |Γ|. Similarly, the second instruction also retrieves the head element of a list, however
 it needs to update the run-time environment on the position of index |v'|. This process is done by the
-function |update-env|.}
+function |update-env|\footnote{The source-code of this function can be found in our online repository.}.}
 
 \begin{spec}  
 run-step (suc n) p env (block-seq (instr-fetch-0-new v) b)
@@ -1115,9 +1120,9 @@ to a typed one.
 %format proj₁ = "\D{proj_1}"
 %format proj₂ = "\D{proj_2}"
 
-Since we use \emph{de Bruijn} indices to represent labels and variables, the first step to type and scope
+Since we use \emph{de Bruijn} indices to represent labels and variables, as the first step to type and scope
 check them, we need to provide an index from a named variable. This process is done by the
-|lookup-var| function.
+|lookup-var| function, returning an index when the named variable variable is found, and |nothing| otherwise.
 
 \begin{spec}
 lookup-var  : (Γ : Ctx) → (x : String)
@@ -1138,7 +1143,7 @@ lookup-var ((y , τ) ∷ Γ) x with x ≟ y
 %format right = "\Con{right}"
 %format ok = "\Con{ok}"
 
-For space reasons, we show how we type check only one instruction. Function |check-fetch-field-0|
+For space reasons, we show how we type check only one instruction\footnote{The curious reader can refer to our online repository for a complete implementation.}. Function |check-fetch-field-0|
 receives a program context, a typing context, and two named variables, and returns a |TC| value,
 which is an error message or a |CheckedInstr| indicating that the term type checks.
 
@@ -1147,8 +1152,8 @@ check-fetch-field-0 : (Π : PCtx) → (Γ : Ctx) → (v : String)
   → (v' : String) → TC (CheckedInstr Π Γ (fetch-field-0 v v'))
 check-fetch-field-0 Π Γ v v' with lookup-var Γ v , lookup-var Γ v'
 ... | nothing , _ = type-error ("variable out of scope: " ++ v)
-... | just (nil , _) , _ = type-error "type error"
-... | just (list τ , _) , _ = type-error "type error"
+... | just (nil , _) , _ = type-error "type error [nil]"
+... | just (list τ , _) , _ = type-error "type error [list]"
 ... | just (listcons τ , idx) ,  nothing =
                                  right (ok (instr-fetch-0-new idx))
 ... | just (listcons τ , idx) ,  just (τ' , idx') =
@@ -1157,7 +1162,7 @@ check-fetch-field-0 Π Γ v v' with lookup-var Γ v , lookup-var Γ v'
 
 In the code above, we use the function |lookup-var| to provide the \emph{de Bruijn} indices for
 each variable, and match the first with its possible forms. The first three cases indicate
-type errors: (1) when |v| is |nothing| it means an scope error; (2) and (3) are typing errors,
+type errors: (1) when |v| is |nothing| it means a variable scope error; (2) and (3) are typing errors,
 since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
 
@@ -1172,18 +1177,18 @@ is well-typed. The process for type-checking different instructions follows a si
 %format lub-5 = "\Con{lub5}"
 %format lub-6 = "\Con{lub6}"
 %format lub-7 = "\Con{lub7}"
-%format lub-comm = "\F{\sqcap-comm}"
-%format lub-subtype = "\F{\sqcap-subtype}"
-%format lub-least = "\F{\sqcap-least}"
+%format lub-comm = "\F{\sqcap\textrm{-}comm}"
+%format lub-subtype = "\F{\sqcap\textrm{-}subtype}"
+%format lub-least = "\F{\sqcap\textrm{-}least}"
 %format <: = "\D{<:}"
 
-A key feature of the list machine type system is its subtyping (denoted by |<:|) which is
+A key feature of the list-machine type system is its subtyping (denoted by |<:|) which is
 exposed by the least common supertype relation. We omit the Agda encoding of the subtyping relation for
 space reasons, since it is just an inductive type that encode the rules presented
 in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
 subtyping including its decidable test.
 
-The least common supertype relation is used by the least machine type system to refine a
+The least common supertype relation is used by the list-machine type system to refine a
 variable type whenever it is updated by a \emph{cons} instruction. The rules of the
 super type relation are specified as the following inductive type:
 
@@ -1204,9 +1209,9 @@ Agda theorem.
 \begin{spec}
 lub-comm : t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
 \end{spec}
-We omit the complete definition of |lub-comm| for brevity. In the list machine benchmark definition~\cite{Appel07},
-Appel et. al. also defines that the least common supertype relation is sound and complete with respect to the
-subtyping relation. Again, we omit the definitions of these properties, whose type is presented below.
+We omit the complete definition of |lub-comm| for brevity. In the list-machine benchmark definition,
+\citet{Appel07} also define that the least common supertype relation is sound and complete with respect to the
+subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
 %format × = "\D{\land}"
 \begin{spec}
 lub-subtype : t1 ⊓ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
@@ -1232,11 +1237,11 @@ lub (listcons t1) (listcons t2) with lub t1 t2
 -- some code omitted for brevity
 \end{spec}
 
-\section{Comparison of Mechanized Proofs}
+\section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
-We implemented 14 tasks from the list machine benchmark in the Agda programming language.
-The selected tasks considered by us are the ones done by Appel et. al.~\cite{Appel07}.
-The next table summarize the total number of lines for our results together with Appel's. 
+We implemented the 14 tasks from the list-machine benchmark in the Agda programming language.
+The tasks considered by us are the same implemented and proved by~\citet{Appel07}.
+The next table summarize the total number of lines for our results together with theirs. 
 
 \begin{table}[!htb]
 \begin{tabular}{rl||rrr}
@@ -1265,30 +1270,30 @@ The next table summarize the total number of lines for our results together with
 
 The total time for parsing and proof checking our Agda implementation was around 10 seconds 
 on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5. We briefly comment 
-on our Agda coding of these 14 tasks.
+on our Agda encoding of these 14 tasks.
 
 \begin{enumerate}
-  \item \textbf{Operational semantics.} Instead of using a inductive type for representing the operational semantics, we choose to
+  \item \textbf{Operational semantics.} Instead of using a inductive type for representing the operational semantics, we chose to
         use a definitional interpreter for our intrinsincally-typed representation. Our implementation for the operational
         semantics is composed by 38 lines for the type syntax and 71 for the definitional interpreter.
-  \item \textbf{Derive $p\,\Downarrow$.} Since we used an definitional intepreter for representing the semantics, we can derive
+  \item \textbf{Derive $p \Downarrow$.} Since we used a definitional intepreter for representing the semantics, we can derive
         $p\,\Downarrow$ just by executing the interpreter on $p$.
   \item \textbf{Represent the type system.} Our type system representation consists of the intrinsically-typed encoding of
-        the list machine programs and it is already counted in as part of the operational semantics of our solution.
+        the list-machine programs and it is already counted in as part of the operational semantics of our solution.
   \item \textbf{Least common supertype algorithm.} In order to implement this task, we specified the least common super type
         as a relation and implemented the algorithm which shows that this relation is indeed a function. In this way, we
         guarantee its soundness w.r.t. its specification.
-  \item \textbf{Derive an example of type checking.} Our approach to build a derivation for a sample list machine program
+  \item \textbf{Derive an example of type checking.} Our approach to build a derivation for a sample list-machine program
         is just execute the type checker over it. Since our type checker returns an intrinsincally-typed representation of
         the input and such typed syntax is equivalent to the type system, it can be used to build type derivations.
   \item \textbf{State properties of the least common supertype.} This is trivial, since it is just a matter to encode the
         desired properties as Agda function types.
   \item \textbf{Prove properties of the least common supertype.} Proofs of all proved properties about the least common supertype
         are simple recursive functions over the least common supertype and subtyping relations definition.
-  \item \textbf{State the soundness theorem for the type system.} Following Amin et. al.~\cite{Amin17}, we represent the soundness
-        theorem statement as the type of our definitional interpreter for the intrinsically-typed syntax for the list machine
+  \item \textbf{State the soundness theorem for the type system.} Following~\citet{Amin17}, we represent the soundness
+        theorem statement as the type of our definitional interpreter for the intrinsically-typed syntax for the list-machine
         programs.
-  \item \textbf{Prove the soundness theorem for the type system.} Following Amin et. al.~\cite{Amin17}, the proof of the soundness
+  \item \textbf{Prove the soundness theorem for the type system.} Following \citet{Amin17}, the proof of the soundness
         theorem is just the implementation of the definitional interpreter. Soundness is ensured by construction since the interpreter
         produces, as result, an environment of well-typed values resulting from the execution of the input program.
   \item \textbf{Asymptotically efficient algorithm.} Our current implementation of the typechecker takes quadratic time. The reason
@@ -1310,46 +1315,46 @@ on our Agda coding of these 14 tasks.
 \paragraph{Benchmarks for PL mechanization}{
 The importante of benchmarks is recognized in several areas in computer science. A relevent example is the
 TPTP library for the theorem proving community~\cite{Sut17}. In the context of programming languages community,
-the POPLMark challenge~\cite{Aydemir05} was developed by a group renowned programming language researchers aiming
+the POPLMark challenge~\cite{Aydemir05} was developed by a renowned group of programming language researchers aiming
 the collaboration between the PL community and the proof assistants researchers. The main objective of this challenge
 was to motivate authors to formalize all of their theorems using such tools. Since the focus of the POPLMark challenge
 was mainly the formalization of type soundness theorems, other benchmarks were proposed with different objectives. The list
-machine benchmark was proposed by Appel et. al.~\cite{Appel07} as an exercise in formalizing results that interest
+machine benchmark was proposed by~\citet{Appel07} as an exercise in formalizing results that interest
 compiler oriented research and also provides Twelf and Coq solutions to this benchmark. Our work provides another
-solution to this benchmark using intrinsically-typed syntax in Agda programming language. Representation of binding syntax
-was the subject of Felty et. al.~\cite{FeltyMP18} which proposed a set of problems and research questions for tools
-that use the high-order abstract syntax approach for name binding. Since the list machine benchmark definition avoids
+solution to this benchmark using an intrinsically-typed approach in the Agda programming language. Representation of binding syntax
+was the subject of~\citet{FeltyMP18} which proposed a set of problems and research questions for tools
+that use the high-order abstract syntax approach for name binding. Since the list-machine benchmark definition avoids
 name binding issues because they are orthogonal to most of compiler related proofs~\cite{Appel07}, we just ensure
-the correct manipulation of names by following the traditional de Bruijn approach. Finally, recent problem set
-was proposed by Pientka et. al.~\cite{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
+the correct manipulation of names by following the traditional \emph{de Bruijn} approach. Finally, a recent problem set
+was proposed by~\citet{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
 of logical relation arguments, like strong normalization theorems.}
 
 \paragraph{Definitional intepreters}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
-Recently, the interest on such interpreters was revitalized by Amin et. al.~\cite{Amin17} which used definitional
+Recently, the interest on such interpreters was revitalized by~\citet{Amin17} which used definitional
 interpreters, implemented in Coq, to prove type soundness theorems for non-trivial typed languages like System F$_{<:}$.
-Unlike our work, Amin et. al. formalizations does not use intrinsically-typed representations of their syntax which cluttered
-their formalization with the need of dealing with ``stuck states'' in the semantics. Poulsen el. al. described how
+Unlike our work, Amin and Rompf's formalizations does not use intrinsically-typed representations of their syntax which cluttered
+their formalization with the need of dealing with ``stuck states'' in the semantics. \citet{Poulsen18} described how
 definitional interpreters for imperative languages can be much concisely implemented by using intrisincally-typed syntax by
-using a library for name binding using \emph{scope graphs}~\cite{Poulsen18}, which greatly simplifies the treatment of complex
-binding structures. Since, the list machine benchmark was designed to address other problems than binding, our representation
-using \emph{de Bruijn} indexes was sufficient to implement the desired typechecker and interpreter.
-Other recent application of definitional interpreters was proposed by Rouvoet et. al.~\cite{Rouvoet20}. The main contribution
+using a library for name binding using \emph{scope graphs}, which greatly simplifies the treatment of complex
+binding structures. Since the list-machine benchmark was designed to address other problems than binding, our representation
+using \emph{de Bruijn} indices was sufficient to implement the desired type checker and interpreter.
+Other recent application of definitional interpreters was proposed by~\citet{Rouvoet20}. The main contribution
 of Rouvoet et. al. was to define interpreters for linear typed languages supporting session based concurrency. In order to model
-linear typing features in the intepreter, authors have implemented monads based on a separation algebra which they
+linear typing features in the interpreter, the authors have implemented monads based on a separation algebra which they
 named \emph{Market}, supporting the main operations for accessing and update the store used by the intepreter.
-Another work using intrisincally-typed syntax for resource control was developed by Thiemann~\cite{Thiemann19}, which
+Another work using intrisincally-typed syntax for resource control was developed by~\citet{Thiemann19}, which
 implemented an interpreter for a more realistic core functional session typed calculus including recursion and
 session subtyping in Agda. Thiemann modeled the semantics as an interruptible abstract machine which provides a
-simple interface to a scheduler. Since our objective was formalizing the list machine benchmark in Agda and it
+simple interface to a scheduler. Since our objective was formalizing the list-machine benchmark in Agda and it
 does not have linearity constraints in its state manipulation, we do not need to deal with the complexities
-of linear and session types as~\cite{Rouvoet20,Thiemann19}.}
+of linear and session types as in~\cite{Rouvoet20,Thiemann19}.}
 
 \section{Conclusion}\label{sec:conclusion}
  
-This paper shows the combination of intrinsically-typed syntax and definitional interpreters to formalize programming languages. Using such approach, we were able to provide a machine checked version of the list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages. The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM, since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing such approach with the conventional syntactic way to prove properties, we can affirm that it requires a small number of lines to achieve the same result, even without the use of proof automation. This happens because the approach uses the power of the host language, receiving some proofs for free.
+This paper shows the combination of intrinsically-typed syntax and definitional interpreters to formalize programming languages. Using such approach, we were able to provide a machine checked version of the list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages. The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM, since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing such approach with the conventional syntactic way to prove properties, we can affirm that it requires a small number of lines to achieve the same result, even without the use of proof automation. This happens because the approach uses the power of the host language, and provides some proofs for free due to the intrinsically-typed syntax.
 
-As future work, we want to reuse the ideas presented in this paper to provide an intrinsically-typed formalization for languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here for other programming languages with similar settings.
+As future work, we want to reuse the ideas presented in this paper to provide an intrinsically-typed formalization for real-world low-level languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here for other programming languages with similar settings.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{main}
