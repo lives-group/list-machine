@@ -498,7 +498,7 @@ soundness theorems for some advanced typing features~\cite{Amin17}
 and the semantics of imperative programming languages in which static
 semantics is ensured by dependently-typed
 syntax\footnote{Also known as intrinsically-typed.}~\cite{Poulsen18}.
-In this work, we follow Poulsen et. al and use an intrinsically-typed
+In this work, we follow Poulsen et. al. and use an intrinsically-typed
 representation to build a definitional interpreter for a low-level virtual
 machine developed by Appel and Leroy as a benchmark problem closer to
 real-world implementations like typed assembly languages~\cite{CraryM99} and
@@ -1552,11 +1552,11 @@ is well-typed. The process for type-checking different instructions follows a si
 \subsection{Subtyping and least common supertype}\label{sec:supertype}
 
 
-A key feature of the list machine type system is its subypting which is exposed by the
-the least common supertype relation. We omit the Agda encoding of the subtyping relation for
+A key feature of the list machine type system is its subtyping (denoted by \ensuremath{\D{<:}}) which is
+exposed by the least common supertype relation. We omit the Agda encoding of the subtyping relation for
 space reasons, since it is just an inductive type that encode the rules presented
 in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
-subtyping including its decidability.
+subtyping including its decidable test.
 
 The least common supertype relation is used by the least machine type system to refine a
 variable type whenever it is updated by a \emph{cons} instruction. The rules of the
@@ -1727,6 +1727,22 @@ POPLMark chalenge~\cite{Aydemir05} .... Another chalenge was proposed by Pientka
 
 \paragraph{Definitional intepreters}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
+Recently, the interest on such interpreters was revitalized by Amin et. al.~\cite{Amin17} which used definitional
+interpreters, implemented in Coq, to prove type soundness theorems for non-trivial typed languages like System F$_{<:}$.
+Unlike our work, Amin et. al. formalizations does not use intrinsically-typed representations of their syntax which cluttered
+their formalization with the need of dealing with ``stuck states'' in the semantics. Poulsen el. al. described how
+definitional interpreters for imperative languages can be much concisely implemented by using intrisincally-typed syntax by
+using a library for name binding using \emph{scope graphs}~\cite{Poulsen18}, which greatly simplifies the treatment of complex
+binding structures. Since, the list machine benchmark was designed to address other problems than binding, our representation
+using \emph{de Bruijn} indexes was sufficient to implement the desired typechecker and interpreter.
+Other recent application of definitional interpreters was proposed by Rouvoet et. al.~\cite{Rouvoet20}. The main contribution
+of Rouvoet et. al. was to define interpreters for linear typed languages supporting session based concurrency. In order to model
+linear typing features in the intepreter, authors have implemented monads based on a separation algebra which they
+named \emph{Market}, supporting the main operations for accessing and update the store used by the intepreter.
+Another work using intrisincally-typed syntax for resource control was developed by Thiemann~\cite{Thiemann19}, which
+implemented an interpreter for a more realistic core functional session typed calculus including recursion and
+session subtyping in Agda. Thiemann modeled the semantics as an interruptible abstract machine which provides a
+simple interface to a scheduler.
 }
 
 \section{Conclusion}\label{sec:conclusion}
