@@ -1316,8 +1316,10 @@ The use of definitional interpreters for specifying semantics dates back to Reyn
 }
 
 \section{Conclusion}\label{sec:conclusion}
+ 
+This paper shows the combination of intrinsically-typed syntax and definitional interpreters to formalize programming languages. Using such approach, we were able to provide a machine checked version of the list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages. The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM, since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing such approach with the conventional syntactic way to prove properties, we can affirm that it requires a small number of lines to achieve the same result, even without the use of proof automation. This happens because the approach uses the power of the host language, receiving some proofs for free.
 
-
+As future work, we want to reuse the ideas presented in this paper to provide an intrinsically-typed formalization for languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here for other programming languages with similar settings.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{main}
