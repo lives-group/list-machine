@@ -1308,8 +1308,21 @@ on our Agda coding of these 14 tasks.
 \section{Related work}\label{sec:related}
 
 \paragraph{Benchmarks for PL mechanization}{
-POPLMark chalenge~\cite{Aydemir05} .... Another chalenge was proposed by Pientka et. al.~\cite{Pientka18}...
-}
+The importante of benchmarks is recognized in several areas in computer science. A relevent example is the
+TPTP library for the theorem proving community~\cite{Sut17}. In the context of programming languages community,
+the POPLMark challenge~\cite{Aydemir05} was developed by a group renowned programming language researchers aiming
+the collaboration between the PL community and the proof assistants researchers. The main objective of this challenge
+was to motivate authors to formalize all of their theorems using such tools. Since the focus of the POPLMark challenge
+was mainly the formalization of type soundness theorems, other benchmarks were proposed with different objectives. The list
+machine benchmark was proposed by Appel et. al.~\cite{Appel07} as an exercise in formalizing results that interest
+compiler oriented research and also provides Twelf and Coq solutions to this benchmark. Our work provides another
+solution to this benchmark using intrinsically-typed syntax in Agda programming language. Representation of binding syntax
+was the subject of Felty et. al.~\cite{FeltyMP18} which proposed a set of problems and research questions for tools
+that use the high-order abstract syntax approach for name binding. Since the list machine benchmark definition avoids
+name binding issues because they are orthogonal to most of compiler related proofs~\cite{Appel07}, we just ensure
+the correct manipulation of names by following the traditional de Bruijn approach. Finally, recent problem set
+was proposed by Pientka et. al.~\cite{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
+of logical relation arguments, like strong normalization theorems.}
 
 \paragraph{Definitional intepreters}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
@@ -1328,8 +1341,9 @@ named \emph{Market}, supporting the main operations for accessing and update the
 Another work using intrisincally-typed syntax for resource control was developed by Thiemann~\cite{Thiemann19}, which
 implemented an interpreter for a more realistic core functional session typed calculus including recursion and
 session subtyping in Agda. Thiemann modeled the semantics as an interruptible abstract machine which provides a
-simple interface to a scheduler.
-}
+simple interface to a scheduler. Since our objective was formalizing the list machine benchmark in Agda and it
+does not have linearity constraints in its state manipulation, we do not need to deal with the complexities
+of linear and session types as~\cite{Rouvoet20,Thiemann19}.}
 
 \section{Conclusion}\label{sec:conclusion}
  
