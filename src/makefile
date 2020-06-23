@@ -1,7 +1,7 @@
 default: compile
 
 clean:
-	rm *.agdai
+	rm -f *.agdai
 
 compile: clean
 	time agda --no-main Everything.agda
