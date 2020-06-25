@@ -1248,7 +1248,7 @@ is well-typed. The process for type-checking different instructions follows a si
 
 We implemented the 14 tasks from the list-machine benchmark in the Agda programming language.
 The tasks considered by us are the same implemented and proved by~\citet{Appel07}.
-The next table summarize the total number of lines for our results together with theirs. 
+The next table summarize the total number of lines of code (LOC) for our results together with theirs. 
 
 \begin{table}[!htb]
 \begin{tabular}{rl||rrr}
@@ -1306,7 +1306,7 @@ on our Agda encoding of these 14 tasks.
   \item \textbf{Asymptotically efficient algorithm.} Our current implementation of the typechecker takes quadratic time. The reason
         for this inneficiency is the representation of environments as lists / vectors. The use of better data structures (like finite
         maps implemented by efficient search trees) can solve this issue. We leave this fix to future work.
-  \item \textbf{Simulate the new algorithm.} This task is just one line of code, since it ammounts to calling the typechecker
+  \item \textbf{Simulate the new algorithm.} This task is just one line of code, since it is only a matter of calling the typechecker
         on the input program.
   \item \textbf{Prove the termination of the type checker.} This task is trivial in our setting, since all defined Agda functions
         must be total. The totality is ensured by Agda's termination / totality checker.
@@ -1316,6 +1316,7 @@ on our Agda encoding of these 14 tasks.
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
 \end{enumerate}
 
+As we could notice on the table above, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to implement the proposed language and prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC in Coq, while our implementation used only 413 LOC to achieve the same result. Our encoding uses approximately 14\% of the Twelf LOC, and 47\% of Coq's, mostly due to the fact the soundness properties are obtained for free when combining an intrinsically-typed syntax with an implementation of a definitional interpreter in a total language like Agda. 
 
 \section{Related work}\label{sec:related}
 
