@@ -162,10 +162,12 @@ community. However, such models are full of intrincacies and, due to that,
 they are subject to subtle errors. Such failures motivated the usage of
 tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
-to ensure its ``correctness-by-construction''. In this work, we use this
+to ensure its ``correctness-by-construction''. In this paper, we use this
 idea to build a verified interpreter for the list-machine benchmark in the
-Agda programming language, comparing the results with the usual syntactic
-approach.
+Agda programming language, comparing the results with formalizations using
+the usual syntactic approach. We formalize the 14 tasks of the benchmark
+using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
+compared to a Coq solution, even without the use of proof automation.
 \end{abstract}
 
 
@@ -293,155 +295,161 @@ on-line~\cite{list-rep}.
 
 
 
-\section{An Overview of Agda}\label{sec:agda}
+\section{Dependently-typed Syntax}\label{sec:agda}
 
 %format String = "\D{String}"
 %format Bool = "\D{Bool}"
 %format forall = "\D{\forall}"
 
-Agda is a dependently-typed functional programming language based on
-Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
-and an infinite hierarchy of types of types, |Set l|, where |l| is a
-natural number, are built-in. Everything else is a user-defined
-type. The type |Set|, also known as |Set0|, is the type of all
-``small'' types, such as |Bool|, |String| and |List Bool|.  The type
-|Set1| is the type of |Set| and ``others like it'', such as |Set ->
-Bool|, |String -> Set|, and |Set -> Set|. We have that |Set l| is an
-element of the type |Set (l+1)|, for every $l \geq 0$. This
-stratification of types is used to keep Agda consistent as a logical
-theory~\cite{Sorensen2006}.
+% Agda is a dependently-typed functional programming language based on
+% Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
+% and an infinite hierarchy of types of types, |Set l|, where |l| is a
+% natural number, are built-in. Everything else is a user-defined
+% type. The type |Set|, also known as |Set0|, is the type of all
+% ``small'' types, such as |Bool|, |String| and |List Bool|.  The type
+% |Set1| is the type of |Set| and ``others like it'', such as |Set ->
+% Bool|, |String -> Set|, and |Set -> Set|. We have that |Set l| is an
+% element of the type |Set (l+1)|, for every $l \geq 0$. This
+% stratification of types is used to keep Agda consistent as a logical
+% theory~\cite{Sorensen2006}.
 
-An ordinary (non-dependent) function type is written |A -> B| and a
-dependent one is written |(x : A) -> B|, where type |B| depends on
-|x|, or |forall (x : A) -> B|. Agda allows the definition of \emph{implicit
-parameters}, i.e.,  parameters whose values can be inferred from the
-context, by surrounding them in curly braces: |forall {x : A} -> B|. To
-avoid clutter, we'll omit implicit arguments from the source code
-presentation. The reader can safely assume that every free variable in
-a type is an implicit parameter.
+% An ordinary (non-dependent) function type is written |A -> B| and a
+% dependent one is written |(x : A) -> B|, where type |B| depends on
+% |x|, or |forall (x : A) -> B|. Agda allows the definition of \emph{implicit
+% parameters}, i.e.,  parameters whose values can be inferred from the
+% context, by surrounding them in curly braces: |forall {x : A} -> B|. To
+% avoid clutter, we'll omit implicit arguments from the source code
+% presentation. The reader can safely assume that every free variable in
+% a type is an implicit parameter.
 
-As an example of Agda code, consider the following data type of
-length-indexed lists, also known as vectors.
+% As an example of Agda code, consider the following data type of
+% length-indexed lists, also known as vectors.
 
-\begin{spec}
-  data Nat : Set where
-    zero : Nat
-    succ : Nat -> Nat
+% \begin{spec}
+%   data Nat : Set where
+%     zero : Nat
+%     succ : Nat -> Nat
 
-  data Vec (A : Set) : Nat -> Set where
-    []  : Vec A zero
-    _::_ : forall {n} -> A -> Vec A n -> Vec A (succ n)
-\end{spec}
-%format head = "\F{head}"
-Constructor |[]| builds empty vectors. The cons-operator (|_::_|)
-inserts a new element in front of a vector of $n$ elements (of type
-|Vec A n|) and returns a value of type |Vec A (succ n)|. The
-|Vec| datatype is an example of a dependent type, i.e., a type
-that uses a value (that denotes its length). The usefulness of
-dependent types can be illustrated with the definition of a safe list
-head function: |head| can be defined to accept only non-empty
-vectors, i.e.,~values of type |Vec A (succ n)|.
-\begin{spec}
-  head : Vec A (succ n) -> A
-  head (x :: xs) = x
-\end{spec}
-In |head|'s definition, constructor |[]| is not used. The
-Agda type-checker can figure out, from |head|'s parameter type,
-that argument |[]| to |head| is not type-correct.
+%   data Vec (A : Set) : Nat -> Set where
+%     []  : Vec A zero
+%     _::_ : forall {n} -> A -> Vec A n -> Vec A (succ n)
+% \end{spec}
+% %format head = "\F{head}"
+% Constructor |[]| builds empty vectors. The cons-operator (|_::_|)
+% inserts a new element in front of a vector of $n$ elements (of type
+% |Vec A n|) and returns a value of type |Vec A (succ n)|. The
+% |Vec| datatype is an example of a dependent type, i.e., a type
+% that uses a value (that denotes its length). The usefulness of
+% dependent types can be illustrated with the definition of a safe list
+% head function: |head| can be defined to accept only non-empty
+% vectors, i.e.,~values of type |Vec A (succ n)|.
+% \begin{spec}
+%   head : Vec A (succ n) -> A
+%   head (x :: xs) = x
+% \end{spec}
+% In |head|'s definition, constructor |[]| is not used. The
+% Agda type-checker can figure out, from |head|'s parameter type,
+% that argument |[]| to |head| is not type-correct.
 
-%format _==_ = "\D{\_ \equiv \_}"
-%format == = "\D{\equiv}"
-%format refl = "\Con{refl}"
-%format proj₁ = "\F{\pi_1}"
-%format proj₂ = "\F{\pi_2}"
-%format Fin   = "\D{Fin}"
-%format lookup = "\F{lookup}"
+% %format _==_ = "\D{\_ \equiv \_}"
+% %format == = "\D{\equiv}"
+% %format refl = "\Con{refl}"
+% %format proj₁ = "\F{\pi_1}"
+% %format proj₂ = "\F{\pi_2}"
+% %format Fin   = "\D{Fin}"
+% %format lookup = "\F{lookup}"
 
 
-Another useful data type is the finite type,
-|Fin|\footnote{Note that Agda supports the overloading of
-data type constructor names. Constructor |zero| can refer to
-type |Nat| or |Fin|, depending on the context where the name
-is used.}, which is defined in Agda's standard library as:
-\begin{spec}
-  data Fin : Nat -> Set where
-    zero : forall {n} -> Fin (succ n)
-    succ : forall {n} -> Fin n -> Fin (succ n)
-\end{spec}
-Type |Fin n| has exactly |n| inhabitants
-(elements), i.e., it is isomorphic to the set $\{0,...,n - 1\}$.
-An application of such type is to define a safe vector
-lookup function, which avoids the access of invalid positions.
-\begin{spec}
-  lookup : forall {A n} -> Fin n -> Vec A n -> A
-  lookup zero (x :: _) = x
-  lookup (succ idx) (_ :: xs) = lookup idx xs
-\end{spec}
-Thanks to the propositions-as-types principle,\footnote{It is also known as
-  Curry-Howard ``isomorphism''~\cite{Sorensen2006}.} we can interpret
-types as logical formulas and terms as proofs. An example is the
-representation of equality as the following Agda type:
+% Another useful data type is the finite type,
+% |Fin|\footnote{Note that Agda supports the overloading of
+% data type constructor names. Constructor |zero| can refer to
+% type |Nat| or |Fin|, depending on the context where the name
+% is used.}, which is defined in Agda's standard library as:
+% \begin{spec}
+%   data Fin : Nat -> Set where
+%     zero : forall {n} -> Fin (succ n)
+%     succ : forall {n} -> Fin n -> Fin (succ n)
+% \end{spec}
+% Type |Fin n| has exactly |n| inhabitants
+% (elements), i.e., it is isomorphic to the set $\{0,...,n - 1\}$.
+% An application of such type is to define a safe vector
+% lookup function, which avoids the access of invalid positions.
+% \begin{spec}
+%   lookup : forall {A n} -> Fin n -> Vec A n -> A
+%   lookup zero (x :: _) = x
+%   lookup (succ idx) (_ :: xs) = lookup idx xs
+% \end{spec}
+% Thanks to the propositions-as-types principle,\footnote{It is also known as
+%   Curry-Howard ``isomorphism''~\cite{Sorensen2006}.} we can interpret
+% types as logical formulas and terms as proofs. An example is the
+% representation of equality as the following Agda type:
 
-\begin{spec}
-  data _==_ {l}{A : Set l}(x : A) : A -> Set where
-    refl : x == x
-\end{spec}
+% \begin{spec}
+%   data _==_ {l}{A : Set l}(x : A) : A -> Set where
+%     refl : x == x
+% \end{spec}
 
-%format not = "\F{\neg}"
-%format Dec = "\D{Dec}"
-%format yes = "\Con{yes}"
-%format no  = "\Con{no}"
-%format Even = "\Con{Even}"
-%format Odd = "\Con{Odd}"
-%format Parity = "\D{Parity}"
-%format parity = "\F{parity}"
-%format natToBin = "\F{natToBin}"
-%format false = "\Con{false}"
-%format true = "\Con{true}"
-%format + = "\F{+}"
-%format ++ = "\F{++}"
-%format Bot = "\D{\bot}"
-%format All = "\D{All}"
-This type is called propositional equality. It defines that there is
-a unique evidence for equality, constructor |refl| (for reflexivity),
-which asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
-and a vector |xs|, the type |All P xs| is used to build proofs that |P| holds for all
-elements in |xs| and it is defined as:
-\begin{spec}
-  data All (P : A -> Set) : Vec A n ->  Set where
-     [] : All P []
-     _::_ : forall {x xs} -> P x -> All P xs -> All P (x :: xs)
-\end{spec}
-The first constructor specifies that |All P| holds for the empty vector and
-constructor |_::_| builds a proof of |All P (x :: xs)| from proofs of
-|P x| and |All P xs|. Since this type has the same structure of vectors,
-some functions on |Vec| have similar definitions for type |All|. As an example
-used in our formalization, consider the function |lookup|, which extracts a
-proof of |P| for the element at position |v : Fin n| in a |Vec|:
-\begin{spec}
-   lookup : {xs : Vec A n} -> Fin n -> All P xs -> P x
-   lookup zero (px :: _) = px
-   lookup (succ idx) (_ :: pxs) = lookup idx pxs
-\end{spec}
+% %format not = "\F{\neg}"
+% %format Dec = "\D{Dec}"
+% %format yes = "\Con{yes}"
+% %format no  = "\Con{no}"
+% %format Even = "\Con{Even}"
+% %format Odd = "\Con{Odd}"
+% %format Parity = "\D{Parity}"
+% %format parity = "\F{parity}"
+% %format natToBin = "\F{natToBin}"
+% %format false = "\Con{false}"
+% %format true = "\Con{true}"
+% %format + = "\F{+}"
+% %format ++ = "\F{++}"
+% %format Bot = "\D{\bot}"
+% %format All = "\D{All}"
+% This type is called propositional equality. It defines that there is
+% a unique evidence for equality, constructor |refl| (for reflexivity),
+% which asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
+% and a vector |xs|, the type |All P xs| is used to build proofs that |P| holds for all
+% elements in |xs| and it is defined as:
+% \begin{spec}
+%   data All (P : A -> Set) : Vec A n ->  Set where
+%      [] : All P []
+%      _::_ : forall {x xs} -> P x -> All P xs -> All P (x :: xs)
+% \end{spec}
+% The first constructor specifies that |All P| holds for the empty vector and
+% constructor |_::_| builds a proof of |All P (x :: xs)| from proofs of
+% |P x| and |All P xs|. Since this type has the same structure of vectors,
+% some functions on |Vec| have similar definitions for type |All|. As an example
+% used in our formalization, consider the function |lookup|, which extracts a
+% proof of |P| for the element at position |v : Fin n| in a |Vec|:
+% \begin{spec}
+%    lookup : {xs : Vec A n} -> Fin n -> All P xs -> P x
+%    lookup zero (px :: _) = px
+%    lookup (succ idx) (_ :: pxs) = lookup idx pxs
+% \end{spec}
+
 An important application of dependent types is to encode programming languages
 syntax. The role of dependent types in this domain is to encode programs that
 only allow well-typed and well-scoped terms~\cite{Benton2012}. Intuitively, we encode
 the static semantics of the object language in the host language AST's
 constructor, leaving the responsibility of checking type safety to the
 host's language type checker. As an example, consider the following simple
-expression language.
+expression language. For this paper, we assume a basic knowledge of functional
+programming and Agda\footnote{For further information about Agda,
+see~\cite{Norell2009,Stump16}.}.
+
 %format Expr = "\D{Expr}"
 %format True = "\Con{True}"
 %format False = "\Con{False}"
 %format Num = "\Con{Num}"
 %format _&_ = "\Con{\_\land\_}"
 %format _+_ = "\Con{\_+\_}"
+
 \begin{spec}
    data Expr : Set where
       True False : Expr
       Num : Nat -> Expr
       _&_ _+_ : Expr -> Expr -> Expr
 \end{spec}
+    
 Using this data type\footnote{Agda supports the definition of mixfix operators.
 We can use underscores to mark arguments positions.}, we can construct expressions
 to denote terms that should not be considered well-typed like
@@ -498,8 +506,6 @@ Agda's type checker will automatically reject a definition which uses the expres
 %   natToBin (j + j)     | Even = false :: natToBin j
 %   natToBin (succ (j + j)) | Odd  = true  :: natToBin j
 %\end{spec}
-
-For further information about Agda, see~\cite{Norell2009,Stump16}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -869,8 +875,8 @@ the least common supertype\footnote{A complete explanation about the least commo
 can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
 type |τ₁ ⊓ τ₂ ~ τ|, which encodes that the least common supertype of |τ₁| and |τ₂| is |τ|.
 The resulting typing context adds information about the newly created list.
-\textcolor{red}{Section~\ref{sec:supertype} will provide details of an algorithm
-for calculating the least common supertype of two given types.}}
+Subsection~\ref{sec:supertype} will provide details of an algorithm
+for calculating the least common supertype of two given types.}
 
 %\footnote{The code of this definition is omitted here, but can be found
 %in our online repository.}
@@ -904,6 +910,77 @@ We use the |All| datatype to express this relation.
 \begin{spec}
 Program : PCtx → Set
 Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π
+\end{spec}
+
+\subsection{Subtyping and least common supertype}\label{sec:supertype}
+
+%format lub-0 = "\Con{lub0}"
+%format lub-1 = "\Con{lub1}"
+%format lub-4 = "\Con{lub4}"
+%format lub-2 = "\Con{lub2}"
+%format lub-2b = "\Con{lub2b}"
+%format lub-3 = "\Con{lub3}"
+%format lub-5 = "\Con{lub5}"
+%format lub-6 = "\Con{lub6}"
+%format lub-7 = "\Con{lub7}"
+%format lub-comm = "\F{\sqcap\textrm{-}comm}"
+%format lub-subtype = "\F{\sqcap\textrm{-}subtype}"
+%format lub-least = "\F{\sqcap\textrm{-}least}"
+%format <: = "\D{<:}"
+
+A key feature of the list-machine type system is its subtyping (denoted by |<:|) which is
+exposed by the least common supertype relation. We omit the Agda encoding of the subtyping relation for
+space reasons, since it is just an inductive type that encode the rules presented
+in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
+subtyping including its decidable test.
+
+The least common supertype relation is used by the list-machine type system to refine a
+variable type whenever it is updated by a \emph{cons} instruction. The rules of the
+super type relation are specified as the following inductive type:
+
+\begin{spec}
+data _⊓_~_ : Ty → Ty → Ty → Set where
+  lub-0 : ∀ {t} → t ⊓ t ~ t
+  lub-1 : ∀ {t} → (list t) ⊓ nil ~ (list t)
+  lub-3 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
+            (list t) ⊓ (list t1) ~ (list t')
+  lub-5 : ∀ {t} → (listcons t) ⊓ nil ~ (list t)
+  lub-7 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
+            (listcons t) ⊓ (listcons t1) ~ (listcons t')
+  -- some code omitted for brevity
+\end{spec}
+Constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
+types. Also, rules ensure that the relation is commutative as proved by a simple
+Agda theorem.
+\begin{spec}
+lub-comm : t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
+\end{spec}
+We omit the complete definition of |lub-comm| for brevity. In the list-machine benchmark definition,
+\citet{Appel07} also define that the least common supertype relation is sound and complete with respect to the
+subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
+%format × = "\D{\land}"
+\begin{spec}
+lub-subtype : t1 ⊓ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
+lub-least : t1 ⊓ t2 ~ t3 → t1 <: t3 → t2 <: t4 → t3 <: t4
+\end{spec}
+%format lub = "\F{lub}"
+An algorithm to construct the least supertype from two input types is
+defined by function |lub|. Note that the |lub|'s type ensures that the
+returned type |t| is indeed the least common supertype of |t1| and |t2|,
+thus ensuring its correctness by construction.
+
+\begin{spec}
+lub : (t1 t2 : Ty) → ∃ (λ t → t1 ⊓ t2 ~ t)
+lub nil nil = nil , lub-0
+lub (list t1) nil = list t1 , lub-1
+lub (list t1) (list t2) with lub t1 t2
+...| t3 , p = list t3 , lub-3 p 
+lub (listcons t1) nil = list t1 , lub-5
+lub (listcons t1) (list t2) with lub t1 t2
+...| t3 , p = list t3 , lub-2b (lub-3 p)
+lub (listcons t1) (listcons t2) with lub t1 t2
+...| t3 , p = listcons t3 , lub-7 p
+-- some code omitted for brevity
 \end{spec}
 
 \section{A definitional interpreter}\label{sec:semantics}
@@ -1166,76 +1243,6 @@ type errors: (1) when |v| is |nothing| it means a variable scope error; (2) and 
 since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
 
-\subsection{Subtyping and least common supertype}\label{sec:supertype}
-
-%format lub-0 = "\Con{lub0}"
-%format lub-1 = "\Con{lub1}"
-%format lub-4 = "\Con{lub4}"
-%format lub-2 = "\Con{lub2}"
-%format lub-2b = "\Con{lub2b}"
-%format lub-3 = "\Con{lub3}"
-%format lub-5 = "\Con{lub5}"
-%format lub-6 = "\Con{lub6}"
-%format lub-7 = "\Con{lub7}"
-%format lub-comm = "\F{\sqcap\textrm{-}comm}"
-%format lub-subtype = "\F{\sqcap\textrm{-}subtype}"
-%format lub-least = "\F{\sqcap\textrm{-}least}"
-%format <: = "\D{<:}"
-
-A key feature of the list-machine type system is its subtyping (denoted by |<:|) which is
-exposed by the least common supertype relation. We omit the Agda encoding of the subtyping relation for
-space reasons, since it is just an inductive type that encode the rules presented
-in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
-subtyping including its decidable test.
-
-The least common supertype relation is used by the list-machine type system to refine a
-variable type whenever it is updated by a \emph{cons} instruction. The rules of the
-super type relation are specified as the following inductive type:
-
-\begin{spec}
-data _⊓_~_ : Ty → Ty → Ty → Set where
-  lub-0 : ∀ {t} → t ⊓ t ~ t
-  lub-1 : ∀ {t} → (list t) ⊓ nil ~ (list t)
-  lub-3 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
-            (list t) ⊓ (list t1) ~ (list t')
-  lub-5 : ∀ {t} → (listcons t) ⊓ nil ~ (list t)
-  lub-7 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
-            (listcons t) ⊓ (listcons t1) ~ (listcons t')
-  -- some code omitted for brevity
-\end{spec}
-Constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
-types. Also, rules ensure that the relation is commutative as proved by a simple
-Agda theorem.
-\begin{spec}
-lub-comm : t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
-\end{spec}
-We omit the complete definition of |lub-comm| for brevity. In the list-machine benchmark definition,
-\citet{Appel07} also define that the least common supertype relation is sound and complete with respect to the
-subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
-%format × = "\D{\land}"
-\begin{spec}
-lub-subtype : t1 ⊓ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
-lub-least : t1 ⊓ t2 ~ t3 → t1 <: t3 → t2 <: t4 → t3 <: t4
-\end{spec}
-%format lub = "\F{lub}"
-An algorithm to construct the least supertype from two input types is
-defined by function |lub|. Note that the |lub|'s type ensures that the
-returned type |t| is indeed the least common supertype of |t1| and |t2|,
-thus ensuring its correctness by construction.
-
-\begin{spec}
-lub : (t1 t2 : Ty) → ∃ (λ t → t1 ⊓ t2 ~ t)
-lub nil nil = nil , lub-0
-lub (list t1) nil = list t1 , lub-1
-lub (list t1) (list t2) with lub t1 t2
-...| t3 , p = list t3 , lub-3 p 
-lub (listcons t1) nil = list t1 , lub-5
-lub (listcons t1) (list t2) with lub t1 t2
-...| t3 , p = list t3 , lub-2b (lub-3 p)
-lub (listcons t1) (listcons t2) with lub t1 t2
-...| t3 , p = listcons t3 , lub-7 p
--- some code omitted for brevity
-\end{spec}
 
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
