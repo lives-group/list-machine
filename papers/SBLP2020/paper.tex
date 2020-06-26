@@ -408,10 +408,12 @@ community. However, such models are full of intrincacies and, due to that,
 they are subject to subtle errors. Such failures motivated the usage of
 tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
-to ensure its ``correctness-by-construction''. In this work, we use this
+to ensure its ``correctness-by-construction''. In this paper, we use this
 idea to build a verified interpreter for the list-machine benchmark in the
-Agda programming language, comparing the results with the usual syntactic
-approach.
+Agda programming language, comparing the results with formalizations using
+the usual syntactic approach. We formalize the 14 tasks of the benchmark
+using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
+compared to a Coq solution, even without the use of proof automation.
 \end{abstract}
 
 
@@ -544,175 +546,145 @@ on-line~\cite{list-rep}.
 
 
 
-\section{An Overview of Agda}\label{sec:agda}
+\section{Dependently-typed Syntax}\label{sec:agda}
 
 
-Agda is a dependently-typed functional programming language based on
-Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
-and an infinite hierarchy of types of types, \ensuremath{\D{Set}\;\V{l}}, where \ensuremath{\V{l}} is a
-natural number, are built-in. Everything else is a user-defined
-type. The type \ensuremath{\D{Set}}, also known as \ensuremath{\D{Set}_{\D{0}}}, is the type of all
-``small'' types, such as \ensuremath{\D{Bool}}, \ensuremath{\D{String}} and \ensuremath{\D{List}\;\D{Bool}}.  The type
-\ensuremath{\D{Set}_{\D{1}}} is the type of \ensuremath{\D{Set}} and ``others like it'', such as \ensuremath{\D{Set}\;\to \;\D{Bool}}, \ensuremath{\D{String}\;\to \;\D{Set}}, and \ensuremath{\D{Set}\;\to \;\D{Set}}. We have that \ensuremath{\D{Set}\;\V{l}} is an
-element of the type \ensuremath{\D{Set}\;(\V{l+1})}, for every $l \geq 0$. This
-stratification of types is used to keep Agda consistent as a logical
-theory~\cite{Sorensen2006}.
+% Agda is a dependently-typed functional programming language based on
+% Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
+% and an infinite hierarchy of types of types, |Set l|, where |l| is a
+% natural number, are built-in. Everything else is a user-defined
+% type. The type |Set|, also known as |Set0|, is the type of all
+% ``small'' types, such as |Bool|, |String| and |List Bool|.  The type
+% |Set1| is the type of |Set| and ``others like it'', such as |Set ->
+% Bool|, |String -> Set|, and |Set -> Set|. We have that |Set l| is an
+% element of the type |Set (l+1)|, for every $l \geq 0$. This
+% stratification of types is used to keep Agda consistent as a logical
+% theory~\cite{Sorensen2006}.
 
-An ordinary (non-dependent) function type is written \ensuremath{\V{A}\;\to \;\V{B}} and a
-dependent one is written \ensuremath{(\V{x}\;\mathbin{:}\;\V{A})\;\to \;\V{B}}, where type \ensuremath{\V{B}} depends on
-\ensuremath{\V{x}}, or \ensuremath{\D{\forall}\;(\V{x}\;\mathbin{:}\;\V{A})\;\to \;\V{B}}. Agda allows the definition of \emph{implicit
-parameters}, i.e.,  parameters whose values can be inferred from the
-context, by surrounding them in curly braces: \ensuremath{\D{\forall}\;\{\mskip1.5mu \V{x}\;\mathbin{:}\;\V{A}\mskip1.5mu\}\;\to \;\V{B}}. To
-avoid clutter, we'll omit implicit arguments from the source code
-presentation. The reader can safely assume that every free variable in
-a type is an implicit parameter.
+% An ordinary (non-dependent) function type is written |A -> B| and a
+% dependent one is written |(x : A) -> B|, where type |B| depends on
+% |x|, or |forall (x : A) -> B|. Agda allows the definition of \emph{implicit
+% parameters}, i.e.,  parameters whose values can be inferred from the
+% context, by surrounding them in curly braces: |forall {x : A} -> B|. To
+% avoid clutter, we'll omit implicit arguments from the source code
+% presentation. The reader can safely assume that every free variable in
+% a type is an implicit parameter.
 
-As an example of Agda code, consider the following data type of
-length-indexed lists, also known as vectors.
+% As an example of Agda code, consider the following data type of
+% length-indexed lists, also known as vectors.
 
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[3]{}\mathkw{data}\;\D{\mathbb{N}}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{zero}\;\mathbin{:}\;\D{\mathbb{N}}{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{suc}\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{\mathbb{N}}{}\<[E]%
-\\[\blanklineskip]%
-\>[3]{}\mathkw{data}\;\D{Vec}\;(\V{A}\;\mathbin{:}\;\D{Set})\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{\lbrack\:\rbrack}\;{}\<[9]%
-\>[9]{}\mathbin{:}\;\D{Vec}\;\V{A}\;\Con{zero}{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{\_::\_}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\to \;\V{A}\;\to \;\D{Vec}\;\V{A}\;\V{n}\;\to \;\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n}){}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-Constructor \ensuremath{\Con{\lbrack\:\rbrack}} builds empty vectors. The cons-operator (\ensuremath{\Con{\_::\_}})
-inserts a new element in front of a vector of $n$ elements (of type
-\ensuremath{\D{Vec}\;\V{A}\;\V{n}}) and returns a value of type \ensuremath{\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n})}. The
-\ensuremath{\D{Vec}} datatype is an example of a dependent type, i.e., a type
-that uses a value (that denotes its length). The usefulness of
-dependent types can be illustrated with the definition of a safe list
-head function: \ensuremath{\F{head}} can be defined to accept only non-empty
-vectors, i.e.,~values of type \ensuremath{\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n})}.
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[3]{}\F{head}\;\mathbin{:}\;\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n})\;\to \;\V{A}{}\<[E]%
-\\
-\>[3]{}\F{head}\;(\V{x}\;\Con{::}\;\V{xs})\;\mathrel{=}\;\V{x}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-In \ensuremath{\F{head}}'s definition, constructor \ensuremath{\Con{\lbrack\:\rbrack}} is not used. The
-Agda type-checker can figure out, from \ensuremath{\F{head}}'s parameter type,
-that argument \ensuremath{\Con{\lbrack\:\rbrack}} to \ensuremath{\F{head}} is not type-correct.
+% \begin{spec}
+%   data Nat : Set where
+%     zero : Nat
+%     succ : Nat -> Nat
+
+%   data Vec (A : Set) : Nat -> Set where
+%     []  : Vec A zero
+%     _::_ : forall {n} -> A -> Vec A n -> Vec A (succ n)
+% \end{spec}
+% %format head = "\F{head}"
+% Constructor |[]| builds empty vectors. The cons-operator (|_::_|)
+% inserts a new element in front of a vector of $n$ elements (of type
+% |Vec A n|) and returns a value of type |Vec A (succ n)|. The
+% |Vec| datatype is an example of a dependent type, i.e., a type
+% that uses a value (that denotes its length). The usefulness of
+% dependent types can be illustrated with the definition of a safe list
+% head function: |head| can be defined to accept only non-empty
+% vectors, i.e.,~values of type |Vec A (succ n)|.
+% \begin{spec}
+%   head : Vec A (succ n) -> A
+%   head (x :: xs) = x
+% \end{spec}
+% In |head|'s definition, constructor |[]| is not used. The
+% Agda type-checker can figure out, from |head|'s parameter type,
+% that argument |[]| to |head| is not type-correct.
+
+% %format _==_ = "\D{\_ \equiv \_}"
+% %format == = "\D{\equiv}"
+% %format refl = "\Con{refl}"
+% %format proj₁ = "\F{\pi_1}"
+% %format proj₂ = "\F{\pi_2}"
+% %format Fin   = "\D{Fin}"
+% %format lookup = "\F{lookup}"
 
 
+% Another useful data type is the finite type,
+% |Fin|\footnote{Note that Agda supports the overloading of
+% data type constructor names. Constructor |zero| can refer to
+% type |Nat| or |Fin|, depending on the context where the name
+% is used.}, which is defined in Agda's standard library as:
+% \begin{spec}
+%   data Fin : Nat -> Set where
+%     zero : forall {n} -> Fin (succ n)
+%     succ : forall {n} -> Fin n -> Fin (succ n)
+% \end{spec}
+% Type |Fin n| has exactly |n| inhabitants
+% (elements), i.e., it is isomorphic to the set $\{0,...,n - 1\}$.
+% An application of such type is to define a safe vector
+% lookup function, which avoids the access of invalid positions.
+% \begin{spec}
+%   lookup : forall {A n} -> Fin n -> Vec A n -> A
+%   lookup zero (x :: _) = x
+%   lookup (succ idx) (_ :: xs) = lookup idx xs
+% \end{spec}
+% Thanks to the propositions-as-types principle,\footnote{It is also known as
+%   Curry-Howard ``isomorphism''~\cite{Sorensen2006}.} we can interpret
+% types as logical formulas and terms as proofs. An example is the
+% representation of equality as the following Agda type:
 
-Another useful data type is the finite type,
-\ensuremath{\D{Fin}}\footnote{Note that Agda supports the overloading of
-data type constructor names. Constructor \ensuremath{\Con{zero}} can refer to
-type \ensuremath{\D{\mathbb{N}}} or \ensuremath{\D{Fin}}, depending on the context where the name
-is used.}, which is defined in Agda's standard library as:
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[3]{}\mathkw{data}\;\D{Fin}\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{zero}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;(\Con{suc}\;\V{n}){}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{suc}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{Fin}\;(\Con{suc}\;\V{n}){}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-Type \ensuremath{\D{Fin}\;\V{n}} has exactly \ensuremath{\V{n}} inhabitants
-(elements), i.e., it is isomorphic to the set $\{0,...,n - 1\}$.
-An application of such type is to define a safe vector
-lookup function, which avoids the access of invalid positions.
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[3]{}\F{lookup}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{A}\;\V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{Vec}\;\V{A}\;\V{n}\;\to \;\V{A}{}\<[E]%
-\\
-\>[3]{}\F{lookup}\;\Con{zero}\;(\V{x}\;\Con{::}\;\anonymous )\;\mathrel{=}\;\V{x}{}\<[E]%
-\\
-\>[3]{}\F{lookup}\;(\Con{suc}\;\V{idx})\;(\anonymous \;\Con{::}\;\V{xs})\;\mathrel{=}\;\F{lookup}\;\V{idx}\;\V{xs}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-Thanks to the propositions-as-types principle,\footnote{It is also known as
-  Curry-Howard ``isomorphism''~\cite{Sorensen2006}.} we can interpret
-types as logical formulas and terms as proofs. An example is the
-representation of equality as the following Agda type:
+% \begin{spec}
+%   data _==_ {l}{A : Set l}(x : A) : A -> Set where
+%     refl : x == x
+% \end{spec}
 
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[3]{}\mathkw{data}\;\D{\_ \equiv \_}\;\{\mskip1.5mu \V{l}\mskip1.5mu\}\;\{\mskip1.5mu \V{A}\;\mathbin{:}\;\D{Set}\;\V{l}\mskip1.5mu\}\;(\V{x}\;\mathbin{:}\;\V{A})\;\mathbin{:}\;\V{A}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
-\\
-\>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{refl}\;\mathbin{:}\;\V{x}\;\D{\equiv}\;\V{x}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
+% %format not = "\F{\neg}"
+% %format Dec = "\D{Dec}"
+% %format yes = "\Con{yes}"
+% %format no  = "\Con{no}"
+% %format Even = "\Con{Even}"
+% %format Odd = "\Con{Odd}"
+% %format Parity = "\D{Parity}"
+% %format parity = "\F{parity}"
+% %format natToBin = "\F{natToBin}"
+% %format false = "\Con{false}"
+% %format true = "\Con{true}"
+% %format + = "\F{+}"
+% %format ++ = "\F{++}"
+% %format Bot = "\D{\bot}"
+% %format All = "\D{All}"
+% This type is called propositional equality. It defines that there is
+% a unique evidence for equality, constructor |refl| (for reflexivity),
+% which asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
+% and a vector |xs|, the type |All P xs| is used to build proofs that |P| holds for all
+% elements in |xs| and it is defined as:
+% \begin{spec}
+%   data All (P : A -> Set) : Vec A n ->  Set where
+%      [] : All P []
+%      _::_ : forall {x xs} -> P x -> All P xs -> All P (x :: xs)
+% \end{spec}
+% The first constructor specifies that |All P| holds for the empty vector and
+% constructor |_::_| builds a proof of |All P (x :: xs)| from proofs of
+% |P x| and |All P xs|. Since this type has the same structure of vectors,
+% some functions on |Vec| have similar definitions for type |All|. As an example
+% used in our formalization, consider the function |lookup|, which extracts a
+% proof of |P| for the element at position |v : Fin n| in a |Vec|:
+% \begin{spec}
+%    lookup : {xs : Vec A n} -> Fin n -> All P xs -> P x
+%    lookup zero (px :: _) = px
+%    lookup (succ idx) (_ :: pxs) = lookup idx pxs
+% \end{spec}
 
-This type is called propositional equality. It defines that there is
-a unique evidence for equality, constructor \ensuremath{\Con{refl}} (for reflexivity),
-which asserts that the only value equal to \ensuremath{\V{x}} is itself. Given a predicate \ensuremath{\V{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set}}
-and a vector \ensuremath{\V{xs}}, the type \ensuremath{\D{All}\;\V{P}\;\V{xs}} is used to build proofs that \ensuremath{\V{P}} holds for all
-elements in \ensuremath{\V{xs}} and it is defined as:
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{6}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{41}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[3]{}\mathkw{data}\;\D{All}\;(\V{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set})\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\;\to \;{}\<[41]%
-\>[41]{}\D{Set}\;\mathkw{where}{}\<[E]%
-\\
-\>[3]{}\hsindent{3}{}\<[6]%
-\>[6]{}\Con{\lbrack\:\rbrack}\;\mathbin{:}\;\D{All}\;\V{P}\;\Con{\lbrack\:\rbrack}{}\<[E]%
-\\
-\>[3]{}\hsindent{3}{}\<[6]%
-\>[6]{}\Con{\_::\_}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{x}\;\V{xs}\mskip1.5mu\}\;\to \;\V{P}\;\V{x}\;\to \;\D{All}\;\V{P}\;\V{xs}\;\to \;\D{All}\;\V{P}\;(\V{x}\;\Con{::}\;\V{xs}){}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-The first constructor specifies that \ensuremath{\D{All}\;\V{P}} holds for the empty vector and
-constructor \ensuremath{\Con{\_::\_}} builds a proof of \ensuremath{\D{All}\;\V{P}\;(\V{x}\;\Con{::}\;\V{xs})} from proofs of
-\ensuremath{\V{P}\;\V{x}} and \ensuremath{\D{All}\;\V{P}\;\V{xs}}. Since this type has the same structure of vectors,
-some functions on \ensuremath{\D{Vec}} have similar definitions for type \ensuremath{\D{All}}. As an example
-used in our formalization, consider the function \ensuremath{\F{lookup}}, which extracts a
-proof of \ensuremath{\V{P}} for the element at position \ensuremath{\V{v}\;\mathbin{:}\;\D{Fin}\;\V{n}} in a \ensuremath{\D{Vec}}:
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[4]{}\F{lookup}\;\mathbin{:}\;\{\mskip1.5mu \V{xs}\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{All}\;\V{P}\;\V{xs}\;\to \;\V{P}\;\V{x}{}\<[E]%
-\\
-\>[4]{}\F{lookup}\;\Con{zero}\;(\V{px}\;\Con{::}\;\anonymous )\;\mathrel{=}\;\V{px}{}\<[E]%
-\\
-\>[4]{}\F{lookup}\;(\Con{suc}\;\V{idx})\;(\anonymous \;\Con{::}\;\V{pxs})\;\mathrel{=}\;\F{lookup}\;\V{idx}\;\V{pxs}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
 An important application of dependent types is to encode programming languages
 syntax. The role of dependent types in this domain is to encode programs that
 only allow well-typed and well-scoped terms~\cite{Benton2012}. Intuitively, we encode
 the static semantics of the object language in the host language AST's
 constructor, leaving the responsibility of checking type safety to the
 host's language type checker. As an example, consider the following simple
-expression language.
+expression language. For this paper, we assume a basic knowledge of functional
+programming and Agda\footnote{For further information about Agda,
+see~\cite{Norell2009,Stump16}.}.
+
+
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{4}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -730,10 +702,11 @@ expression language.
 \>[7]{}\Con{\_\land\_}\;\Con{\_+\_}\;\mathbin{:}\;\D{Expr}\;\to \;\D{Expr}\;\to \;\D{Expr}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
+    
 Using this data type\footnote{Agda supports the definition of mixfix operators.
 We can use underscores to mark arguments positions.}, we can construct expressions
 to denote terms that should not be considered well-typed like
-\ensuremath{(\Con{Num}\;\V{1})\;\F{+}\;\Con{True}}. Using this approach, we need to specify the static semantics
+\ensuremath{(\Con{Num}\;\V{1})\;\V{+}\;\Con{True}}. Using this approach, we need to specify the static semantics
 as another definition, which should consider all possible cases to avoid the
 definition of ill-typed terms.
 
@@ -770,7 +743,7 @@ In this definition, the \ensuremath{\D{Expr}} type is indexed by a value of type
 indicates the type of the expression being built. In this approach, Agda's
 type system can enforce that only well-typed terms could be written.
 %A definition which uses the expression |(Num 1) + True| will be rejected by Agda's type checker automatically.
-Agda's type checker will automatically reject a definition which uses the expression \ensuremath{(\Con{Num}\;\V{1})\;\F{+}\;\Con{True}}.
+Agda's type checker will automatically reject a definition which uses the expression \ensuremath{(\Con{Num}\;\V{1})\;\V{+}\;\Con{True}}.
 
 %Dependently typed pattern matching is built by using the so-called
 %|with| construct, that allows for matching intermediate
@@ -798,8 +771,6 @@ Agda's type checker will automatically reject a definition which uses the expres
 %   natToBin (j + j)     | Even = false :: natToBin j
 %   natToBin (succ (j + j)) | Odd  = true  :: natToBin j
 %\end{spec}
-
-For further information about Agda, see~\cite{Norell2009,Stump16}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1189,8 +1160,8 @@ the least common supertype\footnote{A complete explanation about the least commo
 can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
 type \ensuremath{\V{\tau_1}\;\D{\sqcap}\;\V{\tau_2}\;\D{\sim}\;\V{\tau}}, which encodes that the least common supertype of \ensuremath{\V{\tau_1}} and \ensuremath{\V{\tau_2}} is \ensuremath{\V{\tau}}.
 The resulting typing context adds information about the newly created list.
-\textcolor{red}{Section~\ref{sec:supertype} will provide details of an algorithm
-for calculating the least common supertype of two given types.}}
+Subsection~\ref{sec:supertype} will provide details of an algorithm
+for calculating the least common supertype of two given types.}
 
 %\footnote{The code of this definition is omitted here, but can be found
 %in our online repository.}
@@ -1232,14 +1203,111 @@ subtype of the intended one.
 
 
 And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, each preceded by a label.
-We use the \ensuremath{\D{All}} datatype to express this relation.
+We use the \ensuremath{\V{All}} datatype to express this relation.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\D{Program}\;\mathbin{:}\;\D{PCtx}\;\rightarrow\;\D{Set}{}\<[E]%
 \\
-\>[B]{}\D{Program}\;\V{\Pi}\;\mathrel{=}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\D{All}\;(\lambda\;\V{\Gamma}\;\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'})\;\V{\Pi}{}\<[E]%
+\>[B]{}\D{Program}\;\V{\Pi}\;\mathrel{=}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\V{All}\;(\lambda\;\V{\Gamma}\;\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'})\;\V{\Pi}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\subsection{Subtyping and least common supertype}\label{sec:supertype}
+
+
+A key feature of the list-machine type system is its subtyping (denoted by \ensuremath{\D{<:}}) which is
+exposed by the least common supertype relation. We omit the Agda encoding of the subtyping relation for
+space reasons, since it is just an inductive type that encode the rules presented
+in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
+subtyping including its decidable test.
+
+The least common supertype relation is used by the list-machine type system to refine a
+variable type whenever it is updated by a \emph{cons} instruction. The rules of the
+super type relation are specified as the following inductive type:
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{\_\sqcap\_\sim\_}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub0}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t}\;\D{\sim}\;\V{t}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub1}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{list}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub3}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\\
+\>[3]{}\hsindent{10}{}\<[13]%
+\>[13]{}(\Con{list}\;\V{t})\;\D{\sqcap}\;(\Con{list}\;\V{t1})\;\D{\sim}\;(\Con{list}\;\V{t'}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub5}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{listcons}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub7}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\\
+\>[3]{}\hsindent{10}{}\<[13]%
+\>[13]{}(\Con{listcons}\;\V{t})\;\D{\sqcap}\;(\Con{listcons}\;\V{t1})\;\D{\sim}\;(\Con{listcons}\;\V{t'}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\orange{\texttt{-- some code omitted for brevity}}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
+types. Also, rules ensure that the relation is commutative as proved by a simple
+Agda theorem.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{\sqcap\textrm{-}comm}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t3}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+We omit the complete definition of \ensuremath{\F{\sqcap\textrm{-}comm}} for brevity. In the list-machine benchmark definition,
+\citet{Appel07} also define that the least common supertype relation is sound and complete with respect to the
+subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{\sqcap\textrm{-}subtype}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;(\V{t1}\;\D{<:}\;\V{t3})\;\D{\land}\;(\V{t2}\;\D{<:}\;\V{t3}){}\<[E]%
+\\
+\>[B]{}\F{\sqcap\textrm{-}least}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t1}\;\D{<:}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{<:}\;\V{t4}\;\rightarrow\;\V{t3}\;\D{<:}\;\V{t4}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+An algorithm to construct the least supertype from two input types is
+defined by function \ensuremath{\F{lub}}. Note that the \ensuremath{\F{lub}}'s type ensures that the
+returned type \ensuremath{\V{t}} is indeed the least common supertype of \ensuremath{\V{t1}} and \ensuremath{\V{t2}},
+thus ensuring its correctness by construction.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{lub}\;\mathbin{:}\;(\V{t1}\;\V{t2}\;\mathbin{:}\;\D{Ty})\;\rightarrow\;\V{∃}\;(\lambda\;\V{t}\;\rightarrow\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\F{lub}\;\Con{nil}\;\Con{nil}\;\mathrel{=}\;\Con{nil}\;\red{,}\,\;\Con{lub0}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{list}\;\V{t1})\;\Con{nil}\;\mathrel{=}\;\Con{list}\;\V{t1}\;\red{,}\,\;\Con{lub1}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{list}\;\V{t1})\;(\Con{list}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{list}\;\V{t3}\;\red{,}\,\;\Con{lub3}\;\V{p}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;\Con{nil}\;\mathrel{=}\;\Con{list}\;\V{t1}\;\red{,}\,\;\Con{lub5}{}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;(\Con{list}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{list}\;\V{t3}\;\red{,}\,\;\Con{lub2b}\;(\Con{lub3}\;\V{p}){}\<[E]%
+\\
+\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;(\Con{listcons}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
+\\
+\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{listcons}\;\V{t3}\;\red{,}\,\;\Con{lub7}\;\V{p}{}\<[E]%
+\\
+\>[B]{}\orange{\texttt{-- some code omitted for brevity}}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1282,7 +1350,7 @@ first two represent \ensuremath{\Con{nil}} values associated with type \ensurema
 two represent non-empty lists, considering the types \ensuremath{\Con{listcons}} and \ensuremath{\Con{list}}.
 
 
-We use the datatype \ensuremath{\D{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed
+We use the datatype \ensuremath{\V{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed
 variable environments and well-typed programs. Thus, intuitively, \ensuremath{\D{Env}} is like a
 list of well-typed values. And \ensuremath{\D{PEnv}} is like a list of well-typed environments.
 Both type environments are used to type block instructions and sequences of
@@ -1293,7 +1361,7 @@ block instructions.
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\D{Env}\;\mathbin{:}\;\D{Ctx}\;\rightarrow\;\D{Set}{}\<[E]%
 \\
-\>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\D{All}\;(\lambda\;(\V{x}\;\red{,}\,\;\V{\tau})\;\rightarrow\;\D{Val}\;\V{\tau})\;\V{\Gamma}{}\<[E]%
+\>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\V{All}\;(\lambda\;(\V{x}\;\red{,}\,\;\V{\tau})\;\rightarrow\;\D{Val}\;\V{\tau})\;\V{\Gamma}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1396,7 +1464,7 @@ represent the label, only valid values are accepted by the intrinsically-typed s
 
 \paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors,
 both related to the \emph{step-fetch-field-0} rule~\cite{Appel07}. The first retrieves the head element of a list, and
-stores it in a new variable. The \ensuremath{\F{lookup}} function projects the value of variable \ensuremath{\V{v}} from the run-time
+stores it in a new variable. The \ensuremath{\V{lookup}} function projects the value of variable \ensuremath{\V{v}} from the run-time
 environment \ensuremath{\V{env}}, and this variable is added to the result environment. The typed \emph{de Bruijn}
 indices guarantee that the projected value has the type demanded, since the environment \ensuremath{\V{env}} is typed
 by the context \ensuremath{\V{\Gamma}}. Similarly, the second instruction also retrieves the head element of a list, however
@@ -1410,14 +1478,14 @@ function \ensuremath{\F{update\textrm{-}env}}\footnote{The source-code of this f
 \>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\V{v})\;\V{b}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\>[3]{}\mathkw{with}\;\V{lookup}\;\V{env}\;\V{v}{}\<[E]%
 \\
 \>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\V{v₁}\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
 \\
 \>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;\V{v}\;\V{v'})\;\V{b}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\>[3]{}\mathkw{with}\;\V{lookup}\;\V{env}\;\V{v}{}\<[E]%
 \\
 \>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;\V{v₁})\;\V{b}{}\<[E]%
 \ColumnHook
@@ -1432,7 +1500,7 @@ function \ensuremath{\F{update\textrm{-}env}}\footnote{The source-code of this f
 
 \paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected
 types, we need some extra lemmas. First because when we create a list from variables \ensuremath{\V{v₀}} and \ensuremath{\V{v₁}}, the
-result type of this list is the least common subtype between these two. As before, we use the \ensuremath{\F{lookup}}
+result type of this list is the least common subtype between these two. As before, we use the \ensuremath{\V{lookup}}
 function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we
 extend the run-time environment \ensuremath{\V{env}} with the type of the created list. To convince the Agda's
 type-checker the new environment is well-typed we use subtyping lemmas, such as \ensuremath{\F{\textrm{<:-}val}} and \ensuremath{\F{list\textrm{-<:-}inv}},
@@ -1450,10 +1518,10 @@ and \ensuremath{\F{lub\textrm{-}of\textrm{-}subtype}}. These lemmas and their pr
 \>[3]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;((\F{\textrm{<:-}val}\;(\F{list\textrm{-<:-}inv}\;(\F{lub\textrm{-}subtype\textrm{-}left}{}\<[E]%
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}(\F{lub\textrm{-}of\textrm{-}subtype}\;(\F{lub\textrm{-}subtype\textrm{-}left}\;\V{s}))))\;(\F{lookup}\;\V{env}\;\V{v₀}){}\<[E]%
+\>[5]{}(\F{lub\textrm{-}of\textrm{-}subtype}\;(\F{lub\textrm{-}subtype\textrm{-}left}\;\V{s}))))\;(\V{lookup}\;\V{env}\;\V{v₀}){}\<[E]%
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s})\;(\F{lookup}\;\V{env}\;\V{v₁}))\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
+\>[5]{}\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s})\;(\V{lookup}\;\V{env}\;\V{v₁}))\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1503,9 +1571,9 @@ check them, we need to provide an index from a named variable. This process is d
 \\
 \>[B]{}\F{lookup\textrm{-}var}\;((\V{y}\;\red{,}\,\;\V{\tau})\;\Con{::}\;\V{\Gamma})\;\V{x}\;\mathkw{with}\;\V{x}\;\D{=}\;\V{y}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{yes}\;\Con{refl}\;\mathrel{=}\;\Con{just}\;(\V{\tau}\;\red{,}\,\;\Con{here}\;\Con{refl}){}\<[E]%
+\>[B]{}\V{...}\;\mid \;\V{yes}\;\V{refl}\;\mathrel{=}\;\Con{just}\;(\V{\tau}\;\red{,}\,\;\Con{here}\;\V{refl}){}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;(\Con{no}\;\V{¬p})\;\mathrel{=}\;\F{map}\;{}\<[22]%
+\>[B]{}\V{...}\;\mid \;(\V{no}\;\V{¬p})\;\mathrel{=}\;\F{map}\;{}\<[22]%
 \>[22]{}(\lambda\;\V{v}\;\rightarrow\;\D{proj_1}\;\V{v}\;\red{,}\,\;\Con{there}\;(\D{proj_2}\;\V{v}))\;{}\<[E]%
 \\
 \>[22]{}(\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{x}){}\<[E]%
@@ -1530,7 +1598,7 @@ which is an error message or a \ensuremath{\D{CheckedInstr}} indicating that the
 \\
 \>[B]{}\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{v'}\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v}\;\red{,}\,\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v'}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{nothing}\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;(\text{\ttfamily \char34 variable~out~of~scope:~\char34}\;\F{++}\;\V{v}){}\<[E]%
+\>[B]{}\V{...}\;\mid \;\Con{nothing}\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;(\text{\ttfamily \char34 variable~out~of~scope:~\char34}\;\plus \;\V{v}){}\<[E]%
 \\
 \>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{nil}\;\red{,}\,\;\anonymous )\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;\text{\ttfamily \char34 type~error~[nil]\char34}{}\<[E]%
 \\
@@ -1554,108 +1622,12 @@ type errors: (1) when \ensuremath{\V{v}} is \ensuremath{\Con{nothing}} it means 
 since the type of variable \ensuremath{\V{v}} should be a \ensuremath{\Con{listcons}}. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
 
-\subsection{Subtyping and least common supertype}\label{sec:supertype}
-
-
-A key feature of the list-machine type system is its subtyping (denoted by \ensuremath{\D{<:}}) which is
-exposed by the least common supertype relation. We omit the Agda encoding of the subtyping relation for
-space reasons, since it is just an inductive type that encode the rules presented
-in Section~\ref{sec:list}. Our code repository~\cite{list-rep} defines several lemmas about
-subtyping including its decidable test.
-
-The least common supertype relation is used by the list-machine type system to refine a
-variable type whenever it is updated by a \emph{cons} instruction. The rules of the
-super type relation are specified as the following inductive type:
-
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\mathkw{data}\;\D{\_\sqcap\_\sim\_}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub0}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t}\;\D{\sim}\;\V{t}{}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub1}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{list}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub3}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
-\\
-\>[3]{}\hsindent{10}{}\<[13]%
-\>[13]{}(\Con{list}\;\V{t})\;\D{\sqcap}\;(\Con{list}\;\V{t1})\;\D{\sim}\;(\Con{list}\;\V{t'}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub5}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{listcons}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub7}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
-\\
-\>[3]{}\hsindent{10}{}\<[13]%
-\>[13]{}(\Con{listcons}\;\V{t})\;\D{\sqcap}\;(\Con{listcons}\;\V{t1})\;\D{\sim}\;(\Con{listcons}\;\V{t'}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\orange{\texttt{-- some code omitted for brevity}}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-Constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
-types. Also, rules ensure that the relation is commutative as proved by a simple
-Agda theorem.
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{\sqcap\textrm{-}comm}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t3}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-We omit the complete definition of \ensuremath{\F{\sqcap\textrm{-}comm}} for brevity. In the list-machine benchmark definition,
-\citet{Appel07} also define that the least common supertype relation is sound and complete with respect to the
-subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{\sqcap\textrm{-}subtype}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;(\V{t1}\;\D{<:}\;\V{t3})\;\D{\land}\;(\V{t2}\;\D{<:}\;\V{t3}){}\<[E]%
-\\
-\>[B]{}\F{\sqcap\textrm{-}least}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t1}\;\D{<:}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{<:}\;\V{t4}\;\rightarrow\;\V{t3}\;\D{<:}\;\V{t4}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
-An algorithm to construct the least supertype from two input types is
-defined by function \ensuremath{\F{lub}}. Note that the \ensuremath{\F{lub}}'s type ensures that the
-returned type \ensuremath{\V{t}} is indeed the least common supertype of \ensuremath{\V{t1}} and \ensuremath{\V{t2}},
-thus ensuring its correctness by construction.
-
-\begin{hscode}\SaveRestoreHook
-\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{lub}\;\mathbin{:}\;(\V{t1}\;\V{t2}\;\mathbin{:}\;\D{Ty})\;\rightarrow\;\D{\exists}\;(\lambda\;\V{t}\;\rightarrow\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t}){}\<[E]%
-\\
-\>[B]{}\F{lub}\;\Con{nil}\;\Con{nil}\;\mathrel{=}\;\Con{nil}\;\red{,}\,\;\Con{lub0}{}\<[E]%
-\\
-\>[B]{}\F{lub}\;(\Con{list}\;\V{t1})\;\Con{nil}\;\mathrel{=}\;\Con{list}\;\V{t1}\;\red{,}\,\;\Con{lub1}{}\<[E]%
-\\
-\>[B]{}\F{lub}\;(\Con{list}\;\V{t1})\;(\Con{list}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
-\\
-\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{list}\;\V{t3}\;\red{,}\,\;\Con{lub3}\;\V{p}{}\<[E]%
-\\
-\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;\Con{nil}\;\mathrel{=}\;\Con{list}\;\V{t1}\;\red{,}\,\;\Con{lub5}{}\<[E]%
-\\
-\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;(\Con{list}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
-\\
-\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{list}\;\V{t3}\;\red{,}\,\;\Con{lub2b}\;(\Con{lub3}\;\V{p}){}\<[E]%
-\\
-\>[B]{}\F{lub}\;(\Con{listcons}\;\V{t1})\;(\Con{listcons}\;\V{t2})\;\mathkw{with}\;\F{lub}\;\V{t1}\;\V{t2}{}\<[E]%
-\\
-\>[B]{}\V{...|}\;\V{t3}\;\red{,}\,\;\V{p}\;\mathrel{=}\;\Con{listcons}\;\V{t3}\;\red{,}\,\;\Con{lub7}\;\V{p}{}\<[E]%
-\\
-\>[B]{}\orange{\texttt{-- some code omitted for brevity}}{}\<[E]%
-\ColumnHook
-\end{hscode}\resethooks
 
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
 We implemented the 14 tasks from the list-machine benchmark in the Agda programming language.
 The tasks considered by us are the same implemented and proved by~\citet{Appel07}.
-The next table summarize the total number of lines for our results together with theirs. 
+The next table summarize the total number of lines of code (LOC) for our results together with theirs. 
 
 \begin{table}[!htb]
 \begin{tabular}{rl|rrr}
@@ -1713,7 +1685,7 @@ on our Agda encoding of these 14 tasks.
   \item \textbf{Asymptotically efficient algorithm.} Our current implementation of the typechecker takes quadratic time. The reason
         for this inneficiency is the representation of environments as lists / vectors. The use of better data structures (like finite
         maps implemented by efficient search trees) can solve this issue. We leave this fix to future work.
-  \item \textbf{Simulate the new algorithm.} This task is just one line of code, since it ammounts to calling the typechecker
+  \item \textbf{Simulate the new algorithm.} This task is just one line of code, since it is only a matter of calling the typechecker
         on the input program.
   \item \textbf{Prove the termination of the type checker.} This task is trivial in our setting, since all defined Agda functions
         must be total. The totality is ensured by Agda's termination / totality checker.
@@ -1723,6 +1695,7 @@ on our Agda encoding of these 14 tasks.
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
 \end{enumerate}
 
+As we could notice on the table above, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to implement the proposed language and prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC in Coq, while our implementation used only 413 LOC to achieve the same result. Our encoding uses approximately 14\% of the Twelf LOC, and 47\% of Coq's, mostly due to the fact the soundness properties are obtained for free when combining an intrinsically-typed syntax with an implementation of a definitional interpreter in a total language like Agda. 
 
 \section{Related work}\label{sec:related}
 
