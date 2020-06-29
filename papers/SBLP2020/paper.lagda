@@ -690,7 +690,7 @@ Inspired by the presented typing rules, in the next section, we define an
 intrinsically-typed syntax for list-machine programs which ensures that
 only well-typed programs can be built.
 
-\section{Instrinsically-typed syntax}\label{sec:typing}
+\section{Intrinsically-typed syntax}\label{sec:typing}
 
 %format Ty = "\D{Ty}"
 %format nil = "\Con{nil}"
@@ -1208,7 +1208,7 @@ to a typed one.
 
 Since we use \emph{de Bruijn} indices to represent labels and variables, as the first step to type and scope
 check them, we need to provide an index from a named variable. This process is done by the
-|lookup-var| function, returning an index when the named variable variable is found, and |nothing| otherwise.
+|lookup-var| function, returning an index when the named variable is found, and |nothing| otherwise.
 
 \pagebreak
 
@@ -1323,7 +1323,7 @@ on our Agda encoding of these 14 tasks.
   \item \textbf{Prove the termination of the type-checker.} This task is trivial in our setting, since all defined Agda functions
         must be total. The totality is ensured by Agda's termination / totality checker.
   \item \textbf{Scalable type-checker.} Agda code can be compiled to machine code using its GHC-Haskell back-end. Since GHC is
-        an industrial strength compiler, the backend can generate an efficient executable for the machine interpreter and type-checker. 
+        an industrial strength compiler, the back-end can generate an efficient executable for the machine interpreter and type-checker. 
   \item \textbf{Prove soundness of type-checker.} In our approach, the soundness of the type-checker is ensured by construction,
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
 \end{enumerate}
