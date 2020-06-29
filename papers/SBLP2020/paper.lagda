@@ -164,8 +164,8 @@ tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
 to ensure its ``correctness-by-construction''. In this paper, we use this
 idea to build a verified interpreter for the list-machine benchmark in the
-Agda programming language, comparing the results with formalizations using
-the usual syntactic approach. We formalize the 14 tasks of the benchmark
+Agda programming language, comparing the results with formalizations developed
+by Appel and Leroy. We formalize the 14 tasks of the benchmark
 using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
 compared to a Coq solution, even without the use of proof automation.
 \end{abstract}
@@ -276,8 +276,9 @@ The rest of this paper is organized as follows. Section~\ref{sec:agda}
 presents a brief introduction to Agda and Section~\ref{sec:list}
 reviews the list-machine benchmark and presents its syntax and type system.
 We describe the intrinsically-typed representation for the list-machine
-in Section~\ref{sec:typing}. The list-machine semantics and its
-realization as a definitional interpreter are presented in Section~\ref{sec:semantics}.
+in Section~\ref{sec:typing}. Section~\ref{sec:semantics} briefly discuss
+the list-machine semantics and then proceeds with its
+realization as a definitional interpreter.
 The type-checking algorithm, the subtyping relation and the least-common-supertype
 algorithm are presented in Section~\ref{sec:typechecker}. Section~\ref{sec:comparison}
 compares the presented formalization in Agda with Coq and Twelf encodings. Related work is
@@ -539,9 +540,8 @@ presented next and their meaning is as usual.
 \]
 A program is just a sequence of blocks referenced by a unique label. 
 
-Each program variable is assigned to a list type, \textcolor{red}{which is used to guarantee the safety of execute
-fetch-field that demands non-empty list arguments and branch instructions refine the argument type
-according to which branch is taken.} In order to express such refinements, types are subject to a
+Each program variable is assigned to a list type, which is used to guarantee the safety of execute
+fetch-field that demands non-empty list arguments. In order to express such refinements, types are subject to a
 subtyping relation. The meta-variable $\tau$ denotes an arbitrary type. 
 \[
 \begin{array}{rcll}
@@ -668,16 +668,17 @@ input program.
    \inference{}
              {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[halt]
    &
-
-   \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
-             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]\\ \\
+   \inference{}
+             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty]\\ \\
 
    \inference{\Pi(l)=\Gamma_1\\ \Gamma \subset_{env} \Gamma_1}
              {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[jump]
 
    &
-   \inference{}
-             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty] \\ \\
+
+   \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
+             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]
+ \\ \\
 
    \multicolumn{2}{c}{
    \inference{\Pi(l)=\Gamma\:\:\:\:\:\:\:\:\Pi;\Gamma\vdash_{\text{block}} \iota\:\:\:\:\:\:\:\:\Pi\vdash_{\text{blocks}} p}
@@ -903,6 +904,7 @@ subtype of the intended one.
 
 %format λ = "\lambda"
 %format Program = "\D{Program}"
+%format All = "\D{All}"
 
 And finally, a |Program| is a sequence of instruction blocks, each preceded by a label.
 We use the |All| datatype to express this relation.
@@ -1120,6 +1122,8 @@ run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
     = run-step n p (⊂-Ctx s env) (lookupA i p)
 \end{spec}
 
+%format lookup = "\F{lookup}"
+
 \paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors,
 both related to the \emph{step-fetch-field-0} rule~\cite{Appel07}. The first retrieves the head element of a list, and
 stores it in a new variable. The |lookup| function projects the value of variable |v| from the run-time
@@ -1254,11 +1258,11 @@ The next table summarize the total number of lines of code (LOC) for our results
 \begin{tabular}{rl||rrr}
     & Task                                         & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
 1.  & Operational Semantics                        & 126                       & 98                      & 109                      \\
-2.  & Derive $p \Downarrow$                        & 1                         & 8                       & -                        \\ \hline
+2.  & Derive $p \Downarrow$                        & 1                         & 8                       & 1                        \\ \hline
 3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 62                       \\
 4.  & $\sqcap$ algorithm                           & *                         & *                       & 13                       \\
 5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
-                                                   & 1                         & no                      & -                        \\
+                                                   & 1                         & no                      & 1                        \\
 6.  & State properties of $\sqcap$                 & 12                        & 13                      & 6                        \\
 7.  & Prove properties of $\sqcap$                 & 114                       & 21                      & 124                      \\
 8.  & State soundness theorem                      & 29                        & 15                      & *                        \\
@@ -1296,10 +1300,11 @@ on our Agda encoding of these 14 tasks.
   \item \textbf{State properties of the least common supertype.} This is trivial, since it is just a matter to encode the
         desired properties as Agda function types.
   \item \textbf{Prove properties of the least common supertype.} Proofs of all proved properties about the least common supertype
-        are simple recursive functions over the least common supertype and subtyping relations definition.
+        are simple recursive functions over the least common supertype and subtyping relations definitions and were omitted
+        from this text for space reasons.
   \item \textbf{State the soundness theorem for the type system.} Following~\citet{Amin17}, we represent the soundness
         theorem statement as the type of our definitional interpreter for the intrinsically-typed syntax for the list-machine
-        programs.
+        programs. Therefore, this was done as part of task 9.
   \item \textbf{Prove the soundness theorem for the type system.} Following \citet{Amin17}, the proof of the soundness
         theorem is just the implementation of the definitional interpreter. Soundness is ensured by construction since the interpreter
         produces, as result, an environment of well-typed values resulting from the execution of the input program.
@@ -1360,9 +1365,19 @@ of linear and session types as in~\cite{Rouvoet20,Thiemann19}.}
 
 \section{Conclusion}\label{sec:conclusion}
  
-This paper shows the combination of intrinsically-typed syntax and definitional interpreters to formalize programming languages. Using such approach, we were able to provide a machine checked version of the list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages. The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM, since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing such approach with the conventional syntactic way to prove properties, we can affirm that it requires a small number of lines to achieve the same result, even without the use of proof automation. This happens because the approach uses the power of the host language, and provides some proofs for free due to the intrinsically-typed syntax.
+This paper shows how the combination of intrinsically-typed syntax and definitional interpreters can be used to simplify
+programming languages formalization tasks. Using such approach, we were able to provide a machine checked version of the
+list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages.
+The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM,
+since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing such our work with the
+conventional non-dependently typed formalization strategies (like to ones used by Appel et. al. in his Coq implementation),
+we can affirm that it requires a small number of lines to achieve the same result, even without the use of proof automation.
+This happens because the approach uses the power of the host language, and provides some proofs for free due to the
+intrinsically-typed syntax.
 
-As future work, we want to reuse the ideas presented in this paper to provide an intrinsically-typed formalization for real-world low-level languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here for other programming languages with similar settings.
+As future work, we want to reuse the ideas presented in this paper to provide an intrinsically-typed formalization for
+real-world low-level languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here
+for other programming languages with similar settings.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{main}

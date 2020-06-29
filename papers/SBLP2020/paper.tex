@@ -410,8 +410,8 @@ tools to ensure the correctness of these formalisms. One way to eliminate
 such errors is to encode models in a dependently-typed language in order
 to ensure its ``correctness-by-construction''. In this paper, we use this
 idea to build a verified interpreter for the list-machine benchmark in the
-Agda programming language, comparing the results with formalizations using
-the usual syntactic approach. We formalize the 14 tasks of the benchmark
+Agda programming language, comparing the results with formalizations developed
+by Appel and Leroy. We formalize the 14 tasks of the benchmark
 using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
 compared to a Coq solution, even without the use of proof automation.
 \end{abstract}
@@ -527,8 +527,9 @@ The rest of this paper is organized as follows. Section~\ref{sec:agda}
 presents a brief introduction to Agda and Section~\ref{sec:list}
 reviews the list-machine benchmark and presents its syntax and type system.
 We describe the intrinsically-typed representation for the list-machine
-in Section~\ref{sec:typing}. The list-machine semantics and its
-realization as a definitional interpreter are presented in Section~\ref{sec:semantics}.
+in Section~\ref{sec:typing}. Section~\ref{sec:semantics} briefly discuss
+the list-machine semantics and then proceeds with its
+realization as a definitional interpreter.
 The type-checking algorithm, the subtyping relation and the least-common-supertype
 algorithm are presented in Section~\ref{sec:typechecker}. Section~\ref{sec:comparison}
 compares the presented formalization in Agda with Coq and Twelf encodings. Related work is
@@ -804,9 +805,8 @@ presented next and their meaning is as usual.
 \]
 A program is just a sequence of blocks referenced by a unique label. 
 
-Each program variable is assigned to a list type, \textcolor{red}{which is used to guarantee the safety of execute
-fetch-field that demands non-empty list arguments and branch instructions refine the argument type
-according to which branch is taken.} In order to express such refinements, types are subject to a
+Each program variable is assigned to a list type, which is used to guarantee the safety of execute
+fetch-field that demands non-empty list arguments. In order to express such refinements, types are subject to a
 subtyping relation. The meta-variable $\tau$ denotes an arbitrary type. 
 \[
 \begin{array}{rcll}
@@ -933,16 +933,17 @@ input program.
    \inference{}
              {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[halt]
    &
-
-   \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
-             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]\\ \\
+   \inference{}
+             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty]\\ \\
 
    \inference{\Pi(l)=\Gamma_1\\ \Gamma \subset_{env} \Gamma_1}
              {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[jump]
 
    &
-   \inference{}
-             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty] \\ \\
+
+   \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
+             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]
+ \\ \\
 
    \multicolumn{2}{c}{
    \inference{\Pi(l)=\Gamma\:\:\:\:\:\:\:\:\Pi;\Gamma\vdash_{\text{block}} \iota\:\:\:\:\:\:\:\:\Pi\vdash_{\text{blocks}} p}
@@ -1203,14 +1204,14 @@ subtype of the intended one.
 
 
 And finally, a \ensuremath{\D{Program}} is a sequence of instruction blocks, each preceded by a label.
-We use the \ensuremath{\V{All}} datatype to express this relation.
+We use the \ensuremath{\D{All}} datatype to express this relation.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\D{Program}\;\mathbin{:}\;\D{PCtx}\;\rightarrow\;\D{Set}{}\<[E]%
 \\
-\>[B]{}\D{Program}\;\V{\Pi}\;\mathrel{=}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\V{All}\;(\lambda\;\V{\Gamma}\;\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'})\;\V{\Pi}{}\<[E]%
+\>[B]{}\D{Program}\;\V{\Pi}\;\mathrel{=}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\D{All}\;(\lambda\;\V{\Gamma}\;\rightarrow\;\D{Block}\;\V{\Pi}\;\V{\Gamma}\;\V{\Gamma'})\;\V{\Pi}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1350,7 +1351,7 @@ first two represent \ensuremath{\Con{nil}} values associated with type \ensurema
 two represent non-empty lists, considering the types \ensuremath{\Con{listcons}} and \ensuremath{\Con{list}}.
 
 
-We use the datatype \ensuremath{\V{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed
+We use the datatype \ensuremath{\D{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed
 variable environments and well-typed programs. Thus, intuitively, \ensuremath{\D{Env}} is like a
 list of well-typed values. And \ensuremath{\D{PEnv}} is like a list of well-typed environments.
 Both type environments are used to type block instructions and sequences of
@@ -1361,7 +1362,7 @@ block instructions.
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\D{Env}\;\mathbin{:}\;\D{Ctx}\;\rightarrow\;\D{Set}{}\<[E]%
 \\
-\>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\V{All}\;(\lambda\;(\V{x}\;\red{,}\,\;\V{\tau})\;\rightarrow\;\D{Val}\;\V{\tau})\;\V{\Gamma}{}\<[E]%
+\>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\D{All}\;(\lambda\;(\V{x}\;\red{,}\,\;\V{\tau})\;\rightarrow\;\D{Val}\;\V{\tau})\;\V{\Gamma}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1462,9 +1463,10 @@ represent the label, only valid values are accepted by the intrinsically-typed s
 \ColumnHook
 \end{hscode}\resethooks
 
+
 \paragraph{Fetching list information}{The next code shows the evaluation of two syntactical constructors,
 both related to the \emph{step-fetch-field-0} rule~\cite{Appel07}. The first retrieves the head element of a list, and
-stores it in a new variable. The \ensuremath{\V{lookup}} function projects the value of variable \ensuremath{\V{v}} from the run-time
+stores it in a new variable. The \ensuremath{\F{lookup}} function projects the value of variable \ensuremath{\V{v}} from the run-time
 environment \ensuremath{\V{env}}, and this variable is added to the result environment. The typed \emph{de Bruijn}
 indices guarantee that the projected value has the type demanded, since the environment \ensuremath{\V{env}} is typed
 by the context \ensuremath{\V{\Gamma}}. Similarly, the second instruction also retrieves the head element of a list, however
@@ -1478,14 +1480,14 @@ function \ensuremath{\F{update\textrm{-}env}}\footnote{The source-code of this f
 \>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\V{v})\;\V{b}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{with}\;\V{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
 \\
 \>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\V{v₁}\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
 \\
 \>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;\V{v}\;\V{v'})\;\V{b}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\mathkw{with}\;\V{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\>[3]{}\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
 \\
 \>[B]{}\V{...|}\;\V{v₁}\;\Con{::}\;\V{v₂}\;\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{v'}\;\V{v₁})\;\V{b}{}\<[E]%
 \ColumnHook
@@ -1500,7 +1502,7 @@ function \ensuremath{\F{update\textrm{-}env}}\footnote{The source-code of this f
 
 \paragraph{List creation}{To evaluate the instruction which creates a new list and respect the expected
 types, we need some extra lemmas. First because when we create a list from variables \ensuremath{\V{v₀}} and \ensuremath{\V{v₁}}, the
-result type of this list is the least common subtype between these two. As before, we use the \ensuremath{\V{lookup}}
+result type of this list is the least common subtype between these two. As before, we use the \ensuremath{\F{lookup}}
 function to retrieve the type information using the \emph{de Bruijn} indices of both variables, and we
 extend the run-time environment \ensuremath{\V{env}} with the type of the created list. To convince the Agda's
 type-checker the new environment is well-typed we use subtyping lemmas, such as \ensuremath{\F{\textrm{<:-}val}} and \ensuremath{\F{list\textrm{-<:-}inv}},
@@ -1518,10 +1520,10 @@ and \ensuremath{\F{lub\textrm{-}of\textrm{-}subtype}}. These lemmas and their pr
 \>[3]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{p}\;((\F{\textrm{<:-}val}\;(\F{list\textrm{-<:-}inv}\;(\F{lub\textrm{-}subtype\textrm{-}left}{}\<[E]%
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}(\F{lub\textrm{-}of\textrm{-}subtype}\;(\F{lub\textrm{-}subtype\textrm{-}left}\;\V{s}))))\;(\V{lookup}\;\V{env}\;\V{v₀}){}\<[E]%
+\>[5]{}(\F{lub\textrm{-}of\textrm{-}subtype}\;(\F{lub\textrm{-}subtype\textrm{-}left}\;\V{s}))))\;(\F{lookup}\;\V{env}\;\V{v₀}){}\<[E]%
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s})\;(\V{lookup}\;\V{env}\;\V{v₁}))\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
+\>[5]{}\Con{::}\;\F{\textrm{<:-}val}\;(\F{lub\textrm{-}subtype\textrm{-}right}\;\V{s})\;(\F{lookup}\;\V{env}\;\V{v₁}))\;\Con{::}\;\V{env})\;\V{b}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1633,11 +1635,11 @@ The next table summarize the total number of lines of code (LOC) for our results
 \begin{tabular}{rl|rrr}
     & Task                                         & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
 1.  & Operational Semantics                        & 126                       & 98                      & 109                      \\
-2.  & Derive $p \Downarrow$                        & 1                         & 8                       & -                        \\ \hline
+2.  & Derive $p \Downarrow$                        & 1                         & 8                       & 1                        \\ \hline
 3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 62                       \\
 4.  & $\sqcap$ algorithm                           & *                         & *                       & 13                       \\
 5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
-                                                   & 1                         & no                      & -                        \\
+                                                   & 1                         & no                      & 1                        \\
 6.  & State properties of $\sqcap$                 & 12                        & 13                      & 6                        \\
 7.  & Prove properties of $\sqcap$                 & 114                       & 21                      & 124                      \\
 8.  & State soundness theorem                      & 29                        & 15                      & *                        \\
@@ -1675,10 +1677,11 @@ on our Agda encoding of these 14 tasks.
   \item \textbf{State properties of the least common supertype.} This is trivial, since it is just a matter to encode the
         desired properties as Agda function types.
   \item \textbf{Prove properties of the least common supertype.} Proofs of all proved properties about the least common supertype
-        are simple recursive functions over the least common supertype and subtyping relations definition.
+        are simple recursive functions over the least common supertype and subtyping relations definitions and were omitted
+        from this text for space reasons.
   \item \textbf{State the soundness theorem for the type system.} Following~\citet{Amin17}, we represent the soundness
         theorem statement as the type of our definitional interpreter for the intrinsically-typed syntax for the list-machine
-        programs.
+        programs. Therefore, this was done as part of task 9.
   \item \textbf{Prove the soundness theorem for the type system.} Following \citet{Amin17}, the proof of the soundness
         theorem is just the implementation of the definitional interpreter. Soundness is ensured by construction since the interpreter
         produces, as result, an environment of well-typed values resulting from the execution of the input program.
@@ -1739,9 +1742,19 @@ of linear and session types as in~\cite{Rouvoet20,Thiemann19}.}
 
 \section{Conclusion}\label{sec:conclusion}
  
-This paper shows the combination of intrinsically-typed syntax and definitional interpreters to formalize programming languages. Using such approach, we were able to provide a machine checked version of the list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages. The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM, since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing such approach with the conventional syntactic way to prove properties, we can affirm that it requires a small number of lines to achieve the same result, even without the use of proof automation. This happens because the approach uses the power of the host language, and provides some proofs for free due to the intrinsically-typed syntax.
+This paper shows how the combination of intrinsically-typed syntax and definitional interpreters can be used to simplify
+programming languages formalization tasks. Using such approach, we were able to provide a machine checked version of the
+list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages.
+The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM,
+since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing such our work with the
+conventional non-dependently typed formalization strategies (like to ones used by Appel et. al. in his Coq implementation),
+we can affirm that it requires a small number of lines to achieve the same result, even without the use of proof automation.
+This happens because the approach uses the power of the host language, and provides some proofs for free due to the
+intrinsically-typed syntax.
 
-As future work, we want to reuse the ideas presented in this paper to provide an intrinsically-typed formalization for real-world low-level languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here for other programming languages with similar settings.
+As future work, we want to reuse the ideas presented in this paper to provide an intrinsically-typed formalization for
+real-world low-level languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here
+for other programming languages with similar settings.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{main}
