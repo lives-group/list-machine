@@ -1329,7 +1329,7 @@ on our Agda encoding of these 14 tasks.
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
 \end{enumerate}
 
-As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel's et. al. solution.
+As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to \citet{Appel07} solution.
 Our implementation used 415 LOC to complete the tasks, while the Twelf solution demanded 2898 LOC and 887 LOC in Coq.
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
 reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
