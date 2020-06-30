@@ -1370,7 +1370,12 @@ implemented an interpreter for a more realistic core functional session typed ca
 session subtyping in Agda. Thiemann modeled the semantics as an interruptible abstract machine which provides a
 simple interface to a scheduler. Since our objective was formalizing the list-machine benchmark in Agda and it
 does not have linearity constraints in its state manipulation, we do not need to deal with the complexities
-of linear and session types as in~\cite{Rouvoet20,Thiemann19}.}
+of linear and session types as in~\cite{Rouvoet20,Thiemann19}. A formalization of System F$_{\omega\mu}$ was
+the subject of Chapman et.al. work~\cite{ChapmanKNW19}, which used an intrinsically-typed representation to 
+implement a normalization by evaluation for this calculus. The reason behind such formalization effort was
+the verification of a core language for smart-contracts which is based on System F$_{\omega\mu}$. As our work,
+Chapman's et. al. formalization is an example of how intrisincally-typed syntax leads to clear interpreter code
+which avoids completely stuck states.}
 
 \section{Conclusion}\label{sec:conclusion}
  
