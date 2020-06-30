@@ -1231,7 +1231,8 @@ lookup-var ((y , τ) ∷ Γ) x with x ≟ y
 %format right = "\Con{right}"
 %format ok = "\Con{ok}"
 
-For space reasons, we show how we type-check only one instruction\footnote{The curious reader can refer to our online repository for a complete implementation.}. Function |check-fetch-field-0|
+For space reasons, we show how we type-check only one instruction\footnote{The curious reader can refer to our
+online repository for a complete implementation.}. Function |check-fetch-field-0|
 receives a program context, a typing context, and two named variables, and returns a |TC| value,
 which is an error message or a |CheckedInstr| indicating that the term type-checks.
 
@@ -1328,7 +1329,16 @@ on our Agda encoding of these 14 tasks.
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
 \end{enumerate}
 
-As we could notice on the previous table, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to implement the proposed language and to prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC in Coq, while our implementation used only 415 LOC to achieve the same result. Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main reason for this difference is the fact that the soundness properties are obtained for free when combining an intrinsically-typed syntax with an implementation of a definitional interpreter in a total language like Agda. 
+As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel's et. al. solution.
+Our implementation used 415 LOC to complete the tasks, while the Twelf solution demanded 2898 LOC and 887 LOC in Coq.
+Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
+reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
+
+%As we could notice on the previous table, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to
+%implement the proposed language and to prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC
+%in Coq, while our implementation used only 415 LOC to achieve the same result. Our encoding uses approximately 14\% of the LOC when compared to
+%the Twelf formalization, and 47\% when compared to Coq's. The main reason for this difference is the fact that the soundness properties are
+%obtained for free when combining an intrinsically-typed syntax with an implementation of a definitional interpreter in a total language like Agda.
 
 \section{Related work}\label{sec:related}
 
@@ -1348,8 +1358,6 @@ name binding issues because they are orthogonal to most of compiler related proo
 the correct manipulation of names by following the traditional \emph{de Bruijn} approach. Finally, a recent problem set
 was proposed by~\citet{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
 of logical relation arguments, like strong normalization theorems.}
-
-\pagebreak
 
 \paragraph{Definitional intepreters}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
