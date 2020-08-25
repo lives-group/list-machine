@@ -1339,6 +1339,8 @@ reason for this difference is that our intrinsically-typed syntax granted us man
 %the Twelf formalization, and 47\% when compared to Coq's. The main reason for this difference is the fact that the soundness properties are
 %obtained for free when combining an intrinsically-typed syntax with an implementation of a definitional interpreter in a total language like Agda.
 
+\vspace{-1.5ex}
+
 \section{Related work}\label{sec:related}
 
 \paragraph{Benchmarks for PL mechanization}{
@@ -1357,6 +1359,8 @@ name binding issues because they are orthogonal to most of compiler related proo
 the correct manipulation of names by following the traditional \emph{de Bruijn} approach. Finally, a recent problem set
 was proposed by~\citet{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
 of logical relation arguments, like strong normalization theorems.}
+
+\vspace{-1ex}
 
 \paragraph{Definitional interpreters}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
