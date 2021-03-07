@@ -1,4 +1,9 @@
-\documentclass[sigconf]{acmart}
+\documentclass[review]{elsarticle}
+
+\usepackage{lineno,hyperref}
+\modulolinenumbers[5]
+
+
 
 \usepackage{booktabs} % For formal tables
 \usepackage[utf8x]{inputenc}
@@ -17,34 +22,7 @@
 \fi
 \usepackage{float}
 \usepackage{proof}
-%if False
-\begin{code}
-module paper where
-\end{code}
-%endif
 
-% Copyright
-%\setcopyright{none}
-%\setcopyright{acmcopyright}
-\setcopyright{acmlicensed}
-%\setcopyright{rightsretained}
-%\setcopyright{usgov}
-%\setcopyright{usgovmixed}
-%\setcopyright{cagov}
-%\setcopyright{cagovmixed}
-
-\AtBeginDocument{%
-  \providecommand\BibTeX{{%
-    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
-
-\setcopyright{acmcopyright}
-\copyrightyear{2020}
-\acmYear{2020}
-
-
-\acmConference[SBLP '20]{SBLP '20: Brazilian Symposium on Programming Languages}{October 19--23, 2020}{Natal, Brazil}
-\acmBooktitle{SBLP '20: Brazilian Symposium on Programming Languages,
-  October 19--23, 2020, Natal, Brazil}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% color formatting stuff %%
@@ -94,8 +72,6 @@ module paper where
 
 \ColourStuff
 
-
-
 %%%%%%%%%%%%%%%%%%%%
 %% lhs2TeX stuff  %%
 %%%%%%%%%%%%%%%%%%%%
@@ -118,43 +94,38 @@ module paper where
 
 %subst comment a = "\orange{\texttt{--" a "}}"
 
+
+
+\journal{Journal of Computer Languages}
+
+
+%% `Elsevier LaTeX' style
+\bibliographystyle{elsarticle-num}
+%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{document}
 
+\begin{frontmatter}
 
-%%%%%%%%%%%%%%%%%%%%%%%
-%% Title and authors %%
-%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-\title{An Intrinsically-Typed Solution for the List-Machine Benchmark}
+\title{An Intrinsically-Typed Solution for the\\ List-Machine Benchmark}
 
 \author{Samuel Feitosa}
-\authornotemark[1]
-\email{samuel.feitosa@@ifsc.edu.br}
-\affiliation{%
-  \institution{Departamento de Informática}
-  \streetaddress{Instituto Federal de Santa Catarina}
-  \city{Caçador}
-  \state{Santa Catarina}
-  \country{Brazil}
+\ead{samuel.feitosa@@ifsc.edu.br}
+\address{%
+  Departamento de Informática - Instituto Federal de Santa Catarina \\
+  Caçador - Santa Catarina - Brazil
 }
 
 \author{Rodrigo Ribeiro}
-\email{rodrigo.ribeiro@@ufop.edu.br}
-\affiliation{%
-  \institution{Prog. Pós Graduação em Ciência da Computação}
-  \streetaddress{Universidade Federal de Ouro Preto}
-  \city{Ouro Preto}
-  \state{Minas Gerais}
-  \country{Brazil}}
+\ead{rodrigo.ribeiro@@ufop.edu.br}
+\address{
+  Prog. Pós Graduação em Ciência da Computação - Universidade Federal de Ouro Preto \\
+  Ouro Preto - Minas Gerais - Brazil}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %% Abstract          %%
 %%%%%%%%%%%%%%%%%%%%%%%
-
-
 
 \begin{abstract}
 Formal models are important tools in the programming language research
@@ -171,39 +142,13 @@ compared to a Coq solution, even without the use of proof automation.
 \end{abstract}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%
-%% ACM codes for areas %%
-%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{keyword}
+Dependent types, formal semantics
+\end{keyword}
 
+\end{frontmatter}
 
-
-\begin{CCSXML}
-<ccs2012>
-<concept>
-<concept_id>10011007.10011006.10011039.10011311</concept_id>
-<concept_desc>Software and its engineering~Semantics</concept_desc>
-<concept_significance>500</concept_significance>
-</concept>
-<concept>
-<concept_id>10011007.10011006.10011041.10010943</concept_id>
-<concept_desc>Software and its engineering~Interpreters</concept_desc>
-<concept_significance>500</concept_significance>
-</concept>
-<concept>
-<concept_id>10003752.10003790.10011740</concept_id>
-<concept_desc>Theory of computation~Type theory</concept_desc>
-<concept_significance>500</concept_significance>
-</concept>
-</ccs2012>
-\end{CCSXML}
-
-\ccsdesc[500]{Software and its engineering~Semantics}
-\ccsdesc[500]{Software and its engineering~Interpreters}
-\ccsdesc[500]{Theory of computation~Type theory}
-
-\keywords{Dependent types, formal semantics}
-
-\maketitle
+\linenumbers
 
 %format . = "."
 %format Set = "\D{Set}"
@@ -249,11 +194,17 @@ soundness theorems for some advanced typing features~\cite{Amin17},
 and the semantics of imperative programming languages, in such a way the static
 semantics is ensured by a dependently-typed
 syntax\footnote{Also known as intrinsically-typed.}\cite{Poulsen18}.
-In this work, we follow \citet{Poulsen18} by using an intrinsically-typed
+In this work, we follow Poulsen et. al. by using an intrinsically-typed
 representation to build a definitional interpreter for a low-level virtual
 machine, developed by Appel and Leroy, as a benchmark problem closer to
 real-world implementations such as typed assembly languages~\cite{CraryM99} and
 proof-carrying code~\cite{Necula97}.
+
+In this work, we extend our previous SBLP 2020 paper by including support to
+indirect jumps, as specified in the version 2.0 of the list
+machine benchmark~\cite{AppelDL12}. We provide detailed explanations of the needed
+changes on the machine syntax, type system and interpreter to accomodate this extension, which
+allows the handling of more complex control flow, like the call/return model of function calls.
 
 More specifically, our contributions are:
 
@@ -270,10 +221,13 @@ More specifically, our contributions are:
   \item We compare the results of an intrinsic approach encoded in Agda with extrinsic
         formalizations encoded in Twelf and Coq. We show that such intrinsic encoding avoids
         unnecessary repetitions and provides some properties for free.
+  \item We provide a detailed discussion on the necessary type system and interpreter modifications
+        to support indirect jumps.
 \end{itemize}
 
-The rest of this paper is organized as follows: Section~\ref{sec:agda}
-presents a brief explanation about the encoding of dependently-typed syntax in Agda and Section~\ref{sec:list}
+The rest of this paper is organized as follows: Section~\ref{sec:agda} presents an overview of
+the Agda programming language and Section~\ref{sec:syntax}
+gives a brief explanation about the encoding of dependently-typed syntax. Section~\ref{sec:list}
 reviews the list-machine benchmark and presents its syntax and type system.
 We describe the intrinsically-typed representation for the list-machine, as well as
 the subtyping relation, and the least common supertype algorithm in Section~\ref{sec:typing}.
@@ -293,138 +247,145 @@ on-line~\cite{list-rep}.
 %% Overview of Agda  %%
 %%%%%%%%%%%%%%%%%%%%%%%
 
+\section{An overview of the Agda programming language}\label{sec:agda}
 
-
-\section{Dependently-typed Syntax}\label{sec:agda}
 
 %format String = "\D{String}"
 %format Bool = "\D{Bool}"
 %format forall = "\D{\forall}"
 
-% Agda is a dependently-typed functional programming language based on
-% Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
-% and an infinite hierarchy of types of types, |Set l|, where |l| is a
-% natural number, are built-in. Everything else is a user-defined
-% type. The type |Set|, also known as |Set0|, is the type of all
-% ``small'' types, such as |Bool|, |String| and |List Bool|.  The type
-% |Set1| is the type of |Set| and ``others like it'', such as |Set ->
-% Bool|, |String -> Set|, and |Set -> Set|. We have that |Set l| is an
-% element of the type |Set (l+1)|, for every $l \geq 0$. This
-% stratification of types is used to keep Agda consistent as a logical
-% theory~\cite{Sorensen2006}.
+Agda is a dependently-typed functional programming language based on
+Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
+and an infinite hierarchy of types of types, |Set l|, where |l| is a
+natural number, are built-in. Everything else is a user-defined
+type. The type |Set|, also known as |Set0|, is the type of all
+``small'' types, such as |Bool|, |String| and |List Bool|.  The type
+|Set1| is the type of |Set| and ``others like it'', such as |Set -> Bool|,
+|String -> Set|, and |Set -> Set|. We have that |Set l| is an
+element of the type |Set (l+1)|, for every $l \geq 0$. This
+stratification of types is used to keep Agda consistent as a logical
+theory~\cite{Sorensen2006}.
 
-% An ordinary (non-dependent) function type is written |A -> B| and a
-% dependent one is written |(x : A) -> B|, where type |B| depends on
-% |x|, or |forall (x : A) -> B|. Agda allows the definition of \emph{implicit
-% parameters}, i.e.,  parameters whose values can be inferred from the
-% context, by surrounding them in curly braces: |forall {x : A} -> B|. To
-% avoid clutter, we'll omit implicit arguments from the source code
-% presentation. The reader can safely assume that every free variable in
-% a type is an implicit parameter.
+An ordinary (non-dependent) function type is written |A -> B| and a
+dependent one is written |(x : A) -> B|, where type |B| depends on
+|x|, or |forall (x : A) -> B|. Agda allows the definition of \emph{implicit
+parameters}, i.e.,  parameters whose values can be inferred from the
+context, by surrounding them in curly braces: |forall {x : A} -> B|. To
+avoid clutter, we'll omit implicit arguments from the source code
+presentation. The reader can safely assume that every free variable in
+a type is an implicit parameter.
 
-% As an example of Agda code, consider the following data type of
-% length-indexed lists, also known as vectors.
+As an example of Agda code, consider the following data type of
+length-indexed lists, also known as vectors.
 
-% \begin{spec}
-%   data Nat : Set where
-%     zero : Nat
-%     succ : Nat -> Nat
+ \begin{spec}
+   data Nat : Set where
+     zero : Nat
+     succ : Nat -> Nat
 
-%   data Vec (A : Set) : Nat -> Set where
-%     []  : Vec A zero
-%     _::_ : forall {n} -> A -> Vec A n -> Vec A (succ n)
-% \end{spec}
-% %format head = "\F{head}"
-% Constructor |[]| builds empty vectors. The cons-operator (|_::_|)
-% inserts a new element in front of a vector of $n$ elements (of type
-% |Vec A n|) and returns a value of type |Vec A (succ n)|. The
-% |Vec| datatype is an example of a dependent type, i.e., a type
-% that uses a value (that denotes its length). The usefulness of
-% dependent types can be illustrated with the definition of a safe list
-% head function: |head| can be defined to accept only non-empty
-% vectors, i.e.,~values of type |Vec A (succ n)|.
-% \begin{spec}
-%   head : Vec A (succ n) -> A
-%   head (x :: xs) = x
-% \end{spec}
-% In |head|'s definition, constructor |[]| is not used. The
-% Agda type-checker can figure out, from |head|'s parameter type,
-% that argument |[]| to |head| is not type-correct.
+   data Vec (A : Set) : Nat -> Set where
+     []  : Vec A zero
+     _::_ : forall {n} -> A -> Vec A n -> Vec A (succ n)
+ \end{spec}
 
-% %format _==_ = "\D{\_ \equiv \_}"
-% %format == = "\D{\equiv}"
-% %format refl = "\Con{refl}"
-% %format proj₁ = "\F{\pi_1}"
-% %format proj₂ = "\F{\pi_2}"
-% %format Fin   = "\D{Fin}"
-% %format lookup = "\F{lookup}"
+%format head = "\F{head}"
+
+Constructor |[]| builds empty vectors. The cons-operator (|_::_|)
+inserts a new element in front of a vector of $n$ elements (of type
+|Vec A n|) and returns a value of type |Vec A (succ n)|. The
+|Vec| datatype is an example of a dependent type, i.e., a type
+that uses a value (that denotes its length). The usefulness of
+dependent types can be illustrated with the definition of a safe list
+head function: |head| can be defined to accept only non-empty
+vectors, i.e.,~values of type |Vec A (succ n)|.
+\begin{spec}
+  head : Vec A (succ n) -> A
+  head (x :: xs) = x
+\end{spec}
+
+In |head|'s definition, constructor |[]| is not used. The
+Agda type-checker can figure out, from |head|'s parameter type,
+that argument |[]| to |head| is not type-correct.
+
+%format _==_ = "\D{\_ \equiv \_}"
+%format == = "\D{\equiv}"
+%format refl = "\Con{refl}"
+%format proj₁ = "\F{\pi_1}"
+%format proj₂ = "\F{\pi_2}"
+%format Fin   = "\D{Fin}"
+%format lookup = "\F{lookup}"
 
 
-% Another useful data type is the finite type,
-% |Fin|\footnote{Note that Agda supports the overloading of
-% data type constructor names. Constructor |zero| can refer to
-% type |Nat| or |Fin|, depending on the context where the name
-% is used.}, which is defined in Agda's standard library as:
-% \begin{spec}
-%   data Fin : Nat -> Set where
-%     zero : forall {n} -> Fin (succ n)
-%     succ : forall {n} -> Fin n -> Fin (succ n)
-% \end{spec}
-% Type |Fin n| has exactly |n| inhabitants
-% (elements), i.e., it is isomorphic to the set $\{0,...,n - 1\}$.
-% An application of such type is to define a safe vector
-% lookup function, which avoids the access of invalid positions.
-% \begin{spec}
-%   lookup : forall {A n} -> Fin n -> Vec A n -> A
-%   lookup zero (x :: _) = x
-%   lookup (succ idx) (_ :: xs) = lookup idx xs
-% \end{spec}
-% Thanks to the propositions-as-types principle,\footnote{It is also known as
-%   Curry-Howard ``isomorphism''~\cite{Sorensen2006}.} we can interpret
-% types as logical formulas and terms as proofs. An example is the
-% representation of equality as the following Agda type:
+Another useful data type is the finite type,
+|Fin|\footnote{Note that Agda supports the overloading of
+data type constructor names. Constructor |zero| can refer to
+type |Nat| or |Fin|, depending on the context where the name
+is used.}, which is defined in Agda's standard library as:
+\begin{spec}
+  data Fin : Nat -> Set where
+    zero : forall {n} -> Fin (succ n)
+    succ : forall {n} -> Fin n -> Fin (succ n)
+\end{spec}
+Type |Fin n| has exactly |n| inhabitants
+(elements), i.e., it is isomorphic to the set $\{0,...,n - 1\}$.
+An application of such type is to define a safe vector
+lookup function, which avoids the access of invalid positions.
+\begin{spec}
+  lookup : forall {A n} -> Fin n -> Vec A n -> A
+  lookup zero (x :: _) = x
+  lookup (succ idx) (_ :: xs) = lookup idx xs
+\end{spec}
+Thanks to the propositions-as-types principle,\footnote{It is also known as
+Curry-Howard ``isomorphism''~\cite{Sorensen2006}.} we can interpret
+types as logical formulas and terms as proofs. An example is the
+representation of equality as the following Agda type:
 
-% \begin{spec}
-%   data _==_ {l}{A : Set l}(x : A) : A -> Set where
-%     refl : x == x
-% \end{spec}
+\begin{spec}
+  data _==_ {l}{A : Set l}(x : A) : A -> Set where
+    refl : x == x
+\end{spec}
 
-% %format not = "\F{\neg}"
-% %format Dec = "\D{Dec}"
-% %format yes = "\Con{yes}"
-% %format no  = "\Con{no}"
-% %format Even = "\Con{Even}"
-% %format Odd = "\Con{Odd}"
-% %format Parity = "\D{Parity}"
-% %format parity = "\F{parity}"
-% %format natToBin = "\F{natToBin}"
-% %format false = "\Con{false}"
-% %format true = "\Con{true}"
-% %format + = "\F{+}"
-% %format ++ = "\F{++}"
-% %format Bot = "\D{\bot}"
-% %format All = "\D{All}"
-% This type is called propositional equality. It defines that there is
-% a unique evidence for equality, constructor |refl| (for reflexivity),
-% which asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
-% and a vector |xs|, the type |All P xs| is used to build proofs that |P| holds for all
-% elements in |xs| and it is defined as:
-% \begin{spec}
-%   data All (P : A -> Set) : Vec A n ->  Set where
-%      [] : All P []
-%      _::_ : forall {x xs} -> P x -> All P xs -> All P (x :: xs)
-% \end{spec}
-% The first constructor specifies that |All P| holds for the empty vector and
-% constructor |_::_| builds a proof of |All P (x :: xs)| from proofs of
-% |P x| and |All P xs|. Since this type has the same structure of vectors,
-% some functions on |Vec| have similar definitions for type |All|. As an example
-% used in our formalization, consider the function |lookup|, which extracts a
-% proof of |P| for the element at position |v : Fin n| in a |Vec|:
-% \begin{spec}
-%    lookup : {xs : Vec A n} -> Fin n -> All P xs -> P x
-%    lookup zero (px :: _) = px
-%    lookup (succ idx) (_ :: pxs) = lookup idx pxs
-% \end{spec}
+%format not = "\F{\neg}"
+%format Dec = "\D{Dec}"
+%format yes = "\Con{yes}"
+%format no  = "\Con{no}"
+%format Even = "\Con{Even}"
+%format Odd = "\Con{Odd}"
+%format Parity = "\D{Parity}"
+%format parity = "\F{parity}"
+%format natToBin = "\F{natToBin}"
+%format false = "\Con{false}"
+%format true = "\Con{true}"
+%format + = "\F{+}"
+%format ++ = "\F{++}"
+%format Bot = "\D{\bot}"
+%format All = "\D{All}"
+This type is called propositional equality. It defines that there is
+a unique evidence for equality, constructor |refl| (for reflexivity),
+which asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
+and a vector |xs|, the type |All P xs| is used to build proofs that |P| holds for all
+elements in |xs| and it is defined as:
+\begin{spec}
+  data All (P : A -> Set) : Vec A n ->  Set where
+    [] : All P []
+    _::_ : forall {x xs} -> P x -> All P xs -> All P (x :: xs)
+\end{spec}
+The first constructor specifies that |All P| holds for the empty vector and
+constructor |_::_| builds a proof of |All P (x :: xs)| from proofs of
+|P x| and |All P xs|. Since this type has the same structure of vectors,
+some functions on |Vec| have similar definitions for type |All|. As an example
+used in our formalization, consider the function |lookup|, which extracts a
+proof of |P| for the element at position |v : Fin n| in a |Vec|:
+\begin{spec}
+   lookup : {xs : Vec A n} -> Fin n -> All P xs -> P x
+   lookup zero (px :: _) = px
+   lookup (succ idx) (_ :: pxs) = lookup idx pxs
+\end{spec}
+
+
+
+\section{Dependently-typed Syntax}\label{sec:syntax}
+
 
 An important application of dependent types is to encode programming languages
 syntax. The role of dependent types in this domain is to encode programs that
@@ -448,7 +409,7 @@ programming and Agda. %\footnote{For further information about Agda, see~\cite{N
       Num : Nat -> Expr
       _&_ _+_ : Expr -> Expr -> Expr
 \end{spec}
-    
+
 Using this data type\footnote{Agda supports the definition of mixfix operators.
 We can use underscores to mark arguments positions.}, we can construct expressions
 to denote terms that should not be considered well-typed like
@@ -538,11 +499,11 @@ presented next and their meaning is as usual.
         & \mid & \text{end}                          & \text{(end of block list)}\\
 \end{array}
 \]
-A program is just a sequence of blocks referenced by a unique label. 
+A program is just a sequence of blocks referenced by a unique label.
 
 Each program variable is assigned to a list type, which is used to guarantee the safety when executing
 fetch-field instructions that demands non-empty list arguments. In order to express such refinements, types are subject to a
-subtyping relation. The meta-variable $\tau$ denotes an arbitrary type. 
+subtyping relation. The meta-variable $\tau$ denotes an arbitrary type.
 \[
 \begin{array}{rcll}
   \tau & ::=  & \text{nil} & \text{(type for empty lists)}\\
@@ -735,7 +696,7 @@ the variables on entry to each basic block.
 \begin{spec}
 Ctx : Set
 Ctx = List (String × Ty)
-  
+
 PCtx : Set
 PCtx = Vec Ctx n
 \end{spec}
@@ -977,7 +938,7 @@ lub : (t1 t2 : Ty) → ∃ (λ t → t1 ⊓ t2 ~ t)
 lub nil nil = nil , lub-0
 lub (list t1) nil = list t1 , lub-1
 lub (list t1) (list t2) with lub t1 t2
-...| t3 , p = list t3 , lub-3 p 
+...| t3 , p = list t3 , lub-3 p
 lub (listcons t1) nil = list t1 , lub-5
 lub (listcons t1) (list t2) with lub t1 t2
 ...| t3 , p = list t3 , lub-2b (lub-3 p)
@@ -1134,7 +1095,7 @@ by the context |Γ|. Similarly, the second instruction also retrieves the head e
 it needs to update the run-time environment on the position of index |v'|. This process is done by the
 function |update-env|\footnote{The source-code of this function can be found in our online repository.}.}
 
-\begin{spec}  
+\begin{spec}
 run-step (suc n) p env (block-seq (instr-fetch-0-new v) b)
   with lookup env v
 ...| v₁ ∷ v₂ = run-step n p (v₁ ∷ env) b
@@ -1177,7 +1138,7 @@ are accepted in each step of evaluation.
 %    (lookup env v₁))) b
 %run-step (suc n) p env (block-jump {l = i} l s)
 %  rewrite sym ([]=⇒lookup l) =
-%    run-step n p (⊂-Ctx s env) (lookupA i p) 
+%    run-step n p (⊂-Ctx s env) (lookupA i p)
 
 \paragraph{Soundness properties}{Programs written using an intrinsically-typed syntax are type-sound by
 construction. Since only well-typed programs can be expressed, the \emph{preservation} property is
@@ -1259,7 +1220,7 @@ is well-typed. The process for type-checking different instructions follows a si
 
 We implemented all 14 tasks from the list-machine benchmark in the Agda programming language.
 The tasks considered by us are the same implemented and proved by~\citet{Appel07}.
-The next table summarizes the total number of lines of code (LOC) for our results together with theirs. 
+The next table summarizes the total number of lines of code (LOC) for our results together with theirs.
 
 \begin{table}[!htb]
 \begin{tabular}{rl||rrr}
@@ -1282,12 +1243,12 @@ The next table summarizes the total number of lines of code (LOC) for our result
                                                    & 18                        & 0                       & 0                        \\
 13. & Scalable type-checker                        & yes                       & yes                     & yes                      \\
 14. & Prove soundness of $\vdash_{\textrm{prog}} p : \Pi$
-                                                   & 347                       & 141                     & * 
+                                                   & 347                       & 141                     & *
 \end{tabular}
 \end{table}
 
-The total time for parsing and proof checking our Agda implementation was around 10 seconds 
-on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5. We briefly comment 
+The total time for parsing and proof checking our Agda implementation was around 10 seconds
+on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5. We briefly comment
 on our Agda encoding of these 14 tasks.
 
 \begin{enumerate}
@@ -1323,7 +1284,7 @@ on our Agda encoding of these 14 tasks.
   \item \textbf{Prove the termination of the type-checker.} This task is trivial in our setting, since all defined Agda functions
         must be total. The totality is ensured by Agda's termination / totality checker.
   \item \textbf{Scalable type-checker.} Agda code can be compiled to machine code using its GHC-Haskell back-end. Since GHC is
-        an industrial strength compiler, the back-end can generate an efficient executable for the machine interpreter and type-checker. 
+        an industrial strength compiler, the back-end can generate an efficient executable for the machine interpreter and type-checker.
   \item \textbf{Prove soundness of type-checker.} In our approach, the soundness of the type-checker is ensured by construction,
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
 \end{enumerate}
@@ -1378,7 +1339,7 @@ session subtyping in Agda. Thiemann modeled the semantics as an interruptible ab
 simple interface to a scheduler. Since our objective was to formalize the list-machine benchmark in Agda and it
 does not have linearity constraints in its state manipulation, we do not need to deal with the complexities
 of linear and session types as in~\cite{Rouvoet20,Thiemann19}. A formalization of System F$_{\omega\mu}$ was
-the subject of \citet{ChapmanKNW19} work, which used an intrinsically-typed representation to 
+the subject of \citet{ChapmanKNW19} work, which used an intrinsically-typed representation to
 implement a normalization by evaluation for this calculus. The reason behind such formalization effort was
 the verification of a core language for smart-contracts which is based on System F$_{\omega\mu}$. As our work,
 Chapman's et al. formalization is an example of how intrisincally-typed syntax leads to clear interpreter code
@@ -1387,7 +1348,7 @@ which avoids completely stuck states.}
 \vspace{-3ex}
 
 \section{Conclusion}\label{sec:conclusion}
- 
+
 This paper shows how the combination of intrinsically-typed syntax and definitional interpreters can be used to simplify
 the tasks on the formalization of programming languages. Using such approach, we were able to provide a machine-checked version of the
 list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages.
@@ -1402,7 +1363,8 @@ As future work, we want to reuse the ideas presented in this paper to provide an
 real-world low-level languages like the eBPF and the LUA VM. Furthermore, one can extend the formalization presented here
 for other programming languages with similar settings.
 
-\bibliographystyle{ACM-Reference-Format}
+\section*{References}
+
 \bibliography{main}
+
 \end{document}
-\endinput
