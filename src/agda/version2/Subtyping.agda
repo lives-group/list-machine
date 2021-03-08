@@ -38,11 +38,11 @@ data _<:_ : Ty → Ty → Set where
 -- subtype for contexts
 
 data _⊂_ where
-  env-sub1 : ∀ {Γ Γ'' Γ' t t'} →
-               Γ ≡ t' ∷ Γ''    →
+  env-sub1 : ∀ {Γ Γ'' Γ' t t' x} →
+               Γ ≡ ((x , t') ∷ Γ'')    →
                t' <: t         →
                Γ'' ⊂ Γ'        →
-               Γ ⊂ (t ∷ Γ')
+               Γ ⊂ ((x , t) ∷ Γ')
   env-sub2 : ∀ {Γ} → Γ ⊂ []
 
 ⊂-refl : ∀ {Γ} → Γ ⊂ Γ
@@ -53,8 +53,8 @@ data _⊂_ where
 ⊂-[]-left : ∀ {t Γ} → ¬ ([] ⊂ (t ∷ Γ))
 ⊂-[]-left (env-sub1 () x₁ p)
 
-⊂-∷-inv : ∀ {t t' Γ Γ'} → (t ∷ Γ) ⊂ (t' ∷ Γ') → (t <: t') × (Γ ⊂ Γ')
-⊂-∷-inv (env-sub1 refl x₁ p) = x₁ , p
+⊂-∷-inv : ∀ {t t' Γ Γ' x x'} → ((x , t) ∷ Γ) ⊂ ((x' , t') ∷ Γ') → (x ≡ x') × (t <: t') × (Γ ⊂ Γ')
+⊂-∷-inv (env-sub1 refl x₁ p) = refl , x₁ , p
 
 -- inversion lemmas
 
@@ -85,7 +85,8 @@ bot-<: <:-refl = refl
 
 -- subtyping tests
 
-_⊂?_ : Decidable {A = Ctx} _⊂_
+postulate 
+  _⊂?_ : Decidable {A = Ctx} _⊂_
 
 _<:?_ : Decidable {A = Ty} _<:_
 nil <:? nil = yes <:-refl
@@ -129,12 +130,12 @@ cont ts <:? cont ts' = dec (ts' ⊂? ts)
                            (λ q → no (λ k → q (cont-<:-inv k)))
 
 
-ts ⊂? [] = yes env-sub2
-[] ⊂? (t' ∷ ts') = no ⊂-[]-left
-(t ∷ ts) ⊂? (t' ∷ ts') with t <:? t' | ts ⊂? ts'
-...| yes p | yes q = yes (env-sub1 refl p q)
-...| yes p | no  q = no (λ n → q (proj₂ (⊂-∷-inv n)))
-...| no  p | _     = no (λ n → (p (proj₁ (⊂-∷-inv n))))
+-- ts ⊂? [] = yes env-sub2
+-- [] ⊂? (t' ∷ ts') = no ⊂-[]-left
+-- (t ∷ ts) ⊂? (t' ∷ ts') with t <:? t' | ts ⊂? ts'
+-- ...| yes p | yes q = yes (env-sub1 refl p q)
+-- ...| yes p | no  q = no (λ n → q (proj₂ (⊂-∷-inv n)))
+-- ...| no  p | _     = no (λ n → (p (proj₁ (⊂-∷-inv n))))
 
 -- properties of subtyping
 

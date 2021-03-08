@@ -1,3 +1,4 @@
+open import Data.Nat renaming (_≟_ to _≟n_)
 open import Data.List
 open import Data.Product
 open import Data.String renaming (_≟_ to _≟s_)
@@ -25,7 +26,7 @@ data Ty : Set where
 
 -- we define contexts here
 
-Ctx = List Ty
+Ctx = List (ℕ × Ty)
 
 -- syntatic type equality test
 
@@ -52,7 +53,8 @@ dec (no q) f g = g q
 
 _≟_ : Decidable {A = Ty} _≡_
 
-_≟L_ : Decidable {A = Ctx} _≡_
+postulate 
+  _≟L_ : Decidable {A = Ctx} _≡_
 
 nil ≟ nil = yes refl
 nil ≟ list t' = no (λ ())
@@ -97,10 +99,17 @@ cont ts ≟ cont ts' = dec (ts ≟L ts')
                          (yes ∘ cong cont)
                          (λ q → no λ p → q (cont-≡-inv p))
 
+{-
 [] ≟L [] = yes refl
 [] ≟L (x ∷ ts') = no (λ ())
 (x ∷ ts) ≟L [] = no (λ ())
-(t ∷ ts) ≟L (t' ∷ ts') with t ≟ t' | ts ≟L ts'
-...| yes p | yes k rewrite p | k = yes refl
-...| yes p | no k  rewrite p = no (k ∘ proj₂ ∘ ∷-≡-inv)
-...| no  p | _ = no (p ∘ proj₁ ∘ ∷-≡-inv)
+((x , t) ∷ ts) ≟L ((x' , t') ∷ ts') with x ≟n x' | t ≟ t' | ts ≟L ts'
+... | yes p | yes q | yes r rewrite p | q | r  = yes refl
+... | yes p | yes q | no r rewrite p | q = no (r ∘ proj₂ ∘ ∷-≡-inv)
+... | yes p | no  q | _ = no {!!}
+... | no  p | _     | _ = no {!!}
+-}
+
+-- ...| yes p | yes k rewrite p | k = yes refl
+-- ...| yes p | no k  rewrite p = no (k ∘ proj₂ ∘ ∷-≡-inv)
+-- ...| no  p | _ = no (p ∘ proj₁ ∘ ∷-≡-inv)

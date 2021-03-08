@@ -26,10 +26,10 @@ data _∪_~_ : Ctx → Ctx → Ctx → Set
 data _∩_~_  where
   lub-ctx-1 : ∀ {Γ'} → [] ∩ Γ' ~ []
   lub-ctx-2 : ∀ {Γ}  → Γ ∩ [] ~ []
-  lub-ctx-3 : ∀ {t t' t'' Γ Γ' Γ''} →
+  lub-ctx-3 : ∀ {t t' t'' Γ Γ' Γ'' x} → -- @TODO: see this 'x'
                 t ⊓ t' ~ t'' →
                 Γ ∩ Γ' ~ Γ'' →
-                (t ∷ Γ) ∩ (t' ∷ Γ') ~ (t'' ∷ Γ'')
+                ((x , t) ∷ Γ) ∩ ((x , t') ∷ Γ') ~ ((x , t'') ∷ Γ'')
 
 data _⊓_~_ where
   lub-bot-r : ∀ {t} → t ⊓ bot ~ t
@@ -68,10 +68,10 @@ data _⊓_~_ where
 data _∪_~_  where
   glb-ctx-1 : ∀ {Γ'} → [] ∪ Γ' ~ Γ'
   glb-ctx-2 : ∀ {Γ}  → Γ ∪ [] ~ Γ
-  glb-ctx-3 : ∀ {t t' t'' Γ Γ' Γ''} →
+  glb-ctx-3 : ∀ {t t' t'' Γ Γ' Γ'' x} → -- @TODO: see this 'x'
                 t ⊔ t' ~ t'' →
                 Γ ∪ Γ' ~ Γ'' →
-                (t ∷ Γ) ∪ (t' ∷ Γ') ~ (t'' ∷ Γ'')
+                ((x , t) ∷ Γ) ∪ ((x , t') ∷ Γ') ~ ((x , t'') ∷ Γ'')
 
 
 data _⊔_~_ where
@@ -110,9 +110,14 @@ data _⊔_~_ where
 -- calculating lub and glb
 
 lub : ∀ t1 t2 → ∃ (λ t3 → t1 ⊓ t2 ~ t3)
-lubCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∩ Γ' ~ Γ'')
+
+postulate 
+  lubCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∩ Γ' ~ Γ'')
+
 glb : ∀ t1 t2 → ∃ (λ t3 → t1 ⊔ t2 ~ t3)
-glbCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∪ Γ' ~ Γ'')
+
+postulate
+  glbCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∪ Γ' ~ Γ'')
 
 
 lub nil nil = nil , lub-0
@@ -147,10 +152,12 @@ lub (cont x) bot = cont x , lub-bot-r
 lub (cont x) (cont x₁) with glbCtx x x₁
 ...| k , k'  = cont k , lub-cont k'
 
+{-
 lubCtx [] Γ' = [] , lub-ctx-1
 lubCtx (t ∷ Γ) [] = [] , lub-ctx-2
 lubCtx (t ∷ Γ) (t' ∷ Γ') with lub t t' | lubCtx Γ Γ'
 ...| t3 , p3 | Γ'' , p4 = t3 ∷ Γ'' , lub-ctx-3 p3 p4
+-}
 
 glb nil nil = nil , glb-refl
 glb nil (list t') = nil , glb-listnil-l
@@ -184,18 +191,22 @@ glb (cont x) bot = bot , glb-top1
 glb (cont Γ) (cont Γ') with lubCtx Γ Γ'
 ...| Γ'' , p = cont Γ'' , glb-cont p
 
+{-
 glbCtx [] [] = [] , glb-ctx-1
 glbCtx [] (t' ∷ Γ') = t' ∷ Γ' , glb-ctx-1
 glbCtx (t ∷ Γ) [] = t ∷ Γ , glb-ctx-2
 glbCtx (t ∷ Γ) (t' ∷ Γ') with glb t t' | glbCtx Γ Γ'
 ...| t3 , p3 | Γ'' , p4 = t3 ∷ Γ'' , glb-ctx-3 p3 p4
-
+-}
 
 -- relating subtyping and lub , glb
 
 
 lub-subtype : ∀ {t1 t2 t3} → t1 ⊓ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
-lubCtx-subtype : ∀ {Γ Γ' Γ''} → Γ ∩ Γ' ~ Γ'' → (Γ ⊂ Γ'') × (Γ' ⊂ Γ'')
+
+postulate 
+  lubCtx-subtype : ∀ {Γ Γ' Γ''} → Γ ∩ Γ' ~ Γ'' → (Γ ⊂ Γ'') × (Γ' ⊂ Γ'')
+  
 glb-supertype : ∀ {t1 t2 t3} → t1 ⊔ t2 ~ t3 → (t3 <: t1) × (t3 <: t2)
 glbCtx-supertype : ∀ {Γ Γ' Γ''} → Γ ∪ Γ' ~ Γ'' → (Γ'' ⊂ Γ) × (Γ'' ⊂ Γ')
 
@@ -269,10 +280,12 @@ glb-supertype {.(cont _)} (glb-cont x) with lubCtx-subtype x
 glb-supertype {t1} glb-top1 = <:-bot , <:-bot
 glb-supertype {.bot} glb-top2 = <:-bot , <:-bot
 
+{-
 lubCtx-subtype lub-ctx-1 = env-sub2 , env-sub2
 lubCtx-subtype lub-ctx-2 = env-sub2 , env-sub2
 lubCtx-subtype (lub-ctx-3 x x₁) with lub-subtype x | lubCtx-subtype x₁
 ...| k1 , k2 | k3 , k4 = env-sub1 refl k1 k3 , env-sub1 refl k2 k4
+-}
 
 glbCtx-supertype glb-ctx-1 = env-sub2 , ⊂-refl
 glbCtx-supertype glb-ctx-2 = ⊂-refl , env-sub2
@@ -311,8 +324,10 @@ glbCtx-supertype-right = proj₂ ∘ glbCtx-supertype
 
 lub-comm : ∀ {t1 t2 t3} → t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
 glb-comm : ∀ {t1 t2 t3} → t1 ⊔ t2 ~ t3 → t2 ⊔ t1 ~ t3
-lubCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∩ Γ' ~ Γ'' → Γ' ∩ Γ ~ Γ''
-glbCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∪ Γ' ~ Γ'' → Γ' ∪ Γ ~ Γ''
+
+postulate 
+  lubCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∩ Γ' ~ Γ'' → Γ' ∩ Γ ~ Γ''
+  glbCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∪ Γ' ~ Γ'' → Γ' ∪ Γ ~ Γ''
 
 lub-comm lub-bot-r = lub-bot-l
 lub-comm lub-bot-l = lub-bot-r
@@ -357,6 +372,7 @@ glb-comm (glb-cont x) = glb-cont (lubCtx-comm x)
 glb-comm glb-top1 = glb-top2
 glb-comm glb-top2 = glb-top1
 
+{-
 lubCtx-comm lub-ctx-1 = lub-ctx-2
 lubCtx-comm lub-ctx-2 = lub-ctx-1
 lubCtx-comm (lub-ctx-3 x p) with lub-comm x | lubCtx-comm p
@@ -365,13 +381,16 @@ lubCtx-comm (lub-ctx-3 x p) with lub-comm x | lubCtx-comm p
 glbCtx-comm glb-ctx-1 = glb-ctx-2
 glbCtx-comm glb-ctx-2 = glb-ctx-1
 glbCtx-comm (glb-ctx-3 x p) = glb-ctx-3 (glb-comm x) (glbCtx-comm p)
+-}
 
 -- correctness lemmas
 
 lub-least : ∀ {τ₁ τ₂ τ₃ τ₄} → τ₁ ⊓ τ₂ ~ τ₃ → τ₁ <: τ₄ → τ₂ <: τ₄ → τ₃ <: τ₄
 glb-greatest : ∀ {τ₁ τ₂ τ₃ τ₄} → τ₁ ⊔ τ₂ ~ τ₃ → τ₄ <: τ₁ → τ₄ <: τ₂ → τ₄ <: τ₃
-glbCtx-greatest : ∀ {Γ₁ Γ₂ Γ₃ Γ₄} → Γ₁ ∪ Γ₂ ~ Γ₃ → Γ₄ ⊂ Γ₁  → Γ₄ ⊂ Γ₂ → Γ₄ ⊂ Γ₃
-lubCtx-least : ∀ {Γ₁ Γ₂ Γ₃ Γ₄} → Γ₁ ∩ Γ₂ ~ Γ₃ → Γ₁ ⊂ Γ₄  → Γ₂ ⊂ Γ₄ → Γ₃ ⊂ Γ₄
+
+postulate 
+  glbCtx-greatest : ∀ {Γ₁ Γ₂ Γ₃ Γ₄} → Γ₁ ∪ Γ₂ ~ Γ₃ → Γ₄ ⊂ Γ₁  → Γ₄ ⊂ Γ₂ → Γ₄ ⊂ Γ₃
+  lubCtx-least : ∀ {Γ₁ Γ₂ Γ₃ Γ₄} → Γ₁ ∩ Γ₂ ~ Γ₃ → Γ₁ ⊂ Γ₄  → Γ₂ ⊂ Γ₄ → Γ₃ ⊂ Γ₄
 
 lub-least lub-bot-r p1 p2 = p1
 lub-least lub-bot-l p1 p2 = p2
@@ -457,6 +476,7 @@ glb-greatest (glb-cont x) <:-refl <:-refl = <:-cont (lubCtx-least x ⊂-refl ⊂
 glb-greatest glb-top1 p1 p2 = p2
 glb-greatest glb-top2 p1 p2 = p1
 
+{-
 glbCtx-greatest glb-ctx-1 p1 p2 = p2
 glbCtx-greatest glb-ctx-2 p1 p2 = p1
 glbCtx-greatest (glb-ctx-3 x p) (env-sub1 refl x₂ p1) (env-sub1 refl x₃ p2)
@@ -466,3 +486,4 @@ lubCtx-least lub-ctx-1 p1 p2 = p1
 lubCtx-least lub-ctx-2 p1 p2 = p2
 lubCtx-least (lub-ctx-3 x p) (env-sub1 refl x₂ p1) (env-sub1 refl x₄ p2) = env-sub1 refl (lub-least x x₂ x₄) (lubCtx-least p p1 p2)
 lubCtx-least (lub-ctx-3 x p) env-sub2 p2 = env-sub2
+-}

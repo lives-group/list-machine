@@ -41,7 +41,7 @@ data Val : Ty → Set where
 
 -- execution environments
 
-Env Γ = All (λ τ → Val τ) Γ
+Env Γ = All (λ (x , τ) → Val τ) Γ
 ⊂-Ctx : ∀ {Γ Γ'} → Γ ⊂ Γ' → Env Γ → Env Γ'
 
 
@@ -67,7 +67,7 @@ PEnv Π = Allv Env Π
 
 -- updating the environment
 
-update-env : ∀ {τ τ′ Γ} → Env Γ → (i : τ′ ∈ Γ) → Val τ → Env (i ∷= τ)
+update-env : ∀ {τ τ′ Γ x} → Env Γ → (i : (x , τ′) ∈ Γ) → Val τ → Env (i ∷= (x , τ))
 update-env (x All.∷ xs) (here px₁) v = v All.∷ xs
 update-env (x All.∷ xs) (there i) v = x All.∷ update-env xs i v
 
