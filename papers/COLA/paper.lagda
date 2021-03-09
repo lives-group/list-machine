@@ -1223,7 +1223,7 @@ as proposed by Appel et. al.~\cite{AppelDL12}. We start by describing the change
 and its impact on the intrinsically typed representation of programs in Section~\ref{sec:changestypes}.
 Updates on the type checker and interpreter implementations are described in Section~\ref{sec:changesintep}.
 
-\subsection{Modifications in the type system and instruction set}
+\subsection{Modifications in the type system and instruction set}\label{sec:changestypes}
 
 Since our solution relies on representing the program using intrinsically typed syntax, we describe
 first the changes on the machine type system. The first modification is the inclusion of a type for
@@ -1357,6 +1357,11 @@ typing contexts are simply the dual version for greatest lower bound for context
 \]
 The Agda encoding of these relations is an immediate translation of the mathematical notation
 to code and are omitted for brevity.
+
+The modifications on the subtyping and least upper bound induced changes on all theorems
+about these relations. On our first implementation, these results are just straightforward
+inductive proofs. Because of the mutually inductive nature of the new relation versions, all
+these proofs needed to be defined by mutually recursive functions.
 
 \subsection{Modifications in the type-checker and interpreter}\label{sec:changesintep}
 
