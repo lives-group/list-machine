@@ -10,7 +10,7 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any
 open import Data.Vec hiding (_++_)
 open import Data.Vec.Properties
-open import Relation.Binary.PropositionalEquality using (refl ; _≡_)
+open import Relation.Binary.PropositionalEquality using (refl ; _≡_ ; sym)
 open import Relation.Nullary
 
 module TypeChecker (blocks : ℕ) where
@@ -112,11 +112,15 @@ check-get-label Π Γ v l | Γ₁ with≡ p with lookup-var Γ v
 ... | nothing = type-error "check-get-label: variable out of scope"
 ... | just (τ , idx) = right (ok (instr-getlabel idx (lookup⇒[]= l Π p)))
 
-check-jump : (Π : PCtx) → (Γ : Ctx) → (l : Label) → TC (Checked Π Γ (jump l))
-check-jump Π Γ l with inspect (Data.Vec.lookup Π l)
+postulate jump-∈ : ∀ {Π Γ₁ t Γ}{n : ℕ}{l : Label} → Data.Vec.lookup Π l ≡ Γ₁ → (n , t) ∈ Γ → (n , (cont Γ₁)) ∈ Γ
+
+check-jump : (Π : PCtx) → (Γ : Ctx) → (n : ℕ) → (l : Label) → TC (Checked Π Γ (jump n l))
+check-jump Π Γ n l with inspect (Data.Vec.lookup Π l)
 ... | Γ₁ with≡ p with Γ ⊂? Γ₁
 ...   | no ¬p = type-error "check-jump: context subtyping error."
-...   | yes Γ⊂Γ₁ = right (ok (block-jump (lookup⇒[]= l Π p) Γ⊂Γ₁))
+...   | yes Γ⊂Γ₁ with lookup-var Γ n
+...      | just (t , w) = right (ok (block-jump {idx = lookup⇒[]= l Π p} (jump-∈ {Π} {l = l} p w) Γ⊂Γ₁))
+...      | nothing = type-error "check-jump: invalid register name."
 
 type-check-instr : (Π : PCtx) → (Γ : Ctx) → (i : UInstr) → TC (CheckedInstr Π Γ i)
 type-check-instr Π Γ (branch-if-nil v l) = check-branch-if-nil Π Γ v l
@@ -132,7 +136,7 @@ type-check-instr Π Γ (seq i₁ i₂) with type-check-instr Π Γ i₁
 type-check-instr Π Γ i = type-error "type-check-instr: invalid instruction."
 
 type-check-block : (Π : PCtx) → (Γ : Ctx) → (i : UInstr) → TC (Checked Π Γ i)
-type-check-block Π Γ (jump l) = check-jump Π Γ l
+type-check-block Π Γ (jump n l) = check-jump Π Γ n l
 type-check-block Π Γ halt = right (ok block-halt)
 type-check-block Π Γ (seq i₁ i₂) with type-check-instr Π Γ i₁
 ... | left e = type-error ("type-check-block[seq]: " ++ e)

@@ -56,7 +56,7 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
 data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
   block-halt            : Block Π Γ Γ
   block-seq             : ∀ {Γ′ Γ''} → Π ⊢ Γ ⇒ Γ′ → Block Π Γ′ Γ'' → Block Π Γ Γ''
-  block-jump            : ∀ {l Γ₁} → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Block Π Γ Γ₁
+  block-jump            : ∀ {x Γ₁ l}{idx : Π [ l ]= Γ₁} → (x , cont Γ₁) ∈ Γ → Γ ⊂ Γ₁ → Block Π Γ Γ₁
 
 Program : PCtx → Set
 Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π

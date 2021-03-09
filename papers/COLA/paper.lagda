@@ -1221,7 +1221,8 @@ is well-typed. The process for type-checking different instructions follows a si
 In this section we describe the necessary modifications to our formalization to include indirect jumps
 as proposed by Appel et. al.~\cite{AppelDL12}. We start by describing the changes on the type system
 and its impact on the intrinsically typed representation of programs in Section~\ref{sec:changestypes}.
-Updates on the type checker and interpreter implementations are described in Section~\ref{sec:changesintep}.
+Updates on the type checker and interpreter implementations are described in Sections~\ref{sec:changestypechecker}
+and ~\ref{sec:changesintep}, respectively.
 
 \subsection{Modifications in the type system and instruction set}\label{sec:changestypes}
 
@@ -1363,7 +1364,65 @@ about these relations. On our first implementation, these results are just strai
 inductive proofs. Because of the mutually inductive nature of the new relation versions, all
 these proofs needed to be defined by mutually recursive functions.
 
-\subsection{Modifications in the type-checker and interpreter}\label{sec:changesintep}
+Once we have modified the subtyping and least upper bound relations, most of the type system
+rules remain unchanged from the original version. In order to support indirect jumps, Appel et. al.
+approach is to modify the jump instruction and add a new instruction for loading label values into
+machine registers. The typing rules for get-label and jump instructions are as follows.
+
+\[
+\begin{array}{cc}
+  \infer{\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:L_0\}\Gamma'}
+        {\Gamma[v\,:=\,nil] = \Gamma'} &
+  \infer{\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:l\}\Gamma'}
+        {\Pi(l) = \Gamma_1 & \Gamma[v\,:=\,cont\:\Gamma_1] = \Gamma'} \\ & \\
+  \multicolumn{2}{c}{
+    \infer{\Pi;\Gamma\vdash_{block}\,\textrm{jump}\:v}
+          {\Gamma(v) = cont\:\Gamma_1 & \Gamma \subset \Gamma_1}
+  }
+\end{array}
+\]
+The first rule show that the type of label $L_0$, the starting label of a complete machine program,
+is $nil$ and the second specifies that the type for any other label is a continuation type formed by
+the context associated with label $l$ in $\Pi$. The last rule show that typing a jump instruction
+requires that its register has a continuation type, $cont\:\Gamma_1$, that should be a subtype of
+current block context $\Gamma$. Based on these rules, we add the following constructors to our
+instruction typed syntax:
+
+%format instr-getlabel-0 = "\Con{instr\textrm{-}getlabel\textrm{-}0}"
+%format instr-getlabel = "\Con{instr\textrm{-}getlabel}"
+
+\begin{spec}
+data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
+  -- unchanged from the previous code version.
+  instr-getlabel-0      : ∀ {τ x} → (idx : (x , τ) ∈ Γ)
+                                  → Π ⊢ Γ ⇒ (idx ∷= (x , nil))
+  instr-getlabel        : ∀ {l τ Γ₁ x} → (idx : (x , τ) ∈ Γ)
+                                       → Π [ l ]= Γ₁
+                                       → Π ⊢ Γ ⇒ (idx ∷= (x , cont Γ₁))
+\end{spec}
+Constructor |instr-getlabel-0| encodes the typing rule for the instruction \textrm{get-label} when
+the label involved is the special label $L_0$. Intutively, the constructor |instr-getlabel-0| type
+ensures that the type associated with the register for the instruction is the empty list type.
+Next, constructor |instr-getlabel| show that any other label $l$ should be typed with a continuation
+holding the typing context associated with $l$ in $\Pi$.
+
+The needed modifications on block syntax are presented next.
+\begin{spec}
+data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
+  -- unchanged from the previous code version
+  block-jump            : ∀ {l x Γ₁} → (x , cont Γ₁) ∈ Γ
+                        → Γ ⊂ Γ₁
+                        → Block Π Γ Γ₁
+\end{spec}
+We only need to adapt the type of constructor for jump by requiring that the register has a
+continuation type whose typing context is a subtype of the current block type, which allows
+the safe jump to the next block.
+
+
+\subsection{Modifications in the type-checker}\label{sec:changestypechecker}
+
+
+\subsection{Modification in the intepreter}\label{sec:changesintep}
 
 
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}

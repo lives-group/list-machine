@@ -6,7 +6,7 @@ module UInstr (blocks : ℕ) where
 open import Instr blocks
 
 data UInstr : Set where
-  jump          : Label → UInstr
+  jump          : (x : ℕ) → Label → UInstr
   branch-if-nil : (v : ℕ) → Label → UInstr
   fetch-field-0 : (v : ℕ) → (v′ : ℕ) → UInstr
   fetch-field-1 : (v : ℕ) → (v′ : ℕ) → UInstr
@@ -32,4 +32,4 @@ forget-types-instr (instr-getlabel {l = l} {x = x} v p) = get-label x l
 forget-types : ∀ {Π Γ Γ'} → Block Π Γ Γ' → UInstr
 forget-types block-halt = halt
 forget-types (block-seq i b) = seq (forget-types-instr i) (forget-types b)
-forget-types (block-jump {l} x p) = jump l
+forget-types (block-jump {x = x}{l = l} k p) = jump x l
