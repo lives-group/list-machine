@@ -200,13 +200,13 @@ machine, developed by Appel and Leroy, as a benchmark problem closer to
 real-world implementations such as typed assembly languages~\cite{CraryM99} and
 proof-carrying code~\cite{Necula97}.
 
-In this work, we extend our previous SBLP 2020 paper by including support to
+In this work, we extend our previous SBLP 2020 paper~\cite{Feitosa2020} by including support to
 indirect jumps, as specified in the version 2.0 of the list
 machine benchmark~\cite{AppelDL12}. We provide detailed explanations of the needed
 changes on the machine syntax, type system and interpreter to accomodate this extension, which
-allows the handling of more complex control flow, like the call/return model of function calls.
+allows the handling of more complex control flow structures, like the call/return model of function calls.
 
-More specifically, our contributions are:
+More specifically, we contribute:
 
 \begin{itemize}
   \item We show how all the details of the list-machine type system
@@ -221,7 +221,8 @@ More specifically, our contributions are:
   \item We compare the results of an intrinsic approach encoded in Agda with extrinsic
         formalizations encoded in Twelf and Coq. We show that such intrinsic encoding avoids
         unnecessary repetitions and provides some properties for free.
-  \item We provide a detailed discussion on the necessary type system and interpreter modifications
+  \item We provide a detailed discussion on the necessary modifications to the type system,
+        type checker and interpreter
         to support indirect jumps.
 \end{itemize}
 
@@ -1582,7 +1583,9 @@ Appel's list machine benchmark 2.0 uses a semantic-based approach to prove type 
 correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics.
 We stick to our initial proposal based on dependently typed syntax and definitional interpreters. Appel's formalization for
 the version 2.0 of the benchmark demanded around 1750 LOC without considering his library for the
-``very modal model''~\cite{Appel07}.
+``very modal model''~\cite{Appel07}. Our formalization demanded 1134 LOC and it depends only on the Agda standard library.
+Compared to our solution to the first version of the benchmark (which was implemented in 612 LOC), the inclusion of
+indirect jumps increased the formalization size by around 85\%.
 
 
 %As we could notice on the previous table, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to
@@ -1600,37 +1603,37 @@ we have the POPLMark challenge~\cite{Aydemir05}, which was developed by a renown
 at the collaboration between the PL community and the proof assistants researchers. The main objective of this challenge
 was to motivate authors to formalize all of their theorems using such tools. Since the focus of the POPLMark challenge
 was mainly the formalization of type soundness theorems, other benchmarks were proposed with different objectives. The list
-machine benchmark was proposed by~\citet{Appel07} as an exercise in formalizing results that interest
+machine benchmark was proposed by~\cite{Appel07} as an exercise in formalizing results that interest
 compiler oriented research and also provides Twelf and Coq solutions to this benchmark. Our work provides another
 solution to this benchmark using an intrinsically-typed approach in the Agda programming language. Representation of binding syntax
-was the subject of~\citet{FeltyMP18} which proposed a set of problems and research questions for tools
+was the subject of~\cite{FeltyMP18} which proposed a set of problems and research questions for tools
 that use the high-order abstract syntax approach for name binding. Since the list-machine benchmark definition avoids
 name binding issues because they are orthogonal to most of compiler related proofs~\cite{Appel07}, we just ensure
 the correct manipulation of names by following the traditional \emph{de Bruijn} approach. Finally, a recent problem set
-was proposed by~\citet{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
+was proposed by~\cite{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
 of logical relation arguments, like strong normalization theorems.}
 
 \paragraph{Definitional interpreters}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
-Recently, the interest on such interpreters was revitalized by~\citet{Amin17}, which used definitional
+Recently, the interest on such interpreters was revitalized by~\cite{Amin17}, which used definitional
 interpreters, implemented in Coq, to prove type soundness theorems for non-trivial typed languages like System F$_{<:}$.
 Unlike our work, Amin and Rompf's formalizations do not use intrinsically-typed representations of their syntax, what cluttered
-their formalization with the need of dealing with ``stuck states'' in the semantics. \citet{Poulsen18} described how
+their formalization with the need of dealing with ``stuck states'' in the semantics. \cite{Poulsen18} described how
 definitional interpreters for imperative languages can be much concisely implemented by using intrinsically-typed syntax and a
 library for name binding using \emph{scope graphs}, which greatly simplifies the treatment of complex
 binding structures. Since the list-machine benchmark was designed to address other problems than binding, our representation
 using \emph{de Bruijn} indices was sufficient to implement the desired type-checker and interpreter.
-Other recent application of definitional interpreters was proposed by~\citet{Rouvoet20}. The main contribution
+Other recent application of definitional interpreters was proposed by~\cite{Rouvoet20}. The main contribution
 of Rouvoet et. al. was to define interpreters for linear typed languages supporting session based concurrency. In order to model
 linear typing features in the interpreter, the authors have implemented monads based on a separation algebra which they
 named \emph{Market}, supporting the main operations for accessing and updating the store used by the interpreter.
-Another work using intrinsically-typed syntax for resource control was developed by~\citet{Thiemann19}, which
+Another work using intrinsically-typed syntax for resource control was developed by~\cite{Thiemann19}, which
 implemented an interpreter for a more realistic core functional session typed calculus including recursion and
 session subtyping in Agda. Thiemann modeled the semantics as an interruptible abstract machine which provides a
 simple interface to a scheduler. Since our objective was to formalize the list-machine benchmark in Agda and it
 does not have linearity constraints in its state manipulation, we do not need to deal with the complexities
 of linear and session types as in~\cite{Rouvoet20,Thiemann19}. A formalization of System F$_{\omega\mu}$ was
-the subject of \citet{ChapmanKNW19} work, which used an intrinsically-typed representation to
+the subject of \cite{ChapmanKNW19} work, which used an intrinsically-typed representation to
 implement a normalization by evaluation for this calculus. The reason behind such formalization effort was
 the verification of a core language for smart-contracts which is based on System F$_{\omega\mu}$. As our work,
 Chapman's et al. formalization is an example of how intrisincally-typed syntax leads to clear interpreter code
@@ -1641,11 +1644,12 @@ which avoids completely stuck states.}
 \section{Conclusion}\label{sec:conclusion}
 
 This paper shows how the combination of intrinsically-typed syntax and definitional interpreters can be used to simplify
-the tasks on the formalization of programming languages. Using such approach, we were able to provide a machine-checked version of the
-list-machine benchmark in Agda, showing that the approach is useful to formalize both high-level and low-level languages.
+the tasks on the formalization of programming languages. Using such approach, we were able to provide a machine-checked
+version of the two versions of the list-machine benchmark in Agda, showing that the approach is useful to
+formalize both high-level and low-level languages.
 The ideas presented here can be exploited on the formalization of real-world virtual machines, such as the JVM and LUA VM,
 since we were able to encode features such as jumps, mutable state, and sub-typing. When comparing our work with the
-conventional non-dependently typed formalization strategies (like the one used by \citet{Appel07} in their Coq and Twelf implementations),
+conventional non-dependently typed formalization strategies (like the one used in~\cite{Appel07} in their Coq and Twelf implementations),
 we can affirm that it requires a fewer number of lines to achieve the same result, even without the use of proof automation.
 This happens because the approach uses the power of the host language, and provides some proofs for free due to the
 intrinsically-typed syntax.
