@@ -1860,9 +1860,122 @@ the safe jump to the next block.
 
 \subsection{Modifications in the type-checker}\label{sec:changestypechecker}
 
+Most of the code for the type-checker is ummodified in our new version. We just need to change
+the type checking for jumps, which now should validate if a machine register has an appropriate
+continuation type.
 
-\subsection{Modification in the intepreter}\label{sec:changesintep}
+We also need to include code to check the well-typedness for the get-label instruction. First,
+we include a new constructor on type \ensuremath{\D{UInstr}} to represent untyped get-label instruction and
+add its corresponding equation on function \ensuremath{\F{forge\textrm{-}types\textrm{-}instr}}, which erases type information
+from the instrinsically typed syntax. This function is used by the type-checker to ensure its
+correctness.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{17}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{UInstr}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\orange{\texttt{-- same code from before.}}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{get\textrm{-}label}\;{}\<[17]%
+\>[17]{}\mathbin{:}\;(\V{v}\;\mathbin{:}\;\V{ℕ})\;\rightarrow\;\D{Label}\;\rightarrow\;\D{UInstr}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Pi}\;\V{\Gamma}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma'}\;\rightarrow\;\D{UInstr}{}\<[E]%
+\\
+\>[B]{}\orange{\texttt{-- same code as before...}}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}getlabel\textrm{-}0}\;\{\mskip1.5mu \V{x}\;\mathrel{=}\;\V{x}\mskip1.5mu\}\;\V{v})\;\mathrel{=}\;\Con{get\textrm{-}label}\;\V{x}\;\Con{L_{0}}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}getlabel}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{l}\mskip1.5mu\}\;\{\mskip1.5mu \V{x}\;\mathrel{=}\;\V{x}\mskip1.5mu\}\;\V{v}\;\V{p})\;\mathrel{=}\;\Con{get\textrm{-}label}\;\V{x}\;\V{l}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Constructor \ensuremath{\Con{get\textrm{-}label}} stores the name for a register and a label which is loaded into the register.
+Equations for erasing type information are immediate. The only peculiarity is that when the instruction
+\ensuremath{\Con{get\textrm{-}label}} is typed using rule \ensuremath{\Con{instr\textrm{-}getlabel\textrm{-}0}} we consider the initial label \ensuremath{\Con{L_{0}}}. Next, we implement
+the type checker logic for \ensuremath{\Con{get\textrm{-}label}}. Function \ensuremath{\F{check\textrm{-}get\textrm{-}label}} verifies if the label is present at
+program global typing context and if the variable is present on current block typing context.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{30}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\mathbin{:}\;\D{\forall}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;{}\<[30]%
+\>[30]{}\rightarrow\;\D{TC}\;(\D{CheckedInstr}\;\V{\Pi}\;\V{\Gamma}\;(\Con{get\textrm{-}label}\;\V{v}\;\V{l})){}\<[E]%
+\\
+\>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;\mathkw{with}\;\F{inspect}\;(\F{lookup}\;\V{\Pi}\;\V{l}){}\<[E]%
+\\
+\>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;\mid \;\V{\Gamma_1}\;\F{with\equiv}\;\V{p}\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{nothing}\;\mathrel{=}\;\F{type\textrm{-}error}\;\text{\ttfamily \char34 check-get-label:~variable~out~of~scope\char34}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{just}\;(\V{\tau}\;\red{,}\,\;\V{idx})\;\mathrel{=}\;\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}getlabel}\;\V{idx}\;(\F{lookup⇒[]=}\;\V{l}\;\V{\Pi}\;\V{p}))){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
 
+\subsection{Modifications in the intepreter}\label{sec:changesintep}
+
+The final piece of our formalization for the version 2.0 of the list machine benchmark is modifying
+the interpreter implementation. Our first step is to change the definition of values to reflect
+the changes on the type syntax, since now we have a new value for continuation types. A continuation
+value simply stores the label of the corresponding block.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\mathkw{data}\;\D{Val}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\orange{\texttt{-- same code as before}}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Con{cont}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{l}\;\V{\Gamma_1}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;\rightarrow\;\D{Val}\;(\Con{cont}\;\V{\Gamma_1}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+Since the value definition has changed, we need to modify the lemmas for value and environment
+subsumption accordingly. Next, we change the interpreter itself by adding equations for the
+\ensuremath{\Con{get\textrm{-}label}} instruction and fixing the \ensuremath{\Con{jump}} implementation.
+Equations for \ensuremath{\Con{get\textrm{-}label}} simply update the current environment using the label. When the
+typed syntax is built using constructor \ensuremath{\Con{instr\textrm{-}getlabel\textrm{-}0}}, the environment is updated with
+value \ensuremath{\Con{nil}}, which denotes the initial continuation for the program execution.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{penv}\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}getlabel\textrm{-}0}\;\V{idx})\;\V{b})\;{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{penv}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{idx}\;\Con{nil})\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{penv}\;\V{p}\;\V{env}\;(\Con{block\textrm{-}seq}\;(\Con{instr\textrm{-}getlabel}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{l}\mskip1.5mu\}\;\V{idx}\;\V{x})\;\V{b})\;{}\<[E]%
+\\
+\>[B]{}\hsindent{5}{}\<[5]%
+\>[5]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{penv}\;\V{p}\;(\F{update\textrm{-}env}\;\V{env}\;\V{idx}\;(\Con{cont}\;\V{x}))\;\V{b}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+The final piece of changes in the interpreter is implementing jump instruction. In order to
+execute an indirect jump, first we need to get the continuation value associated with its
+variable using \ensuremath{\F{lookup}\;\V{env}\;\V{v}}. Using the label associated with the retrieved continuation value
+we jump to its corresponding block and its entry execution environment.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{run\textrm{-}step}\;(\Con{suc}\;\V{n})\;\V{penv}\;\V{p}\;\V{env}\;(\Con{block\textrm{-}jump}\;\V{v}\;\V{x₁})\;\mathkw{with}\;\F{lookup}\;\V{env}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\V{...|}\;(\Con{cont}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{l}\mskip1.5mu\}\;\V{k})\;\mathkw{rewrite}\;\D{sym}\;(\F{[]\textrm{=}{\Rightarrow}lookup}\;\V{k})\;{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\mathrel{=}\;\F{run\textrm{-}step}\;\V{n}\;\V{penv}\;\V{p}\;(\F{lookupA}\;\V{l}\;\V{penv})\;(\F{lookupA}\;\V{l}\;\V{p}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
 
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
@@ -1942,6 +2055,11 @@ As we could notice, our approach avoids code repetition and decreases the needed
 Our implementation used 415 LOC to complete the tasks, while the Twelf solution demanded 2898 LOC and 887 LOC in Coq.
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
 reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
+
+Appel's list machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
+correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics. We stick to our initial
+proposal based on dependently typed syntax and definitional interpreters.
+
 
 %As we could notice on the previous table, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to
 %implement the proposed language and to prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC

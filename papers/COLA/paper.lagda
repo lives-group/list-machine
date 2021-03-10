@@ -1421,9 +1421,83 @@ the safe jump to the next block.
 
 \subsection{Modifications in the type-checker}\label{sec:changestypechecker}
 
+Most of the code for the type-checker is ummodified in our new version. We just need to change
+the type checking for jumps, which now should validate if a machine register has an appropriate
+continuation type.
 
-\subsection{Modification in the intepreter}\label{sec:changesintep}
+%format get-label = "\Con{get\textrm{-}label}"
+%format L₀ = "\Con{L_{0}}"
+%format forget-types-instr = "\F{forge\textrm{-}types\textrm{-}instr}"
+%format check-get-label = "\F{check\textrm{-}get\textrm{-}label}"
+%format inspect = "\F{inspect}"
+%format lookup⇒[]= = "\F{lookup⇒[]=}"
+%format with≡ = "\F{with\equiv}"
+%format UInstr = "\D{UInstr}"
+%format Label = "\D{Label}"
+We also need to include code to check the well-typedness for the get-label instruction. First,
+we include a new constructor on type |UInstr| to represent untyped get-label instruction and
+add its corresponding equation on function |forget-types-instr|, which erases type information
+from the instrinsically typed syntax. This function is used by the type-checker to ensure its
+correctness.
+\begin{spec}
+data UInstr : Set where
+  -- same code from before.
+  get-label     : (v : ℕ) → Label → UInstr
 
+forget-types-instr : ∀ {Π Γ Γ'} → Π ⊢ Γ ⇒ Γ' → UInstr
+-- same code as before...
+forget-types-instr (instr-getlabel-0 {x = x} v) = get-label x L₀
+forget-types-instr (instr-getlabel {l = l} {x = x} v p) = get-label x l
+\end{spec}
+Constructor |get-label| stores the name for a register and a label which is loaded into the register.
+Equations for erasing type information are immediate. The only peculiarity is that when the instruction
+|get-label| is typed using rule |instr-getlabel-0| we consider the initial label |L₀|. Next, we implement
+the type checker logic for |get-label|. Function |check-get-label| verifies if the label is present at
+program global typing context and if the variable is present on current block typing context.
+\begin{spec}
+check-get-label : ∀ Π Γ v l  → TC (CheckedInstr Π Γ (get-label v l))
+check-get-label Π Γ v l with inspect (lookup Π l)
+check-get-label Π Γ v l | Γ₁ with≡ p with lookup-var Γ v
+... | nothing = type-error "check-get-label: variable out of scope"
+... | just (τ , idx) = right (ok (instr-getlabel idx (lookup⇒[]= l Π p)))
+\end{spec}
+
+\subsection{Modifications in the intepreter}\label{sec:changesintep}
+
+The final piece of our formalization for the version 2.0 of the list machine benchmark is modifying
+the interpreter implementation. Our first step is to change the definition of values to reflect
+the changes on the type syntax, since now we have a new value for continuation types. A continuation
+value simply stores the label of the corresponding block.
+
+\begin{spec}
+  data Val : Ty → Set where
+    -- same code as before
+    cont : ∀ {l Γ₁} → Π [ l ]= Γ₁ → Val (cont Γ₁)
+\end{spec}
+
+%format jump = "\Con{jump}"
+
+Since the value definition has changed, we need to modify the lemmas for value and environment
+subsumption accordingly. Next, we change the interpreter itself by adding equations for the
+|get-label| instruction and fixing the |jump| implementation.
+Equations for |get-label| simply update the current environment using the label. When the
+typed syntax is built using constructor |instr-getlabel-0|, the environment is updated with
+value |nil|, which denotes the initial continuation for the program execution.
+\begin{spec}
+run-step (suc n) penv p env (block-seq (instr-getlabel-0 idx) b)
+    = run-step n penv p (update-env env idx nil) b
+run-step (suc n) penv p env (block-seq (instr-getlabel {l = l} idx x) b)
+    = run-step n penv p (update-env env idx (cont x)) b
+\end{spec}
+The final piece of changes in the interpreter is implementing jump instruction. In order to
+execute an indirect jump, first we need to get the continuation value associated with its
+variable using |lookup env v|. Using the label associated with the retrieved continuation value
+we jump to its corresponding block and its entry execution environment.
+\begin{spec}
+run-step (suc n) penv p env (block-jump v x₁) with lookup env v
+  ...| (cont {l = l} k) rewrite sym ([]=⇒lookup k)
+    = run-step n penv p (lookupA l penv) (lookupA l p)
+\end{spec}
 
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
@@ -1503,6 +1577,13 @@ As we could notice, our approach avoids code repetition and decreases the needed
 Our implementation used 415 LOC to complete the tasks, while the Twelf solution demanded 2898 LOC and 887 LOC in Coq.
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
 reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
+
+Appel's list machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
+correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics.
+We stick to our initial proposal based on dependently typed syntax and definitional interpreters. Appel's formalization for
+the version 2.0 of the benchmark demanded around 1750 LOC without considering his library for the
+``very modal model''~\cite{Appel07}.
+
 
 %As we could notice on the previous table, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to
 %implement the proposed language and to prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC
