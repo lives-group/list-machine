@@ -138,12 +138,14 @@ idea to build a verified interpreter for the list-machine benchmark in the
 Agda programming language, comparing the results with formalizations developed
 by Appel and Leroy. We formalize the 14 tasks of the benchmark
 using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
-compared to a Coq solution, even without the use of proof automation.
+compared to a Coq solution, even without the use of proof automation. We also
+describe a solution to the second version of the benchmark and compare it with
+Appel's and Leroy Coq-based solution.
 \end{abstract}
 
 
 \begin{keyword}
-Dependent types, formal semantics
+Dependent types, formal semantics, Agda
 \end{keyword}
 
 \end{frontmatter}
@@ -222,8 +224,7 @@ More specifically, we contribute:
         formalizations encoded in Twelf and Coq. We show that such intrinsic encoding avoids
         unnecessary repetitions and provides some properties for free.
   \item We provide a detailed discussion on the necessary modifications to the type system,
-        type checker and interpreter
-        to support indirect jumps.
+        type checker and interpreter to support indirect jumps.
 \end{itemize}
 
 The rest of this paper is organized as follows: Section~\ref{sec:agda} presents an overview of
@@ -414,7 +415,7 @@ programming and Agda. %\footnote{For further information about Agda, see~\cite{N
       _&_ _+_ : Expr -> Expr -> Expr
 \end{spec}
 
-Using this data type\footnote{Agda supports the definition of mixfix operators.
+With this data type\footnote{Agda supports the definition of mixfix operators.
 We can use underscores to mark arguments positions.}, we can construct expressions
 to denote terms that should not be considered well-typed like
 |(Num 1) + True|. Using this approach, we need to specify the static semantics
@@ -496,7 +497,7 @@ presented next and their meaning is as usual.
         & \mid & \text{branch-if-nil $v$~$l$}            & \text{(if $v = nil$ goto $l$)}\\
         & \mid & \text{fetch-field $v$ 0 $v'$}       & \text{(fetch the head of $v$ into $v'$)}\\
         & \mid & \text{fetch-field  $v$ 1 $v'$}      & \text{(fetch the tail of $v$ into $v'$)}\\
-        & \mid & \text{cons $v_0$ $v_1$ $v'$}        & \text{(make a cons cell in v')} \\
+        & \mid & \text{cons $v_0$ $v_1$ $v'$}        & \text{(make a cons cell in $v'$)} \\
         & \mid & \text{halt}                         & \text{(finishes execution)}\\
         & \mid & \iota_1;\iota_2                             & \text{(sequential composition)}\\
       p & ::=  & l_i \,:\,\iota\,;\,p                    & \text{(program: sequence of blocks)}\\
@@ -547,7 +548,7 @@ the subtyping relation. The list common supertype $\tau = \tau_1 \sqcap \tau_2$ 
 $\tau_1$ and $\tau_2$ is defined as the smallest type such that $\tau_1$ and $\tau_2$
 are subtypes of $\tau$.
 
-Following common practice, the meta-variable $\Gamma$ denotes an
+Following the common practice, the meta-variable $\Gamma$ denotes an
 environment binding variable names to their types. Notation $\{\}$ denotes an empty environment, $v : \tau , \Gamma$
 denotes the operation of including a new entry for variable $v$ with type $\tau$
 in $\Gamma$ and $\Gamma [v := \tau]$ denotes the environment which is identical to $\Gamma$, except
@@ -567,7 +568,7 @@ The variable $\Pi$ is used to denote \emph{program typings}, i.e. finite mapping
 labels and typing contexts $\Gamma$, where notation $\Pi(l) = \Gamma$ denotes that
 $\Gamma$ stores the types of variables on the entry point of the block labeled by $l$.
 Using the previously defined notations, the typing rules for the list-machine are defined
-as a syntax directed judgment $\Pi \vdash_{\text{instr}} \Gamma \{ \iota \} \Gamma'$,
+as a syntax-directed judgment $\Pi \vdash_{\text{instr}} \Gamma \{ \iota \} \Gamma'$,
 which intuitively means that the instruction $\iota$ transforms an input typing environment
 $\Gamma$ into an output environment $\Gamma'$ under a fixed program typing $\Pi$. The typing
 rules for the list-machine instructions are defined as follows.
@@ -579,7 +580,7 @@ second.
 \inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'\:\:\:\:\:\:\:\:\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
 \]
-The type system proposed by Appel et. al.~\cite{AppelDL12} has three rules to deal with each of the possible
+The type system proposed by Appel and Leroy~\cite{AppelDL12} has three rules to deal with each of the possible
 types assigned to the branch variable in the current typing context. The first two rules deal with the $list$ and $listcon$
 types, specifying that the environment associated to the label $l$, $\Pi(l) = \Gamma_1$, is greater than
 $\Gamma[v := nil]$. The third rule applies whenever $\Gamma(v) = nil$ and it also demands that $\Gamma \subset \Pi(l)$.
@@ -898,7 +899,7 @@ Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π
 
 A key feature of the list-machine type system is its subtyping (denoted by |<:|), which is
 exposed by the least common supertype relation. We omit the Agda encoding of the subtyping relation for
-space reasons, since it is just an inductive type that encodes the rules presented
+brevity, since it is just an inductive type that encodes the rules presented
 in Section~\ref{sec:list}. Several lemmas about subtyping, including its decidable test,
 are defined in our source-code repository~\cite{list-rep}.
 
@@ -924,7 +925,7 @@ Agda theorem.
 lub-comm : t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
 \end{spec}
 We omit the complete definition of |lub-comm| for brevity. In the list-machine benchmark definition,
-Appel et. al.~\cite{AppelDL12} also define that the least common supertype relation is sound and complete with respect to the
+Appel and Leroy~\cite{AppelDL12} also define that the least common supertype relation is sound and complete with respect to the
 subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
 %format × = "\D{\land}"
 \begin{spec}
@@ -1193,7 +1194,7 @@ lookup-var ((y , τ) ∷ Γ) x with x ≟ y
 %format right = "\Con{right}"
 %format ok = "\Con{ok}"
 
-For space reasons, we show how we type-check only one instruction\footnote{The curious reader can refer to our
+For brevity, we show how we type-check only one instruction\footnote{The curious reader can refer to our
 online repository for a complete implementation.}. Function |check-fetch-field-0|
 receives a program context, a typing context, and two named variables, and returns a |TC| value,
 which is an error message or a |CheckedInstr| indicating that the term type-checks.
@@ -1217,18 +1218,18 @@ type errors: (1) when |v| is |nothing| it means a variable scope error; (2) and 
 since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
 
-\section{Extending the Machine with Indirect Jumps}\label{sec:indirect}
+\section{Extending the List-Machine with Indirect Jumps}\label{sec:indirect}
 
 In this section we describe the necessary modifications to our formalization to include indirect jumps
-as proposed by Appel et. al.~\cite{AppelDL12}. We start by describing the changes on the type system
+as proposed by Appel and Leroy~\cite{AppelDL12}. We start by describing the changes on the type system
 and its impact on the intrinsically typed representation of programs in Section~\ref{sec:changestypes}.
-Updates on the type checker and interpreter implementations are described in Sections~\ref{sec:changestypechecker}
+Updates on the type checker and the interpreter implementations are described in Sections~\ref{sec:changestypechecker}
 and ~\ref{sec:changesintep}, respectively.
 
 \subsection{Modifications in the type system and instruction set}\label{sec:changestypes}
 
 Since our solution relies on representing the program using intrinsically typed syntax, we describe
-first the changes on the machine type system. The first modification is the inclusion of a type for
+first the changes on the list-machine type system. The first modification is the inclusion of a type for
 program labels, which denotes continuations in a program.
 
 %format top = "\Con{\top}"
@@ -1262,7 +1263,7 @@ new types are presented next.
 \end{array}
 \]
 
-We omit its representation in Agda because its just a direct encoding of these previous rules
+We omit their representation in Agda because they are just a direct encoding of these previous rules
 in the subtyping relation inductive type. Notice that both subtyping relations for types and
 contexts are mutually inductive.
 
@@ -1319,7 +1320,7 @@ Again, rules to ensure commutativity of the relation are ommited for brevity.
 \end{array}
 \]
 Next, we define the greatest lower bound relation for list types. The first rule specifies that the bottom
-type is the greatest lower bound for the empty list type and non-empty list type. Two rules specifies the
+type is the greatest lower bound for the empty list type and non-empty list type. Two rules specify the
 compatibility of |list| and |listcons| type constructors with the greatest lower bound relation. The last
 rule show that |listcons| $\tau_3$ is the lower bound for |list| $\tau_1$ and |listcons| $\tau_2$.
 \[
@@ -1330,8 +1331,8 @@ rule show that |listcons| $\tau_3$ is the lower bound for |list| $\tau_1$ and |l
   \infer{(list\: \tau_1)\sqcup (listcons\:\tau_2) = listcons\:\tau_3}{\tau_1\sqcup \tau_2 = \tau_3} \\ & \\
 \end{array}
 \]
-Rules for the greatest lower bound relation for continuation types shows that bottom type is the
-lower bound for list types and continuation one. The other rule for stabishes the compatibility of
+Rules for the greatest lower bound relation for continuation types show that the bottom type is the
+lower bound for the list and continuation types. The other rule stabishes the compatibility of
 the continuation type with the lower bound relation and it uses the least upper bound for typing
 contexts relation.
 \[
@@ -1365,8 +1366,8 @@ about these relations. On our first implementation, these results are just strai
 inductive proofs. Because of the mutually inductive nature of the new relation versions, all
 these proofs needed to be defined by mutually recursive functions.
 
-Once we have modified the subtyping and least upper bound relations, most of the type system
-rules remain unchanged from the original version. In order to support indirect jumps, Appel et. al.
+Once we have only modified the subtyping and the least upper bound relations, most of the type system
+rules remained unchanged from the original version. In order to support indirect jumps, Appel and Leroy.
 approach is to modify the jump instruction and add a new instruction for loading label values into
 machine registers. The typing rules for get-label and jump instructions are as follows.
 
@@ -1382,11 +1383,11 @@ machine registers. The typing rules for get-label and jump instructions are as f
   }
 \end{array}
 \]
-The first rule show that the type of label $L_0$, the starting label of a complete machine program,
+The first rule shows that the type of label $L_0$, the starting label of a complete machine program,
 is $nil$ and the second specifies that the type for any other label is a continuation type formed by
 the context associated with label $l$ in $\Pi$. The last rule show that typing a jump instruction
 requires that its register has a continuation type, $cont\:\Gamma_1$, that should be a subtype of
-current block context $\Gamma$. Based on these rules, we add the following constructors to our
+the current block context $\Gamma$. Based on these rules, we add the following constructors to our
 instruction typed syntax:
 
 %format instr-getlabel-0 = "\Con{instr\textrm{-}getlabel\textrm{-}0}"
@@ -1404,7 +1405,7 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
 Constructor |instr-getlabel-0| encodes the typing rule for the instruction \textrm{get-label} when
 the label involved is the special label $L_0$. Intutively, the constructor |instr-getlabel-0| type
 ensures that the type associated with the register for the instruction is the empty list type.
-Next, constructor |instr-getlabel| show that any other label $l$ should be typed with a continuation
+Next, constructor |instr-getlabel| shows that any other label $l$ should be typed with a continuation
 holding the typing context associated with $l$ in $\Pi$.
 
 The needed modifications on block syntax are presented next.
@@ -1422,13 +1423,13 @@ the safe jump to the next block.
 
 \subsection{Modifications in the type-checker}\label{sec:changestypechecker}
 
-Most of the code for the type-checker is ummodified in our new version. We just need to change
+Most of the code for the type-checker is unmodified in our new version. We just need to change
 the type checking for jumps, which now should validate if a machine register has an appropriate
 continuation type.
 
 %format get-label = "\Con{get\textrm{-}label}"
 %format L₀ = "\Con{L_{0}}"
-%format forget-types-instr = "\F{forge\textrm{-}types\textrm{-}instr}"
+%format forget-types-instr = "\F{forget\textrm{-}types\textrm{-}instr}"
 %format check-get-label = "\F{check\textrm{-}get\textrm{-}label}"
 %format inspect = "\F{inspect}"
 %format lookup⇒[]= = "\F{lookup⇒[]=}"
@@ -1454,7 +1455,7 @@ Constructor |get-label| stores the name for a register and a label which is load
 Equations for erasing type information are immediate. The only peculiarity is that when the instruction
 |get-label| is typed using rule |instr-getlabel-0| we consider the initial label |L₀|. Next, we implement
 the type checker logic for |get-label|. Function |check-get-label| verifies if the label is present at
-program global typing context and if the variable is present on current block typing context.
+the program global typing context and if the variable is present on the current block typing context.
 \begin{spec}
 check-get-label : ∀ Π Γ v l  → TC (CheckedInstr Π Γ (get-label v l))
 check-get-label Π Γ v l with inspect (lookup Π l)
@@ -1465,9 +1466,9 @@ check-get-label Π Γ v l | Γ₁ with≡ p with lookup-var Γ v
 
 \subsection{Modifications in the intepreter}\label{sec:changesintep}
 
-The final piece of our formalization for the version 2.0 of the list machine benchmark is modifying
-the interpreter implementation. Our first step is to change the definition of values to reflect
-the changes on the type syntax, since now we have a new value for continuation types. A continuation
+The final piece of our formalization for the version 2.0 of the list-machine benchmark is the modification of
+the interpreter implementation. Our first step changed the definition of values to reflect
+the changes on the typed syntax, since now we have a new value for continuation types. A continuation
 value simply stores the label of the corresponding block.
 
 \begin{spec}
@@ -1480,7 +1481,7 @@ value simply stores the label of the corresponding block.
 
 Since the value definition has changed, we need to modify the lemmas for value and environment
 subsumption accordingly. Next, we change the interpreter itself by adding equations for the
-|get-label| instruction and fixing the |jump| implementation.
+|get-label| instruction and adjusting the |jump| implementation.
 Equations for |get-label| simply update the current environment using the label. When the
 typed syntax is built using constructor |instr-getlabel-0|, the environment is updated with
 value |nil|, which denotes the initial continuation for the program execution.
@@ -1490,7 +1491,7 @@ run-step (suc n) penv p env (block-seq (instr-getlabel-0 idx) b)
 run-step (suc n) penv p env (block-seq (instr-getlabel {l = l} idx x) b)
     = run-step n penv p (update-env env idx (cont x)) b
 \end{spec}
-The final piece of changes in the interpreter is implementing jump instruction. In order to
+The final change in the interpreter is the implementation of the jump instruction. In order to
 execute an indirect jump, first we need to get the continuation value associated with its
 variable using |lookup env v|. Using the label associated with the retrieved continuation value
 we jump to its corresponding block and its entry execution environment.
@@ -1503,7 +1504,7 @@ run-step (suc n) penv p env (block-jump v x₁) with lookup env v
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
 We implemented all 14 tasks from the list-machine benchmark in the Agda programming language.
-The tasks considered by us are the same implemented and proved by Appel et. al.~\cite{Appel07}.
+The tasks considered by us are the same implemented and proved by Appel and Leroy.~\cite{Appel07}.
 The next table summarizes the total number of lines of code (LOC) for our results together with theirs.
 
 \begin{table}[!htb]
@@ -1553,7 +1554,7 @@ on our Agda encoding of these 14 tasks.
         desired properties as Agda function types.
   \item \textbf{Prove properties of the least common supertype.} Proofs of all proved properties about the least common supertype
         are simple recursive functions over the least common supertype and subtyping relations definitions and were omitted
-        from this text for space reasons.
+        from this text for brevity.
   \item \textbf{State the soundness theorem for the type system.} Following~\cite{Amin17}, we represent the soundness
         theorem statement as the type of our definitional interpreter for the intrinsically-typed syntax for the list-machine
         programs. Therefore, this was done as part of task 9.
@@ -1573,15 +1574,15 @@ on our Agda encoding of these 14 tasks.
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
 \end{enumerate}
 
-As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel et. al.
+As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel and Leroy's
 \cite{Appel07} solution.
 Our implementation used 415 LOC to complete the tasks, while the Twelf solution demanded 2898 LOC and 887 LOC in Coq.
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
 reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
 
-Appel's list machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
+Appel and Leroy's list-machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
 correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics.
-We stick to our initial proposal based on dependently typed syntax and definitional interpreters. Appel's formalization for
+We stick to our initial proposal based on dependently typed syntax and definitional interpreters. Appel and Leroy's formalization for
 the version 2.0 of the benchmark demanded around 1750 LOC without considering his library for the
 ``very modal model''~\cite{Appel07}. Our formalization demanded 1134 LOC and it depends only on the Agda standard library.
 Compared to our solution to the first version of the benchmark (which was implemented in 612 LOC), the inclusion of
