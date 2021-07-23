@@ -488,5 +488,5 @@ to use its support for lists and vectors.
 Final remarks
 =============
 
-We have modified the paper, technical report and code repository in order to address all considerations from the anonymous reviewers. Finally, we would like to thank you for your careful reading and suggestions that have helped us to improve the presentation of our results.
+We have modified the paper and code repository in order to address all considerations from the anonymous reviewers. Finally, we would like to thank you for your careful reading and suggestions that have helped us to improve the presentation of our results.
 
