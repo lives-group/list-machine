@@ -136,11 +136,11 @@ such errors is to encode models in a dependently-typed language in order
 to ensure its ``correctness-by-construction''. In this paper, we use this
 idea to build a verified interpreter for the list-machine benchmark in the
 Agda programming language, comparing the results with formalizations developed
-by Appel and Leroy. We formalize the 14 tasks of the benchmark
+by Appel et. al. We formalize the 14 tasks of the benchmark
 using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
 compared to a Coq solution, even without the use of proof automation. We also
 describe a solution to the second version of the benchmark and compare it with
-Appel's and Leroy Coq-based solution.
+Appel'et. al. Coq-based solution.
 \end{abstract}
 
 
@@ -198,7 +198,7 @@ semantics is ensured by a dependently-typed
 syntax\footnote{Also known as intrinsically-typed.}\cite{Poulsen18}.
 In this work, we follow Poulsen et. al. by using an intrinsically-typed
 representation to build a definitional interpreter for a low-level virtual
-machine, developed by Appel and Leroy, as a benchmark problem closer to
+machine, developed by Appel et. al., as a benchmark problem closer to
 real-world implementations such as typed assembly languages~\cite{CraryM99} and
 proof-carrying code~\cite{Necula97}.
 
@@ -208,7 +208,7 @@ machine benchmark~\cite{AppelDL12}. We provide detailed explanations of the need
 changes on the machine syntax, type system and interpreter to accomodate this extension, which
 allows the handling of more complex control flow structures, like the call/return model of function calls.
 
-More specifically, we contribute:
+Let us summarize our contributions. %More specifically, we contribute:
 
 \begin{itemize}
   \item We show how all the details of the list-machine type system
@@ -258,6 +258,7 @@ on-line~\cite{list-rep}.
 %format String = "\D{String}"
 %format Bool = "\D{Bool}"
 %format forall = "\D{\forall}"
+%format ℕ = "\D{\mathbb{N}}"
 
 Agda is a dependently-typed functional programming language based on
 Martin-L\"of intuitionistic type theory~\cite{Lof98}.  Function types
@@ -295,7 +296,8 @@ length-indexed lists, also known as vectors.
 
 %format head = "\F{head}"
 
-Constructor |[]| builds empty vectors. The cons-operator (|_::_|)
+Constructor |[]| builds empty vectors. The cons-operator (|_::_|)\footnote{Agda supports the definition of mixfix operators.
+We can use underscores to mark arguments positions.}
 inserts a new element in front of a vector of $n$ elements (of type
 |Vec A n|) and returns a value of type |Vec A (succ n)|. The
 |Vec| datatype is an example of a dependent type, i.e., a type
@@ -365,11 +367,71 @@ representation of equality as the following Agda type:
 %format ++ = "\F{++}"
 %format Bot = "\D{\bot}"
 %format All = "\D{All}"
+%format foo = "\F{foo}"
+%format P   = "\D{P}"
+%format plus-comm = "\F{plus\textrm{-}comm}"
+%format rewrite = "\mathkw{rewrite}"
 This type is called propositional equality. It defines that there is
 a unique evidence for equality, constructor |refl| (for reflexivity),
-which asserts that the only value equal to |x| is itself. Given a predicate |P : A -> Set|
-and a vector |xs|, the type |All P xs| is used to build proofs that |P| holds for all
-elements in |xs| and it is defined as:
+which asserts that the only value equal to |x| is itself.
+
+
+Dependently typed pattern matching is built by using the so-called
+|with| construct, that allows for matching intermediate
+values~\cite{McBride2004}. If the matched value has a dependent type,
+then its result can affect the form of other values. For example,
+consider the following code that defines a type for natural number
+parity. If the natural number is even, it can be represented as the
+sum of two equal natural numbers; if it is odd, it is equal to one
+plus the sum of two equal values. Pattern matching on a value of
+|Parity n| allows to discover if $n = j + j$ or $n = S (k + k)$,
+for some $j$ and $k$ in each branch of |with|.  Note that the
+value of $n$ is specialized accordingly, using information ``learned''
+by the type-checker.
+\begin{spec}
+data Parity : Nat -> Set where
+   Even : forall {n : Nat} -> Parity (n + n)
+   Odd  : forall {n : Nat} -> Parity (S (n + n))
+
+parity : (n : Nat) -> Parity n
+parity = -- definition omitted
+
+natToBin : Nat -> List Bool
+natToBin zero = []
+natToBin k with (parity k)
+   natToBin (j + j)     | Even = false :: natToBin j
+   natToBin (succ (j + j)) | Odd  = true  :: natToBin j
+\end{spec}
+A important application of Agda's dependently-typed pattern matching is
+to rewrite a equality. As an example, consider the following code which
+postulates the commutativity of natural number addition and a predicate
+over natural numbers, |P|.
+
+\begin{spec}
+postulate plus-comm : (a b : ℕ) → a + b == b + a
+postulate P : ℕ → Set
+
+foo : (a b : Nat) → P (a + b) → P (b + a)
+foo a b t with   a + b  | plus-comm a b
+foo a b t    | .(b + a) | refl = t
+\end{spec}
+Function |foo| uses the |with| construct to pattern-match on the equality produced
+by |plus-comm|,  |a + b == b + a|. Since the propositional equality type has only one
+constructor, |refl|, matching over it makes Agda type checker to replace
+all occurrences of |a + b| to |b + a| in the current equation context. We can notice
+this by the use of the \empth{dotted-pattern} |.(b + a)| which indicates that the
+only way that this equation is correct is when the first result of the |with| construct
+is |b + a|. The use of dependent pattern matching to rewrite equalities in functions is
+so common in Agda that the language provides a syntax sugar that simplifies such structure.
+The |rewrite| construct allows the substitution of an equality in all values in a certain
+equation. The |foo| function could be represented more concisely, using |rewrite|, as:
+\begin{spec}
+foo : (a b : ℕ) → P (a + b) → P (b + a)
+foo a b t rewrite plus-comm a b = t
+\end{spec}
+
+Another inductive predicate used in our formalization is the type |All P xs| which
+ensures that all elements of a vector |xs| satisfy a predicate |P : A -> Set|.
 \begin{spec}
   data All (P : A -> Set) : Vec A n ->  Set where
     [] : All P []
@@ -397,7 +459,10 @@ syntax. The role of dependent types in this domain is to encode programs that
 only allow well-typed and well-scoped terms~\cite{Benton2012}. Intuitively, we encode
 the static semantics of the object language in the host language AST's
 constructor, leaving the responsibility of checking type safety to the
-host's language type-checker. As an example, consider the following simple
+host's language type-checker. Before considering our solution to encode list-machine
+programs as instrisincally-typed syntax, we review this approach in a reduced example.
+
+Consider the following simple
 expression language. For this paper, we assume a basic knowledge of functional
 programming and Agda. %\footnote{For further information about Agda, see~\cite{Norell2009,Stump16}.}.
 
@@ -415,8 +480,7 @@ programming and Agda. %\footnote{For further information about Agda, see~\cite{N
       _&_ _+_ : Expr -> Expr -> Expr
 \end{spec}
 
-With this data type\footnote{Agda supports the definition of mixfix operators.
-We can use underscores to mark arguments positions.}, we can construct expressions
+With this data type, we can construct expressions
 to denote terms that should not be considered well-typed like
 |(Num 1) + True|. Using this approach, we need to specify the static semantics
 as another definition, which should consider all possible cases to avoid the
@@ -447,33 +511,6 @@ Agda's type-checker will automatically reject a definition which uses the expres
 
 For further information about Agda, see~\cite{Norell2009,Stump16}.
 
-%Dependently typed pattern matching is built by using the so-called
-%|with| construct, that allows for matching intermediate
-%values~\cite{McBride2004}. If the matched value has a dependent type,
-%then its result can affect the form of other values. For example,
-%consider the following code that defines a type for natural number
-%parity. If the natural number is even, it can be represented as the
-%sum of two equal natural numbers; if it is odd, it is equal to one
-%plus the sum of two equal values. Pattern matching on a value of
-%|Parity n| allows to discover if $n = j + j$ or $n = S (k + k)$,
-%for some $j$ and $k$ in each branch of |with|.  Note that the
-%value of $n$ is specialized accordingly, using information ``learned''
-%by the type-checker.
-%\begin{spec}
-%data Parity : Nat -> Set where
-%   Even : forall {n : Nat} -> Parity (n + n)
-%   Odd  : forall {n : Nat} -> Parity (S (n + n))
-%
-%parity : (n : Nat) -> Parity n
-%parity = -- definition omitted
-
-%natToBin : Nat -> List Bool
-%natToBin zero = []
-%natToBin k with (parity k)
-%   natToBin (j + j)     | Even = false :: natToBin j
-%   natToBin (succ (j + j)) | Odd  = true  :: natToBin j
-%\end{spec}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% List-machine benchmark %%
@@ -482,7 +519,10 @@ For further information about Agda, see~\cite{Norell2009,Stump16}.
 
 \section{The List-Machine Benchmark}\label{sec:list}
 
-The list-machine, proposed by Appel et. al.~\cite{AppelDL12}, is a simple pointer virtual machine where values
+
+In this section, we review the syntax, semantics and typing rules for the
+list-machine, as originally proposed by Appel et. al.~\cite{AppelDL12}.
+The machine is a simple pointer virtual machine where values
 are empty lists and cons-cells:
 \[
 a ::= nil\,\mid\,cons(a_1,a_2)
@@ -490,7 +530,8 @@ a ::= nil\,\mid\,cons(a_1,a_2)
 Throughout this text, the meta-variable $a$ is used to denote an arbitrary value, $v$ denotes a variable
 and $l$ a program label. Following common practice, all meta-variables can
 appear primed or subscripted. The syntax of the virtual machine instructions are
-presented next and their meaning is as usual.
+presented next.
+\begin{figure}[H]
 \[
 \begin{array}{rcll}
   \iota & ::=  & \text{jump }l                       & \text{(jump instruction)}\\
@@ -504,11 +545,16 @@ presented next and their meaning is as usual.
         & \mid & \text{end}                          & \text{(end of block list)}\\
 \end{array}
 \]
+\centering
+\caption{Syntax of list-machine programs}
+\label{fig:list-syntax}
+\end{figure}
 A program is just a sequence of blocks referenced by a unique label.
 
-Each program variable is assigned to a list type, which is used to guarantee the safety when executing
+Each program variable is assigned to a list type (Figure~\ref{fig:type-syntax}), which is used to guarantee the safety of executing
 fetch-field instructions that demands non-empty list arguments. In order to express such refinements, types are subject to a
 subtyping relation. The meta-variable $\tau$ denotes an arbitrary type.
+\begin{figure}[H]
 \[
 \begin{array}{rcll}
   \tau & ::=  & \text{nil} & \text{(type for empty lists)}\\
@@ -516,35 +562,44 @@ subtyping relation. The meta-variable $\tau$ denotes an arbitrary type.
        & \mid & \text{listcons }\tau & \text{(non-empty lists of $\tau$)}\\
 \end{array}
 \]
+\centering
+\caption{Type syntax}
+\label{fig:type-syntax}
+\end{figure}
 The notation $\tau \subset \tau'$
 denotes the subtyping judgment, which is defined as follows.
+\begin{figure}[H]
 \[
-\begin{array}{ccc}
+\begin{array}{c}
   \inference{}
             {\tau\subset \tau}
-            [refl]
-  &
+            [subtype-refl]
+  \\ \\
   \inference{}
-            {nil \subset \tau}
-            [nil]
-  &
+            {nil \subset list\:\tau}
+            [subtype-nil]
+  \\ \\
   \inference{\tau \subset \tau'}
             {list\:\tau\subset list\:\tau'}
-            [list]\\\\
+            [subtype-list]\\ \\
   \multicolumn{3}{c}{
   \inference{\tau \subset \tau'}
             {listcons\:\tau\subset list\:\tau'}
-            [listcons]} \\\\
-            \multicolumn{3}{c}{
+            [subtype-listmixed]} \\ \\
+  \multicolumn{3}{c}{
             \inference{\tau \subset \tau'}
             {listcons\:\tau\subset listcons\:\tau'}
-            [mixed]} \\\\
+            [subtype-listcons]} \\ \\
 \end{array}
 \]
+\centering
+\caption{Subtyping relation}
+\label{fig:subtyping}
+\end{figure}
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
 The other rules specify that type constructors $list$ and $listcons$ respect
-the subtyping relation. The list common supertype $\tau = \tau_1 \sqcap \tau_2$ of
+the subtyping relation. The least common supertype $\tau = \tau_1 \sqcap \tau_2$ of
 $\tau_1$ and $\tau_2$ is defined as the smallest type such that $\tau_1$ and $\tau_2$
 are subtypes of $\tau$.
 
@@ -554,6 +609,7 @@ denotes the operation of including a new entry for variable $v$ with type $\tau$
 in $\Gamma$ and $\Gamma [v := \tau]$ denotes the environment which is identical to $\Gamma$, except
 by the entry which associates variable $v$ with type $\tau$.
 Subtyping is extended to contexts as follows.
+\begin{figure}[H]
 \[
 \begin{array}{cc}
   \inference{}
@@ -564,6 +620,10 @@ Subtyping is extended to contexts as follows.
             [b2]
 \end{array}
 \]
+\centering
+\caption{Subtyping relation for typing contexts.}
+\label{fig:subtyping-context}
+\end{figure}
 The variable $\Pi$ is used to denote \emph{program typings}, i.e. finite mappings between
 labels and typing contexts $\Gamma$, where notation $\Pi(l) = \Gamma$ denotes that
 $\Gamma$ stores the types of variables on the entry point of the block labeled by $l$.
@@ -576,84 +636,109 @@ rules for the list-machine instructions are defined as follows.
 The first typing rule we consider is the one for sequencing instructions inside a block. Basically,
 the rule just threads the output environment from the first instruction as the input typing for the
 second.
+\begin{figure}[H]
 \[
 \inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'\:\:\:\:\:\:\:\:\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[check-instr-seq]
 \]
-The type system proposed by Appel and Leroy~\cite{AppelDL12} has three rules to deal with each of the possible
+\centering
+\caption{Typing rule for instruction sequencing}
+\label{fig:typing-seq}
+\end{figure}
+The type system proposed by Appel et. al.~\cite{AppelDL12} has three rules to deal with each of the possible
 types assigned to the branch variable in the current typing context. The first two rules deal with the $list$ and $listcon$
 types, specifying that the environment associated to the label $l$, $\Pi(l) = \Gamma_1$, is greater than
 $\Gamma[v := nil]$. The third rule applies whenever $\Gamma(v) = nil$ and it also demands that $\Gamma \subset \Pi(l)$.
-
+\begin{figure}[H]
 \[
 \begin{array}{c}
 \inference{\Gamma(v) = \text{list}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
                      \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}(v: \text{listcons}~\tau,~\Gamma')}
-          [branch-list]
+          [check-instr-branch-list]
 \\ \\
 
 \inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
            \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[branch-listcons]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}
+          [check-instr-branch-listcons]
 
 \\ \\
 \inference{\Gamma(v) = \text{nil}\:\:\:\:\Pi(l) = \Gamma_1\:\:\:\:\Gamma \subset \Gamma_1}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}
-          [branch-nil]
+          [check-instr-branch-nil]
 \end{array}
 \]
+\centering
+\caption{Typing rules for branching instructions}
+\label{fig:typing-branch}
+\end{figure}
 Next, we have the \emph{fetch} instructions, which can be used to store the head / tail of a list value in
 a variable. Rule \emph{fetch-0} retrieves the head of a value stored in a variable $v$ and \emph{fetch-1}
 does the same for the tail. Note that both rules demand that $\Gamma(v) = listcons\:\tau$, for some type
 $\tau$.
+\begin{figure}[H]
 \[
 \begin{array}{c}
 \inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\Gamma[v':=\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[fetch-0]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}
+          [check-instr-fetch-0]
           \\ \\
 \inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\Gamma[v':=\text{list}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[fetch-1]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}
+          [check-instr-fetch-1]
 \end{array}
 \]
+\centering
+\caption{Typing rules for field fetching instructions}
+\label{fig:typing-fetching}
+\end{figure}
 The \emph{cons} instruction allows us to build a non-empty list value and this rule uses the least
 common supertype operator to check if the result of the operation is really a list type.
+\begin{figure}[H]
 \[
 \inference{\Gamma(v_0) = \tau_0\:\:\:\:\:\:\:\:\Gamma(v_1) = \tau_1 \\
-           (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau\:\:\:\:\:\:\:\:\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[cons]
+           (\text{list}~\tau_0) \sqcup \tau_1=\text{list}~\tau\:\:\:\:\:\:\:\:\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}
+          [check-instr-cons]
 \]
+\centering
+\caption{Typing rule for cons instruction}
+\label{fig:typing-fetching}
+\end{figure}
 The final rules deal with the well-formedness of blocks and programs. The typing rules for the \textbf{halt} instruction and
 program \textbf{end} are completely trivial. Rule \emph{block-seq} does the typing context threading between sequential
 instructions inside a block and rule \emph{block-label} recursively applies the judgment $\vdash_{block}$ on the
 input program.
-
+\begin{figure}[H]
 \[
-\begin{array}{cc}
+\begin{array}{c}
    \inference{}
-             {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[halt]
-   &
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[check-block-halt]
+   \\ \\
    \inference{}
-             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty]\\ \\
+             {\Pi\vdash_{\text{blocks}} \textbf{end}}[check-block-empty]\\ \\
 
    \inference{\Pi(l)=\Gamma_1\\ \Gamma \subset_{env} \Gamma_1}
-             {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[jump]
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[check-block-jump]
 
-   &
+   \\ \\
 
    \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
-             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]
+             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[check-block-seq]
  \\ \\
 
-   \multicolumn{2}{c}{
    \inference{\Pi(l)=\Gamma\:\:\:\:\:\:\:\:\Pi;\Gamma\vdash_{\text{block}} \iota\:\:\:\:\:\:\:\:\Pi\vdash_{\text{blocks}} p}
-     {\Pi\vdash_{\text{blocks}} l: \iota;~p}[blocks-label]
-    }
+     {\Pi\vdash_{\text{blocks}} l: \iota;~p}[check-blocks-label]
 \end{array}
 \]
+\centering
+\caption{Typing rules for program blocks}
+\label{fig:typing-block}
+\end{figure}
 Inspired by the presented typing rules, in the next section, we define an
-intrinsically-typed syntax for list-machine programs which ensures that
-only well-typed programs can be built.
+intrinsically-typed syntax for list-machine programs which allows
+only well-typed pro\-grams.
 
 \section{Intrinsically-typed syntax}\label{sec:typing}
 
@@ -700,10 +785,10 @@ the variables on entry to each basic block.
 
 \begin{spec}
 Ctx : Set
-Ctx = List (String × Ty)
+Ctx = List Ty
 
-PCtx : Set
-PCtx = Vec Ctx n
+PCtx : ℕ → Set
+PCtx n = Vec Ctx n
 \end{spec}
 
 %format _⊢_⇒_ = "\D{\_\vdash\_\Rightarrow\_}"
@@ -718,7 +803,7 @@ into two segments, one for instructions and one for blocks. We define two dataty
 to hold the well-typed terms accordingly, representing each judgment of the static semantics as a
 syntactical constructor. In Agda we use \emph{indexed inductive types} to define an intrinsically-typed syntax.
 The basic idea is to represent each type system rule as a constructor typed by an output context.
-Such representation scheme makes the Agda's type-checker allow only well-typed blocks and
+Such a representation scheme makes Agda's type-checker allow only well-typed blocks and
 instructions to be created and manipulated.
 
 
@@ -736,6 +821,7 @@ The representation of instructions is defined as follows.
 
 %format ∈ = "\D{\in}"
 %format ⊓ = "\D{\sqcap}"
+%format ⊔ = "\D{\sqcup}"
 %format ~ = "\D{\sim}"
 %format ∷ = "\Con{::}"
 %format ∷= = "\F{::=}"
@@ -772,32 +858,32 @@ The representation of instructions is defined as follows.
 data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
   instr-seq              : ∀ {Γ' Γ''} → Π ⊢ Γ ⇒ Γ'
                          → Π ⊢ Γ' ⇒ Γ'' → Π ⊢ Γ ⇒ Γ''
-  instr-branch-list      : ∀ {τ l Γ' x} → (idx : (x , list τ) ∈ Γ)
-                         → Π [ l ]= Γ' → (idx ∷= (x , nil)) ⊂ Γ'
-                         → Π ⊢ Γ ⇒ (idx ∷= (x , listcons τ))
-  instr-branch-listcons  : ∀ {τ l Γ₁ x}
-                         → (idx : (x , listcons τ) ∈ Γ)
-                         → Π [ l ]= Γ₁ → (idx ∷= (x , nil)) ⊂ Γ₁
+  instr-branch-list      : ∀ {τ l Γ'} → (idx : list τ ∈ Γ)
+                         → Π [ l ]= Γ' → (idx ∷= nil) ⊂ Γ'
+                         → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
+  instr-branch-listcons  : ∀ {τ l Γ₁}
+                         → (idx : (listcons τ) ∈ Γ)
+                         → Π [ l ]= Γ₁ → (idx ∷= nil) ⊂ Γ₁
                          → Π ⊢ Γ ⇒ Γ
-  instr-branch-nil       : ∀ {Γ₁ l x} → (x , nil) ∈ Γ
+  instr-branch-nil       : ∀ {Γ₁ l} → x ∈ Γ
                          → Π [ l ]= Γ₁ → Γ ⊂ Γ₁ → Π ⊢ Γ ⇒ Γ
-  instr-fetch-0-new      : ∀ {τ x x'} → (x , listcons τ) ∈ Γ
-                         → Π ⊢ Γ ⇒ ((x' , τ) ∷ Γ)
-  instr-fetch-0-upd      : ∀ {τ τ' x x'} → (x , listcons τ) ∈ Γ
-                         → (idx : (x' , τ') ∈ Γ)
-                         → Π ⊢ Γ ⇒ (idx ∷= (x' , τ))
-  instr-fetch-1-new      : ∀ {τ x x'} → (x , listcons τ) ∈ Γ
-                         → Π ⊢ Γ ⇒ ((x' , list τ) ∷ Γ)
-  instr-fetch-1-upd      : ∀ {τ τ' x x'} → (x , listcons τ) ∈ Γ
-                         → (idx : (x' , τ') ∈ Γ)
-                         → Π ⊢ Γ ⇒ (idx ∷= (x' , list τ))
-  instr-cons-new         : ∀ {τ τ₀ τ₁ x₀ x₁ x'} → (x₀ , τ₀) ∈ Γ
-                         → (x₁ , τ₁) ∈ Γ → list τ₀ ⊓ τ₁ ~ list τ
-                         → Π ⊢ Γ ⇒ ((x' , listcons τ) ∷ Γ)
-  instr-cons-upd         : ∀ {τ τ₀ τ₁ τ₂ x₀ x₁ x'} → (x₀ , τ₀) ∈ Γ
-                         → (x₁ , τ₁) ∈ Γ → (idx : (x' , τ₂) ∈ Γ)
-                         → list τ₀ ⊓ τ₁ ~ list τ
-                         → Π ⊢ Γ ⇒ (idx ∷= (x' , listcons τ))
+  instr-fetch-0-new      : ∀ {τ} → listcons τ ∈ Γ
+                         → Π ⊢ Γ ⇒ (τ ∷ Γ)
+  instr-fetch-0-upd      : ∀ {τ τ'} → listcons τ ∈ Γ
+                         → (idx : τ' ∈ Γ)
+                         → Π ⊢ Γ ⇒ (idx ∷= τ)
+  instr-fetch-1-new      : ∀ {τ} → (listcons τ) ∈ Γ
+                         → Π ⊢ Γ ⇒ (list τ ∷ Γ)
+  instr-fetch-1-upd      : ∀ {τ τ'} → (listcons τ) ∈ Γ
+                         → (idx : τ' ∈ Γ)
+                         → Π ⊢ Γ ⇒ (idx ∷= list τ)
+  instr-cons-new         : ∀ {τ τ₀ τ₁} → τ₀ ∈ Γ
+                         → τ₁ ∈ Γ → list τ₀ ⊔ τ₁ ~ list τ
+                         → Π ⊢ Γ ⇒ (listcons τ) ∷ Γ
+  instr-cons-upd         : ∀ {τ τ₀ τ₁ τ₂} → τ₀ ∈ Γ
+                         → τ₁ ∈ Γ → (idx : τ₂ ∈ Γ)
+                         → list τ₀ ⊔ τ₁ ~ list τ
+                         → Π ⊢ Γ ⇒ (idx ∷= listcons τ)
 \end{spec}
 
 %format _∈_ = "\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}"
@@ -806,7 +892,7 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
 In our approach, all name binding is done with statically checked \emph{de Bruijn}
 indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless,
 position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn}
-index |(x , τ) ∈ Γ|, which witnesses the existence of an element |(x , τ)| in |Γ|,
+index |τ ∈ Γ|, which witnesses the existence of an element |τ| in |Γ|,
 as defined by the standard library |_∈_| operator. This technique is well-known for
 avoiding out-of-bound errors.
 
@@ -830,18 +916,18 @@ non-empty list (of type |listcons τ|), and is used to retrieve the head of this
 in a fresh new variable. The resulting typing context adds the information about the new
 variable. Constructor |instr-fetch-0-upd| is also used to retrieve the head element of a
 list, however storing its value in an existing variable, represented by the \emph{de Bruijn}
-index |idx : (x' , τ') ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd|
+index |idx : τ' ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd|
 are similar, but fetching the tail of a list instead of the head.}
 
-%format _⊓_~_ = "\D{\_\sqcap\_\sim\_}"
+%format _⊔_~_ = "\D{\_\sqcup\_\sim\_}"
 
 \paragraph{List construction}{The |instr-cons-new| and |instr-cons-upd| constructors are
 used to create a new list. The first creates a new variable, and the second updates an
-existing variable. The list is created from two variables, |(x₀ , τ₀) ∈ Γ| and |(x₁ , τ₁) ∈ Γ|,
+existing variable. The list is created from two variables, |τ₀ ∈ Γ| and |τ₁ ∈ Γ|,
 which are represented as \emph{de Bruijn} indices. The type of the new list is defined by
 the least common supertype\footnote{A complete explanation about the least common supertype
 can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
-type |τ₁ ⊓ τ₂ ~ τ|, which encodes that the least common supertype of |τ₁| and |τ₂| is |τ|.
+type |τ₁ ⊔ τ₂ ~ τ|, which encodes that the least common supertype of |τ₁| and |τ₂| is |τ|.
 The resulting typing context adds information about the newly created list.
 Subsection~\ref{sec:supertype} provides the details of an algorithm
 for calculating the least common supertype of two given types.}
@@ -892,9 +978,9 @@ Program Π = ∀ {Γ'} → All (λ Γ → Block Π Γ Γ') Π
 %format lub-5 = "\Con{lub5}"
 %format lub-6 = "\Con{lub6}"
 %format lub-7 = "\Con{lub7}"
-%format lub-comm = "\F{\sqcap\textrm{-}comm}"
-%format lub-subtype = "\F{\sqcap\textrm{-}subtype}"
-%format lub-least = "\F{\sqcap\textrm{-}least}"
+%format lub-comm = "\F{\sqcup\textrm{-}comm}"
+%format lub-subtype = "\F{\sqcup\textrm{-}subtype}"
+%format lub-least = "\F{\sqcup\textrm{-}least}"
 %format <: = "\D{<:}"
 
 A key feature of the list-machine type system is its subtyping (denoted by |<:|), which is
@@ -908,29 +994,34 @@ variable type whenever it is updated by a \emph{cons} instruction. The rules of 
 supertype relation are specified as the following inductive type:
 
 \begin{spec}
-data _⊓_~_ : Ty → Ty → Ty → Set where
-  lub-0 : ∀ {t} → t ⊓ t ~ t
-  lub-1 : ∀ {t} → (list t) ⊓ nil ~ (list t)
-  lub-3 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
-            (list t) ⊓ (list t1) ~ (list t')
-  lub-5 : ∀ {t} → (listcons t) ⊓ nil ~ (list t)
-  lub-7 : ∀ {t t1 t'} → t ⊓ t1 ~ t' →
-            (listcons t) ⊓ (listcons t1) ~ (listcons t')
-  -- some code omitted for brevity
+data _⊔_~_ where
+  lub-0 : ∀ {t} → t ⊔ t ~ t
+  lub-1 : ∀ {t} → (list t) ⊔ nil ~ (list t)
+  lub-4 : ∀ {t} → nil ⊔ (list t) ~ (list t)
+  lub-2 : ∀ {t t1 t'} → (list t) ⊔ (list t1) ~ t' →
+          (list t) ⊔ (listcons t1) ~ t'
+  lub-2b : ∀ {t t1 t'} → (list t) ⊔ (list t1) ~ t' →
+           (listcons t) ⊔ (list t1) ~ t'
+  lub-3 : ∀ {t t1 t'} → t ⊔ t1 ~ t' →
+            (list t) ⊔ (list t1) ~ (list t')
+  lub-5 : ∀ {t} → (listcons t) ⊔ nil ~ (list t)
+  lub-6 : ∀ {t} → nil ⊔ (listcons t) ~ (list t)
+  lub-7 : ∀ {t t1 t'} → t ⊔ t1 ~ t' →
+            (listcons t) ⊔ (listcons t1) ~ (listcons t')
 \end{spec}
 The presented constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
 types. Also, we have a rule to ensure that the relation is commutative, as proved by a simple
 Agda theorem.
 \begin{spec}
-lub-comm : t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
+lub-comm : t1 ⊔ t2 ~ t3 → t2 ⊔ t1 ~ t3
 \end{spec}
 We omit the complete definition of |lub-comm| for brevity. In the list-machine benchmark definition,
-Appel and Leroy~\cite{AppelDL12} also define that the least common supertype relation is sound and complete with respect to the
+Appel et. al.~\cite{AppelDL12} also define that the least common supertype relation is sound and complete with respect to the
 subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
 %format × = "\D{\land}"
 \begin{spec}
-lub-subtype : t1 ⊓ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
-lub-least : t1 ⊓ t2 ~ t3 → t1 <: t3 → t2 <: t4 → t3 <: t4
+lub-subtype : t1 ⊔ t2 ~ t3 → (t1 <: t3) × (t2 <: t3)
+lub-least : t1 ⊔ t2 ~ t3 → t1 <: t3 → t2 <: t3 → t3 <: t4
 \end{spec}
 %format lub = "\F{lub}"
 An algorithm to construct the least supertype from two input types is
@@ -939,7 +1030,7 @@ returned type |t| is indeed the least common supertype of |t1| and |t2|,
 thus ensuring its correctness-by-construction.
 
 \begin{spec}
-lub : (t1 t2 : Ty) → ∃ (λ t → t1 ⊓ t2 ~ t)
+lub : (t1 t2 : Ty) → ∃ (λ t → t1 ⊔ t2 ~ t)
 lub nil nil = nil , lub-0
 lub (list t1) nil = list t1 , lub-1
 lub (list t1) (list t2) with lub t1 t2
@@ -987,12 +1078,12 @@ two represent non-empty lists, considering the types |listcons| and |list|.
 We use the datatype |All| (and |Allv| for vectors) to define the notion of well-typed
 variable environments and well-typed programs. Thus, intuitively, |Env| is like a
 list of well-typed values. And |PEnv| is like a list of well-typed environments.
-Both type environments are used to type block instructions and sequences of
+Both typing contexts are used to type block instructions and sequences of
 block instructions.
 
 \begin{spec}
 Env : Ctx → Set
-Env Γ = All (λ (x , τ) → Val τ) Γ
+Env Γ = All Val Γ
 \end{spec}
 
 \begin{spec}
@@ -1050,7 +1141,7 @@ last one is the |Block| to be evaluated. This function returns a modified run-ti
 environment (|Env Γ'|) in case of success, or |nothing| when (and only) the \emph{fuel} runs out.
 
 From now on we describe how we implement some parts\footnote{The complete evaluation
-function can be found in our online repository.} of the dynamic semantics (reduction rules)
+function can be found in our online repository~\cite{list-rep}.} of the dynamic semantics (reduction rules)
 of the list-machine language in the function |run-step|. We mix the code with the explanation
 to make it easier for the reader.
 
@@ -1077,12 +1168,20 @@ meaning that there is still \emph{fuel} during the recursive processing of this 
 % run-step n p env b
 
 \paragraph{Conditional jump}{We show next only the case when the jump actually occurs,
-following the rule \emph{step-branch-taken} of \cite{Appel07}. In this case, variable |v| has value |nil|, and
+following the rule \emph{step-branch-taken} of \cite{Appel07}. In this case, variable |v|
+has value |nil|, and
 the step of evaluation should proceed with the block instruction defined in program |p|, with
 environment |env| respecting the subtyping constraint. We use the function |lookupA| to obtain
 the block instruction with index |i| on program |p|. Since we use \emph{de Bruijn} indices to
-represent the label, only valid values are accepted by the intrinsically-typed syntax.}
-
+represent the label, only valid values are accepted by the intrinsically-typed syntax. We use
+Agda's standard library function |[]=⇒lookup|:
+\begin{spec}
+[]=⇒lookup : ∀ {px : P x} {pxs : All P xs} {i : x ∈ xs} →
+             pxs [ i ]= px →
+             lookupA pxs i == px
+\end{spec}
+which rewrites a lookup predicate (|pxs [ i ]= px|) into an equality using the |lookupA|
+function, |lookupA pxs i == px|.}
 \begin{spec}
 run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
   rewrite sym ([]=⇒lookup l)
@@ -1098,7 +1197,8 @@ environment |env|, and this variable is added to the result environment. The typ
 indices guarantee that the projected value has the type demanded, since the environment |env| is typed
 by the context |Γ|. Similarly, the second instruction also retrieves the head element of a list, however
 it needs to update the run-time environment on the position of index |v'|. This process is done by the
-function |update-env|\footnote{The source-code of this function can be found in our online repository.}.}
+function |update-env|\footnote{The source-code of this function can be found in our online
+repository~\cite{list-rep}.}.}
 
 \begin{spec}
 run-step (suc n) p env (block-seq (instr-fetch-0-new v) b)
@@ -1123,7 +1223,7 @@ function to retrieve the type information using the \emph{de Bruijn} indices of 
 extend the run-time environment |env| with the type of the created list. To convince the Agda's
 type-checker the new environment is well-typed we use subtyping lemmas, such as |<:-val| and |list-<:-inv|,
 and others lemmas to deal with the least common supertype, such as |lub-subtype-left|, |lub-subtype-right|,
-and |lub-of-subtype|. These lemmas and their proofs can be found in our repository online. }
+and |lub-of-subtype|. These lemmas and their proofs can be found in our repository online~\cite{list-rep}. }
 
 \begin{spec}
 run-step (suc n) p env (block-seq (instr-cons-new v₀ v₁ s) b)
@@ -1154,12 +1254,53 @@ This approach is promising to be investigated when formalizing even more complex
 
 \section{Type-Checker}\label{sec:typechecker}
 
-In practice, a source-code of a programming language runs through several phases, including lexing, parsing,
-scope checking, and most importantly \emph{type-checking}. Since we represent programs using a
-intrinsically-typed syntax, scope and type-checking is only a matter of elaborating an untyped syntax
-to a typed one.
-
+In practice, a source-code of a programming language runs through several phases,
+including lexing, parsing, scope checking, and most importantly \emph{type-checking}.
+Since we represent programs using a intrinsically-typed syntax, scope and
+type-checking is only a matter of elaborating an untyped syntax to a typed one.
+The definition of our type-checker follows McBride's~\cite{McBride2004} approach which
+specifies the type-checker function type as its correctness property: it should return
+a type annotated syntax such that it's erasure is equal to the type-checker input program.
+%format index = "\F{index}"
+%format Lookup = "\D{Lookup}"
+%format inside = "\Con{inside}"
+%format outside = "\Con{outside}"
 %format lookup-var = "\F{lookup\textrm{-}var}"
+%format there = "\Con{there}"
+%format here = "\Con{here}"
+Before considering machine instructions, we will detail the type-checker correctness
+approach in the context of variables.
+Since we use \emph{de Bruijn} indices to represent labels and variables, as the first
+step to type and scope check them, we need to get the index from a given variable.
+The function |index| return the list position corresponding to a membership proof (variable):
+\begin{spec}
+index : ∀ {A : Set}{t : A}{Γ : List A} → t ∈ Γ → ℕ
+index (here px) = zero
+index (there p) = suc (index p)
+\end{spec}
+Next, we follow Norell's~\cite{Norell2009} approach and define a type that relates a
+natural number with a list as follows. Either the number correspond to some list position,
+in which it is of the form |index p| for some proof |p : x ∈ xs| or it is invalid position.
+The type |Lookup| encodes this relation between lists and natural numbers.
+\begin{spec}
+data Lookup {A : Set}(xs : List A) : ℕ → Set where
+  inside : (x : A)(p : x ∈ xs) → Lookup xs (index p)
+  outside : ∀ {n} → Lookup xs n
+\end{spec}
+Using this infrastructure we can build the function |lookup-var| which
+returns a value of type |Lookup xs n| that specifies whether |n| is
+a valid list position or not.
+\begin{spec}
+lookup-var : {A : Set}(xs : List A)(n : ℕ) → Lookup xs n
+lookup-var [] n = outside
+lookup-var (x ∷ xs) zero = inside x (here refl)
+lookup-var (x ∷ xs) (suc n) with lookup-var xs n
+lookup-var (x ∷ xs) (suc .(index p)) | inside y p = inside y (there p)
+lookup-var (x ∷ xs) (suc _) | outside = outside
+\end{spec}
+In order to type-check instructions using this approach, we need to first define a
+datatype for untyped programs.
+
 %format map = "\F{map}"
 %format ∃ = "\D{\exists}"
 %format ≟ = "\D{=}"
@@ -1170,66 +1311,123 @@ to a typed one.
 %format yes = "\Con{yes}"
 %format no = "\Con{no}"
 %format refl = "\Con{refl}"
-
-Since we use \emph{de Bruijn} indices to represent labels and variables, as the first step to type and scope
-check them, we need to provide an index from a named variable. This process is done by the
-|lookup-var| function, returning an index when the named variable is found, and |nothing| otherwise.
-
+%format UInstr = "\D{UInstr}"
+%format jump = "\Con{jump}"
+%format branch-if-nil = "\Con{branch\textrm{-}if\textrm{-}nil}"
+%format Label = "\D{Label}"
+%format forget-types-instr = "\F{forge\textrm{-}types\textrm{-}instr}"
+%format fetch-field-0 = "\Con{fetch\textrm{-}field\textrm{-}0}"
+%format fetch-field-1 = "\Con{fetch\textrm{-}field\textrm{-}1}"
+%format get-label = "\Con{get\textrm{-}label}"
+%format cons = "\Con{cons}"
+%format halt = "\Con{halt}"
+%format seq = "\Con{seq}"
+%format CheckedInstr = "\D{CheckedInstr}"
+%format ok = "\Con{ok}"
 \begin{spec}
-lookup-var  : (Γ : Ctx) → (x : String)
-            → Maybe (∃ λ τ → (x , τ) ∈ Γ)
-lookup-var [] x = nothing
-lookup-var ((y , τ) ∷ Γ) x with x ≟ y
-... | yes refl = just (τ , here refl)
-... | (no ¬p) = map  (λ v → proj₁ v , there (proj₂ v))
-                     (lookup-var Γ x)
+data UInstr (n : ℕ) : Set where
+  jump          : (x : ℕ) → Label n → UInstr n
+  branch-if-nil : (v : ℕ) → Label n → UInstr n
+  fetch-field-0 : (v : ℕ) → (v′ : ℕ) → UInstr n
+  fetch-field-1 : (v : ℕ) → (v′ : ℕ) → UInstr n
+  get-label     : (v : ℕ) → Label n → UInstr n
+  cons          : (v₀ : ℕ) → (v₁ : ℕ) → (v′ : ℕ) → UInstr n
+  halt          : UInstr n
+  seq           : UInstr n → UInstr n → UInstr n
+\end{spec}
+Type |UInstr| has a constructor for each of the list machine instructions,
+type |Label n| denote a program label and it is represented by
+a value of type |Fin n|. Next, we define an erasure function for
+our intrinsically typed syntax:
+\begin{spec}
+forget-types-instr : ∀ {n}{Π : PCtx n}{Γ Γ'} → Π ⊢ Γ ⇒ Γ' → UInstr n
+forget-types-instr (instr-seq p p₁) = seq (forget-types-instr p) (forget-types-instr p₁)
+forget-types-instr (instr-branch-list {l = l} idx x x₁) = branch-if-nil (index idx) l
+forget-types-instr (instr-branch-listcons {l = l} idx x x₁) = branch-if-nil (index idx) l
+forget-types-instr (instr-branch-nil {l = l} x x₁ x₂) = branch-if-nil (index x) l
+forget-types-instr (instr-fetch-0-new {v' = v'} x) = fetch-field-0 (index x) v'
+forget-types-instr (instr-fetch-0-upd x idx) = fetch-field-0 (index x) (index idx)
+forget-types-instr (instr-fetch-1-new {v' = v'} x) = fetch-field-1 (index x) v'
+forget-types-instr (instr-fetch-1-upd x idx) = fetch-field-1 (index x) (index idx)
+forget-types-instr (instr-cons-new {v' = v'} x x₁ x₂) = cons (index x) (index x₁) v'
+forget-types-instr (instr-cons-upd x x₁ idx x₂) = cons (index x) (index x₁) (index idx)
+\end{spec}
+Finally, we can define a view of an untyped instruction (|UInstr n|) as being the
+erasure of an intrinsically-typed one using the type |CheckedInstr|:
+\begin{spec}
+data CheckedInstr {n}(Π : PCtx n) (Γ : Ctx) : UInstr n → Set where
+  ok : ∀ {Γ'} → (i : Π ⊢ Γ ⇒ Γ') → CheckedInstr Π Γ (forget-types-instr i)
 \end{spec}
 
 %format check-fetch-field-0 = "\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}"
-%format type-error = "\F{type\textrm{-}error}"
+%format type-error = "\Con{type\textrm{-}error}"
 %format TC = "\D{TC}"
 %format CheckedInstr = "\D{CheckedInstr}"
 
 %format fetch-field-0 = "\Con{fetch\textrm{-}field\textrm{-}0}"
 %format right = "\Con{right}"
 %format ok = "\Con{ok}"
-
+%format undefined-var = "\Con{undefined\textrm{-}var}"
+%format TypeError = "\D{TypeError}"
+%format UnexpectedTy = "\Con{UnexpectedTy}"
+%format UndefinedVar = "\Con{UndefinedVar}"
+%format UndefinedLabel = "\Con{UndefinedLabel}"
+%format ContextSubtyping = "\Con{ContextSubtyping}"
+%format Either = "\D{Either}"
+%format left = "\Con{left}"
+%format right = "\Con{right}"
 For brevity, we show how we type-check only one instruction\footnote{The curious reader can refer to our
-online repository for a complete implementation.}. Function |check-fetch-field-0|
-receives a program context, a typing context, and two named variables, and returns a |TC| value,
-which is an error message or a |CheckedInstr| indicating that the term type-checks.
-
+online repository~\cite{list-rep} for a complete implementation.}. Function |check-fetch-field-0|
+receives a program context, a typing context, and two named variables, and returns a |TC| value:
 \begin{spec}
-check-fetch-field-0 : (Π : PCtx) → (Γ : Ctx) → (v : String)
-  → (v' : String) → TC (CheckedInstr Π Γ (fetch-field-0 v v'))
-check-fetch-field-0 Π Γ v v' with lookup-var Γ v , lookup-var Γ v'
-... | nothing , _ = type-error ("variable out of scope: " ++ v)
-... | just (nil , _) , _ = type-error "type error [nil]"
-... | just (list τ , _) , _ = type-error "type error [list]"
-... | just (listcons τ , idx) ,  nothing =
-                                 right (ok (instr-fetch-0-new idx))
-... | just (listcons τ , idx) ,  just (τ' , idx') =
-                                 right (ok (instr-fetch-0-upd idx idx'))
+TC : Set → Set
+TC i = Either TypeError i
 \end{spec}
-
-In the code above, we use the function |lookup-var| to provide the \emph{de Bruijn} indices for
+which is either an error message or a |CheckedInstr| indicating that the term type-checks.
+The |TypeError| contains one constructor for each of the possible failures causes for an
+input program.
+\begin{spec}
+data TypeError : Set where
+  UnexpectedTy : Ty → TypeError
+  UndefinedVar : ℕ  → TypeError
+  UndefinedLabel : ∀ {n} → Label n → TypeError
+\end{spec}
+In the code below, we use the function |lookup-var| to provide the \emph{de Bruijn} indices for
 each variable, and match the first with its possible forms. The first three cases indicate
-type errors: (1) when |v| is |nothing| it means a variable scope error; (2) and (3) are typing errors,
+type errors: (1) when |v| is |outside| it means a variable scope error; (2) and (3) are typing errors,
 since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
+\begin{spec}
+check-fetch-field-0 : ∀ {n}(Π : PCtx n) Γ v v' → TC (CheckedInstr Π Γ (fetch-field-0 v v'))
+check-fetch-field-0 Π Γ v v' with lookup-var Γ v | lookup-var Γ v'
+... | outside | _ = undefined-var v
+... | inside nil p | q = type-error nil
+... | inside (list x) p | q = type-error (list x)
+... | inside (listcons x) p | inside x₁ p₁ = right (ok (instr-fetch-0-upd p p₁))
+... | inside (listcons x) p | outside = right (ok (instr-fetch-0-new p))
+\end{spec}
+Finally, functions |type-error| and |undefined-var| just build the corresponding
+type-checker error as follows:
+\begin{spec}
+type-error : ∀ {i} → Ty → TC i
+type-error = left ∘ UnexpectedTy
+
+undefined-var : ∀ {i} → ℕ → TC i
+undefined-var = left ∘ UndefinedVar
+\end{spec}
 
 \section{Extending the List-Machine with Indirect Jumps}\label{sec:indirect}
 
 In this section we describe the necessary modifications to our formalization to include indirect jumps
-as proposed by Appel and Leroy~\cite{AppelDL12}. We start by describing the changes on the type system
+as proposed by Appel et. al.~\cite{AppelDL12}. We start by describing the changes on the type system
 and its impact on the intrinsically typed representation of programs in Section~\ref{sec:changestypes}.
 Updates on the type checker and the interpreter implementations are described in Sections~\ref{sec:changestypechecker}
 and ~\ref{sec:changesintep}, respectively.
 
 \subsection{Modifications in the type system and instruction set}\label{sec:changestypes}
 
-Since our solution relies on representing the program using intrinsically typed syntax, we describe
-first the changes on the list-machine type system. The first modification is the inclusion of a type for
+Since our solution relies on representing the program using intrinsically typed syntax, we first
+describe the changes on the list-machine type system. The first modification is the inclusion of a type for
 program labels, which denotes continuations in a program.
 
 %format top = "\Con{\top}"
@@ -1243,22 +1441,23 @@ data Ty : Set where
   cont : Ctx → Ty
 \end{spec}
 
-The type |cont| $\Gamma$ for a label express that the machine can safely jump when its registers
-satisfies $\Gamma$. The inclusion of continuation types makes the type and context syntax mutually
-inductive.
+The type |cont| $\Gamma$ is given to program labels and it
+express that the machine can safely jump when its registers
+satisfies $\Gamma$. The inclusion of continuation types makes
+the type and context syntax mutually inductive.
 
 Since we have changed the type syntax, we need to adapt the definition of the subtyping relation.
 The continuation type substantially changes the subtyping relation,
 since now we have ``incomparable'' types: list types are not subtypes neither supertypes for continuations.
-The solution is to complete the subtyping relation with a bottom and top types. The subtyping rules for these
+The solution is to complete the subtyping relation with bottom and top types. The subtyping rules for these
 new types are presented next.
 
 \[
 \begin{array}{cc}
-  \infer{\bot <: \tau}{} &
-  \infer{\tau <: \top}{} \\ & \\
+  \inference{}{\bot <: \tau}[subtype-bot] &
+  \inference{}{\tau <: \top}[subtype-top] \\ & \\
   \multicolumn{2}{c}{
-    \infer{cont\,\Gamma_1\:<:\:cont\,\Gamma_2}{\Gamma_2 \subset \Gamma_1}
+    \inference{\Gamma_2 \subset \Gamma_1}{cont\,\Gamma_1\:<:\:cont\,\Gamma_2}[subtype-cont]
   }
 \end{array}
 \]
@@ -1272,9 +1471,10 @@ First, we complete the least upper bound relation by specifying that the lub for
 $\top$.
 
 \[
-\begin{array}{cc}
-  \infer{cont\:\Gamma\:\sqcup\:nil = \top}{} & \infer{cont\:\Gamma\:\sqcup\:(list\:\tau) = \top}\\ & \\
-  \multicolumn{2}{c}{\infer{cont\:\Gamma\:\sqcup\:(listcons\:\tau) = \top}}
+\begin{array}{c}
+  \inference{}{cont\:\Gamma\:\sqcup\:nil = \top}[lub-cont-nil] \\ \\
+  \inference{}{cont\:\Gamma\:\sqcup\:(list\:\tau) = \top}[lub-cont-list]\\ & \\
+  \inference{}{cont\:\Gamma\:\sqcup\:(listcons\:\tau) = \top}[lub-cont-listcons]
 \end{array}
 \]
 
@@ -1282,41 +1482,47 @@ We omit rules that ensure the commutativity of the least upper bound relation fo
 Next, we present the rules for the least upper bound relation for top and bottom types.
 
 \[
-\begin{array}{cc}
-  \infer{\tau \sqcup \bot = \tau}{} & \infer{\tau \sqcup \top = \top}{}
+\begin{array}{c}
+  \inference{}{\tau \sqcup \bot = \tau}[lub-bot] \\ \\
+  \inference{}{\tau \sqcup \top = \top}[lub-top]
 \end{array}
 \]
 
 The last set of rules for the least upper bound relation deals with continuations.
-Because of the contravariance of the |cont| type, we also need to define greatest lower bounds for both
-types and typing contexts. First, we present the rule for the least upper bound for continuation types.
+Because of the contravariance of the |cont| type, we also need to define the greatest
+lower bound relation for both
+types and typing contexts.
+First, we present the rule for the least upper bound for continuation types.
 
 \[
 \begin{array}{c}
-  \infer{cont\:\Gamma_1\:\sqcap\: cont\:\Gamma_2=cont\:\Gamma_3}{\Gamma_1\cup\Gamma_2 = \Gamma_3}
+  \inference{\Gamma_1\cap\Gamma_2 = \Gamma_3}
+            {cont\:\Gamma_1\:\sqcup\: cont\:\Gamma_2=cont\:\Gamma_3}
+            [lub-cont]
 \end{array}
 \]
 
 The rule specifies that the least upper bound for types |cont| $\Gamma_1$ and |cont| $\Gamma_2$ is
 |cont| $\Gamma_3$, where $\Gamma_3$ is greatest lower bound for typing contexts $\Gamma_1$ and $\Gamma_2$.
-The definition of the greatest lower bound for contexts is presented next.
+The definition of the greatest lower bound for contexts is as follows:
 \[
-  \begin{array}{cc}
-    \infer{\{\} \cup \Gamma = \Gamma}{} &
-    \infer{\Gamma \cup \{\} = \Gamma}{} \\ & \\
-    \multicolumn{2}{c}{
-      \infer{(\Gamma_1 , x : \tau_1) \cup (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
-            {\tau_1 \sqcup \tau_2 = \tau_3 & \Gamma_1 \cup \Gamma_2 = \Gamma_3}
-    }
+  \begin{array}{c}
+    \inference{}{\{\} \cup \Gamma = \Gamma}[glb-empty-left] \\ \\
+    \inference{}{\Gamma \cup \{\} = \Gamma}[glb-empty-right] \\ \\
+      \inference{\tau_1 \sqcup \tau_2 = \tau_3 & \Gamma_1 \cup \Gamma_2 = \Gamma_3}
+                {(\Gamma_1 , x : \tau_1) \cup (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
+                [glb-cons]
   \end{array}
 \]
 The definition of the greatest lower bound for types is as follows. The first set of rules specify the reflexivity,
-that $`\top$ type is an identity and $`\bot$ is for greastest lower bound for any type $\tau$.
-Again, rules to ensure commutativity of the relation are ommited for brevity.
+that $\top$ type is an identity and $\bot$ is for greastest lower bound for any type $\tau$.
+Again, rules to ensure commutativity of the relation are omitted for brevity.
 
 \[
-\begin{array}{ccc}
-  \infer{\tau \sqcup \tau = \tau}{} & \infer{\top \sqcup \tau = \tau}{} & \infer{\bot \sqcup \tau = \bot}{}\\
+\begin{array}{c}
+  \inference{}{\tau \sqcap \tau = \tau}[glb-refl] \\ \\
+  \inference{}{\top \sqcap \tau = \tau}[glb-top] \\ \\
+  \inference{}{\bot \sqcap \tau = \bot}[glb-bot]
 \end{array}
 \]
 Next, we define the greatest lower bound relation for list types. The first rule specifies that the bottom
@@ -1324,42 +1530,47 @@ type is the greatest lower bound for the empty list type and non-empty list type
 compatibility of |list| and |listcons| type constructors with the greatest lower bound relation. The last
 rule show that |listcons| $\tau_3$ is the lower bound for |list| $\tau_1$ and |listcons| $\tau_2$.
 \[
-\begin{array}{cc}
-  \infer{nil \sqcup (listcons\: \tau) = \bot}{} &
-  \infer{(list\: \tau_1)\sqcup (list\:\tau_2) = list\:\tau_3}{\tau_1\sqcup \tau_2 = \tau_3} \\ & \\
-   \infer{(listcons\: \tau_1)\sqcup (listcons\:\tau_2) = listcons\:\tau_3}{\tau_1\sqcup \tau_2 = \tau_3} &
-  \infer{(list\: \tau_1)\sqcup (listcons\:\tau_2) = listcons\:\tau_3}{\tau_1\sqcup \tau_2 = \tau_3} \\ & \\
+\begin{array}{c}
+  \inference{}{nil \sqcap (listcons\: \tau) = \bot}[glb-nil-listcons] \\ \\
+  \inference{\tau_1\sqcap \tau_2 = \tau_3}
+            {(list\: \tau_1)\sqcap (list\:\tau_2) = list\:\tau_3}
+            [glb-list]\\ \\
+   \inference{\tau_1\sqcap \tau_2 = \tau_3}
+             {(listcons\: \tau_1)\sqcap (listcons\:\tau_2) = listcons\:\tau_3}
+             [glb-listcons] \\ \\
+
+   \inference{\tau_1\sqcap \tau_2 = \tau_3}
+             {(list\: \tau_1)\sqcap (listcons\:\tau_2) = listcons\:\tau_3}
+             [glb-list-listcons]
 \end{array}
 \]
 Rules for the greatest lower bound relation for continuation types show that the bottom type is the
-lower bound for the list and continuation types. The other rule stabishes the compatibility of
+lower bound for the list and continuation types. The other rule estabishes the compatibility of
 the continuation type with the lower bound relation and it uses the least upper bound for typing
 contexts relation.
 \[
-\begin{array}{ccc}
-  \infer{nil\sqcup(cont\:\Gamma) = \bot}{} &
-  \infer{(list\:\tau)\sqcup(cont\:\Gamma) = \bot}{} &
-  \infer{(listcons\:\tau)\sqcup(cont\:\Gamma) = \bot}{} \\ & & \\
-  \multicolumn{3}{c}{
-    \infer{(cont\:\Gamma_1)\sqcup(cont\:\Gamma_2) = (cont\:\Gamma_3)}{\Gamma_1\cap\Gamma_2 = \Gamma_3}
-  }
+\begin{array}{c}
+  \inference{}{nil\sqcap(cont\:\Gamma) = \bot}[glb-cont-nil] \\ \\
+  \inference{}{(list\:\tau)\sqcap(cont\:\Gamma) = \bot}[glb-cont-list] \\ \\
+  \inference{}{(listcons\:\tau)\sqcap(cont\:\Gamma) = \bot}[glb-cont-listcons] \\ \\
+  \inference{\Gamma_1\cup\Gamma_2 = \Gamma_3}
+            {(cont\:\Gamma_1)\sqcap(cont\:\Gamma_2) = (cont\:\Gamma_3)}
+            [glb-cont]
 \end{array}
 \]
 We omit several rules for the greatest lower bound relation that ensure the commutativity of the
 relation and that $\bot$ type is a lower bound for any type. Rules for the least upper bound for
 typing contexts are simply the dual version for greatest lower bound for contexts, as shown next.
 \[
-  \begin{array}{cc}
-    \infer{\{\} \cap \Gamma = \{\}}{} &
-    \infer{\Gamma \cap \{\} = \{\}}{} \\ & \\
-    \multicolumn{2}{c}{
-      \infer{(\Gamma_1 , x : \tau_1) \cap (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
-            {\tau_1 \sqcap \tau_2 = \tau_3 & \Gamma_1 \cap \Gamma_2 = \Gamma_3}
-    }
+  \begin{array}{c}
+    \inference{}{\{\} \cap \Gamma = \{\}}[glb-empty-left] \\ \\
+    \inference{}{\Gamma \cap \{\} = \{\}}[glb-empty-right] \\ \\
+    \inference{\tau_1 \sqcap \tau_2 = \tau_3 & \Gamma_1 \cap \Gamma_2 = \Gamma_3}
+              {(\Gamma_1 , x : \tau_1) \cap (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
+              [glb-cons]
   \end{array}
 \]
-The Agda encoding of these relations is an immediate translation of the mathematical notation
-to code and are omitted for brevity.
+The Agda encoding of these relations is an immediate translation of the mathematical notation.
 
 The modifications on the subtyping and least upper bound induced changes on all theorems
 about these relations. On our first implementation, these results are just straightforward
@@ -1367,28 +1578,29 @@ inductive proofs. Because of the mutually inductive nature of the new relation v
 these proofs needed to be defined by mutually recursive functions.
 
 Once we have only modified the subtyping and the least upper bound relations, most of the type system
-rules remained unchanged from the original version. In order to support indirect jumps, Appel and Leroy.
+rules remained unchanged from the original version. In order to support indirect jumps, Appel's
 approach is to modify the jump instruction and add a new instruction for loading label values into
 machine registers. The typing rules for get-label and jump instructions are as follows.
 
 \[
-\begin{array}{cc}
-  \infer{\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:L_0\}\Gamma'}
-        {\Gamma[v\,:=\,nil] = \Gamma'} &
-  \infer{\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:l\}\Gamma'}
-        {\Pi(l) = \Gamma_1 & \Gamma[v\,:=\,cont\:\Gamma_1] = \Gamma'} \\ & \\
-  \multicolumn{2}{c}{
-    \infer{\Pi;\Gamma\vdash_{block}\,\textrm{jump}\:v}
-          {\Gamma(v) = cont\:\Gamma_1 & \Gamma \subset \Gamma_1}
-  }
+\begin{array}{c}
+  \inference{\Gamma[v\,:=\,nil] = \Gamma'}
+            {\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:L_0\}\Gamma'}
+            [check-instr-get-label-0] \\ \\
+  \inference{\Pi(l) = \Gamma_1 & \Gamma[v\,:=\,cont\:\Gamma_1] = \Gamma'}
+            {\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:l\}\Gamma'}
+            [check-instr-get-label]\\ \\
+  \inference{\Gamma(v) = cont\:\Gamma_1 & \Gamma \subset \Gamma_1}
+            {\Pi;\Gamma\vdash_{block}\,\textrm{jump}\:v}
+            [check-block-jump]
 \end{array}
 \]
 The first rule shows that the type of label $L_0$, the starting label of a complete machine program,
 is $nil$ and the second specifies that the type for any other label is a continuation type formed by
-the context associated with label $l$ in $\Pi$. The last rule show that typing a jump instruction
+the context associated with label $l$ in $\Pi$. The last rule shows that typing a jump instruction
 requires that its register has a continuation type, $cont\:\Gamma_1$, that should be a subtype of
 the current block context $\Gamma$. Based on these rules, we add the following constructors to our
-instruction typed syntax:
+typed instruction syntax:
 
 %format instr-getlabel-0 = "\Con{instr\textrm{-}getlabel\textrm{-}0}"
 %format instr-getlabel = "\Con{instr\textrm{-}getlabel}"
@@ -1396,11 +1608,11 @@ instruction typed syntax:
 \begin{spec}
 data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
   -- unchanged from the previous code version.
-  instr-getlabel-0      : ∀ {τ x} → (idx : (x , τ) ∈ Γ)
-                                  → Π ⊢ Γ ⇒ (idx ∷= (x , nil))
-  instr-getlabel        : ∀ {l τ Γ₁ x} → (idx : (x , τ) ∈ Γ)
-                                       → Π [ l ]= Γ₁
-                                       → Π ⊢ Γ ⇒ (idx ∷= (x , cont Γ₁))
+  instr-getlabel-0      : ∀ {τ} → (idx : τ ∈ Γ)
+                                → Π ⊢ Γ ⇒ (idx ∷= nil)
+  instr-getlabel        : ∀ {l τ Γ₁} → (idx : τ ∈ Γ)
+                                     → Π [ l ]= Γ₁
+                                     → Π ⊢ Γ ⇒ (idx ∷= cont Γ₁)
 \end{spec}
 Constructor |instr-getlabel-0| encodes the typing rule for the instruction \textrm{get-label} when
 the label involved is the special label $L_0$. Intutively, the constructor |instr-getlabel-0| type
@@ -1412,7 +1624,7 @@ The needed modifications on block syntax are presented next.
 \begin{spec}
 data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
   -- unchanged from the previous code version
-  block-jump            : ∀ {l x Γ₁} → (x , cont Γ₁) ∈ Γ
+  block-jump            : ∀ {l Γ₁} → cont Γ₁ ∈ Γ
                         → Γ ⊂ Γ₁
                         → Block Π Γ Γ₁
 \end{spec}
@@ -1436,11 +1648,10 @@ continuation type.
 %format with≡ = "\F{with\equiv}"
 %format UInstr = "\D{UInstr}"
 %format Label = "\D{Label}"
+%format lookup = "\F{lookup}"
 We also need to include code to check the well-typedness for the get-label instruction. First,
 we include a new constructor on type |UInstr| to represent untyped get-label instruction and
-add its corresponding equation on function |forget-types-instr|, which erases type information
-from the instrinsically typed syntax. This function is used by the type-checker to ensure its
-correctness.
+add its corresponding equation on function |forget-types-instr|.
 \begin{spec}
 data UInstr : Set where
   -- same code from before.
@@ -1448,20 +1659,21 @@ data UInstr : Set where
 
 forget-types-instr : ∀ {Π Γ Γ'} → Π ⊢ Γ ⇒ Γ' → UInstr
 -- same code as before...
-forget-types-instr (instr-getlabel-0 {x = x} v) = get-label x L₀
+forget-types-instr (instr-getlabel-0 {x = x} v) = get-label x zero
 forget-types-instr (instr-getlabel {l = l} {x = x} v p) = get-label x l
 \end{spec}
 Constructor |get-label| stores the name for a register and a label which is loaded into the register.
 Equations for erasing type information are immediate. The only peculiarity is that when the instruction
-|get-label| is typed using rule |instr-getlabel-0| we consider the initial label |L₀|. Next, we implement
-the type checker logic for |get-label|. Function |check-get-label| verifies if the label is present at
+|get-label| is typed using rule |instr-getlabel-0| we consider the initial label |zero|.
+Next, we implement the type checker logic for |get-label|. Function |check-get-label| verifies if the label is present at
 the program global typing context and if the variable is present on the current block typing context.
 \begin{spec}
 check-get-label : ∀ Π Γ v l  → TC (CheckedInstr Π Γ (get-label v l))
 check-get-label Π Γ v l with inspect (lookup Π l)
-check-get-label Π Γ v l | Γ₁ with≡ p with lookup-var Γ v
-... | nothing = type-error "check-get-label: variable out of scope"
-... | just (τ , idx) = right (ok (instr-getlabel idx (lookup⇒[]= l Π p)))
+check-get-label Π Γ v l |  Γ₁ with≡ p with lookup-var Γ v
+check-get-label Π Γ .(index p₁) l | Γ₁ with≡ p | inside x p₁
+  = right (ok (instr-getlabel p₁ (lookup⇒[]= l Π p)))
+check-get-label Π Γ v l | Γ₁ with≡ p | outside = undefined-var v
 \end{spec}
 
 \subsection{Modifications in the intepreter}\label{sec:changesintep}
@@ -1469,12 +1681,12 @@ check-get-label Π Γ v l | Γ₁ with≡ p with lookup-var Γ v
 The final piece of our formalization for the version 2.0 of the list-machine benchmark is the modification of
 the interpreter implementation. Our first step changed the definition of values to reflect
 the changes on the typed syntax, since now we have a new value for continuation types. A continuation
-value simply stores the label of the corresponding block.
+value stores the environment for its corresponding block.
 
 \begin{spec}
   data Val : Ty → Set where
     -- same code as before
-    cont : ∀ {l Γ₁} → Π [ l ]= Γ₁ → Val (cont Γ₁)
+    cont : ∀ {Γ₁} → Env Γ₁ → Val (cont Γ₁)
 \end{spec}
 
 %format jump = "\Con{jump}"
@@ -1504,20 +1716,20 @@ run-step (suc n) penv p env (block-jump v x₁) with lookup env v
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
 We implemented all 14 tasks from the list-machine benchmark in the Agda programming language.
-The tasks considered by us are the same implemented and proved by Appel and Leroy.~\cite{Appel07}.
+The tasks considered by us are the same implemented and proved by Appel et. al.~\cite{Appel07}.
 The next table summarizes the total number of lines of code (LOC) for our results together with theirs.
 
 \begin{table}[!htb]
 \begin{tabular}{rl||rrr}
     & Task                                         & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
-1.  & Operational Semantics                        & 126                       & 98                      & 109                      \\
+1.  & Operational Semantics                        & 126                       & 98                      & 101                      \\
 2.  & Derive $p \Downarrow$                        & 1                         & 8                       & 1                        \\ \hline
-3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 62                       \\
+3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 50                       \\
 4.  & $\sqcap$ algorithm                           & *                         & *                       & 13                       \\
 5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
                                                    & 1                         & no                      & 1                        \\
-6.  & State properties of $\sqcap$                 & 12                        & 13                      & 6                        \\
-7.  & Prove properties of $\sqcap$                 & 114                       & 21                      & 124                      \\
+6.  & State properties of $\sqcup$                 & 12                        & 13                      & 6                        \\
+7.  & Prove properties of $\sqcup$                 & 114                       & 21                      & 124                      \\
 8.  & State soundness theorem                      & 29                        & 15                      & *                        \\
 9.  & Prove soundness of $\vDash_{\textrm{prog}} p : \Pi$
                                                    & 2060                      & 315                     & *                        \\ \hline
@@ -1528,13 +1740,14 @@ The next table summarizes the total number of lines of code (LOC) for our result
                                                    & 18                        & 0                       & 0                        \\
 13. & Scalable type-checker                        & yes                       & yes                     & yes                      \\
 14. & Prove soundness of $\vdash_{\textrm{prog}} p : \Pi$
-                                                   & 347                       & 141                     & *
+                                                   & 347                       & 141                     & *                        \\
+15. & Generate~\LaTeX                              & no                        & no                      & no
 \end{tabular}
 \end{table}
 
 The total time for parsing and proof checking our Agda implementation was around 10 seconds
 on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5. We briefly comment
-on our Agda encoding of these 14 tasks.
+on our Agda encoding of these 15 tasks.
 
 \begin{enumerate}
   \item \textbf{Operational semantics.} Instead of using an inductive type for representing the operational semantics, we chose to
@@ -1572,6 +1785,9 @@ on our Agda encoding of these 14 tasks.
         an industrial strength compiler, the back-end can generate an efficient executable for the machine interpreter and type-checker.
   \item \textbf{Prove soundness of type-checker.} In our approach, the soundness of the type-checker is ensured by construction,
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
+  \item \textbf{Generate~\LaTeX.} Agda's compiler does have a limited support for typesetting~\LaTeX code.
+        However, we find it lacking some important features like omitting code from typesetted output
+        and use~\LaTeX math-commands instead of unicode characters for mathematical symbols.
 \end{enumerate}
 
 As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel and Leroy's
@@ -1580,20 +1796,18 @@ Our implementation used 415 LOC to complete the tasks, while the Twelf solution 
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
 reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
 
-Appel and Leroy's list-machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
+Appel et. al. list-machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
 correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics.
-We stick to our initial proposal based on dependently typed syntax and definitional interpreters. Appel and Leroy's formalization for
-the version 2.0 of the benchmark demanded around 1750 LOC without considering his library for the
-``very modal model''~\cite{Appel07}. Our formalization demanded 1134 LOC and it depends only on the Agda standard library.
-Compared to our solution to the first version of the benchmark (which was implemented in 612 LOC), the inclusion of
-indirect jumps increased the formalization size by around 85\%.
-
-
-%As we could notice on the previous table, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to
-%implement the proposed language and to prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC
-%in Coq, while our implementation used only 415 LOC to achieve the same result. Our encoding uses approximately 14\% of the LOC when compared to
-%the Twelf formalization, and 47\% when compared to Coq's. The main reason for this difference is the fact that the soundness properties are
-%obtained for free when combining an intrinsically-typed syntax with an implementation of a definitional interpreter in a total language like Agda.
+However, we are not able to prove a lemma which stabilishes a coercion between continuation types:
+\begin{spec}
+postulate sub-env : ∀ {Γ Γ'} → Γ' ⊂ Γ → Env Γ → Env Γ'
+\end{spec}
+Appel et. al. was able to prove this property in Coq by enconding the machine syntax and semantics using
+a shallow embedding based on his ``very modal model''~\cite{Appel07} and its complete formalization
+demanded around 1750 LOC without considering his auxiliar library.
+Our formalization demanded 1134 LOC and it depends only on the Agda standard library.
+Compared to our solution to the first version of the benchmark (which was implemented in 612 LOC),
+the inclusion of indirect jumps increased the formalization size by around 85\%.
 
 \section{Related work}\label{sec:related}
 
@@ -1614,7 +1828,7 @@ the correct manipulation of names by following the traditional \emph{de Bruijn} 
 was proposed by~\cite{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
 of logical relation arguments, like strong normalization theorems.}
 
-\paragraph{Definitional interpreters}{
+\paragraph{Definitional interpreters and intrinsically-typed syntax}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
 Recently, the interest on such interpreters was revitalized by~\cite{Amin17}, which used definitional
 interpreters, implemented in Coq, to prove type soundness theorems for non-trivial typed languages like System F$_{<:}$.
@@ -1638,7 +1852,11 @@ the subject of \cite{ChapmanKNW19} work, which used an intrinsically-typed repre
 implement a normalization by evaluation for this calculus. The reason behind such formalization effort was
 the verification of a core language for smart-contracts which is based on System F$_{\omega\mu}$. As our work,
 Chapman's et al. formalization is an example of how intrisincally-typed syntax leads to clear interpreter code
-which avoids completely stuck states.}
+which avoids completely stuck states. Another application of intrisincally-typed syntax is Pardo's et. al. work on correct-by-construction
+compilers~\cite{PardoGPV18}. The approach used by the authors is to index the syntax of
+a language with its types and semantics in order to automatically derive a correctness proof for the
+compiler. Authors apply their metodology in an arithmetic expression languages and a imperative
+language with top-level variables, sequencing and looping statements. }
 
 \vspace{-3ex}
 

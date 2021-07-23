@@ -510,7 +510,7 @@ keywords = "Agda "
 }
 @book{Bertot2010,
  author = {Bertot, Yves and Castran, Pierre},
- title = {Interactive Theorem Proving and Program Development: Coq'Art The Calculus of Inductive Constructions},
+ title = {Interactive Theorem Proving and Program Development: {C}oq'Art The Calculus of Inductive Constructions},
  year = {2010},
  isbn = {3642058809, 9783642058806},
  edition = {1st},
@@ -521,7 +521,7 @@ keywords = "Agda "
                Nelma Moreira and
                David Pereira and
                Sim{\~{a}}o Melo de Sousa},
-  title     = {Partial Derivative Automata Formalized in Coq},
+  title     = {Partial Derivative Automata Formalized in {C}oq},
   booktitle = {Implementation and Application of Automata - 15th International Conference,
                {CIAA} 2010, Winnipeg, MB, Canada, August 12-15, 2010. Revised Selected
                Papers},
@@ -638,7 +638,7 @@ author = "Valentin Antimirov"
 }
 @book{Stump16,
  author = {Stump, Aaron},
- title = {Verified Functional Programming in Agda},
+ title = {Verified Functional Programming in {A}gda},
  year = {2016},
  isbn = {978-1-97000-127-3},
  publisher = {Association for Computing Machinery and Morgan; Claypool},
@@ -679,7 +679,7 @@ url="http://dx.doi.org/10.1007/978-3-642-21254-3_32"
 }
 @article{Benton2012,
  author = {Benton, Nick and Hur, Chung-Kil and Kennedy, Andrew J. and Mcbride, Conor},
- title = {Strongly Typed Term Representations in Coq},
+ title = {Strongly Typed Term Representations in {C}oq},
  journal = {J. Autom. Reason.},
  issue_date = {August    2012},
  volume = {49},
@@ -842,7 +842,7 @@ isbn="978-3-540-31820-0"
 }
 @inproceedings{Pientka18,
 author = {Pientka, Brigitte},
-title = {POPLMark Reloaded: Mechanizing Logical Relations Proofs (Invited Talk)},
+title = {{POPLMark Reloaded}: Mechanizing Logical Relations Proofs (Invited Talk)},
 year = {2018},
 isbn = {9781450355865},
 publisher = {Association for Computing Machinery},
@@ -872,7 +872,7 @@ abstract = "We propose a benchmark to compare theorem-proving systems on their a
 }
 @book{Chlipala13,
 author = {Chlipala, Adam},
-title = {Certified Programming with Dependent Types: A Pragmatic Introduction to the Coq Proof Assistant},
+title = {Certified Programming with Dependent Types: A Pragmatic Introduction to the {C}oq Proof Assistant},
 year = {2013},
 isbn = {0262026651},
 publisher = {The MIT Press}
@@ -921,11 +921,33 @@ volume = {2},
 number = {POPL},
 url = {https://doi.org/10.1145/3158104},
 doi = {10.1145/3158104},
+abstract = {A definitional interpreter defines the semantics of an object language in terms of
+the (well-known) semantics of a host language, enabling understanding and validation
+of the semantics through execution. Combining a definitional interpreter with a separate
+type system requires a separate type safety proof. An alternative approach, at least
+for pure object languages, is to use a dependently-typed language to encode the object
+language type system in the definition of the abstract syntax. Using such intrinsically-typed
+abstract syntax definitions allows the host language type checker to verify automatically
+that the interpreter satisfies type safety. Does this approach scale to larger and
+more realistic object languages, and in particular to languages with mutable state
+and objects? In this paper, we describe and demonstrate techniques and libraries in
+Agda that successfully scale up intrinsically-typed definitional interpreters to handle
+rich object languages with non-trivial binding structures and mutable state. While
+the resulting interpreters are certainly more complex than the simply-typed λ-calculus
+interpreter we start with, we claim that they still meet the goals of being concise,
+comprehensible, and executable, while guaranteeing type safety for more elaborate
+object languages. We make the following contributions: (1) A dependent-passing style
+technique for hiding the weakening of indexed values as they propagate through monadic
+code. (2) An Agda library for programming with scope graphs and frames, which provides
+a uniform approach to dealing with name binding in intrinsically-typed interpreters.
+(3) Case studies of intrinsically-typed definitional interpreters for the simply-typed
+λ-calculus with references (STLC+Ref) and for a large subset of Middleweight Java
+(MJ).},
 journal = {Proc. ACM Program. Lang.},
 month = dec,
 articleno = {16},
 numpages = {34},
-keywords = {Java, type safety, mechanized semantics, Agda, scope graphs, dependent types, definitional interpreters}
+keywords = {Agda, scope graphs, definitional interpreters, dependent types, Java, type safety, mechanized semantics}
 }
 @inproceedings{CraryM99,
   author    = {Karl Crary and
@@ -997,15 +1019,51 @@ numpages = {15},
 keywords = {concurrency, session types, dependent types}, location = {Porto, Portugal},
 series = {PPDP ’19} }
 
-@Article{Sut17,
-    Author       = "Sutcliffe, G.",
-    Year         = "2017",
-    Title        = "{The TPTP Problem Library and Associated Infrastructure.
-                    From CNF to TH0, TPTP v6.4.0}",
-    Journal      = "Journal of Automated Reasoning",
-    Volume       = "59",
-    Number       = "4",
-    Pages        = "483-502"
+@article{Sut17,
+author = {Sutcliffe, Geoff},
+title = {The {TPTP} Problem Library and Associated Infrastructure},
+year = {2017},
+issue_date = {December 2017},
+publisher = {Springer-Verlag},
+address = {Berlin, Heidelberg},
+volume = {59},
+number = {4},
+issn = {0168-7433},
+url = {https://doi.org/10.1007/s10817-017-9407-7},
+doi = {10.1007/s10817-017-9407-7},
+abstract = {This paper describes the TPTP problem library and associated infrastructure, from
+its use of Clause Normal Form (CNF), via the First-Order Form (FOF) and Typed First-order
+Form (TFF), through to the monomorphic Typed Higher-order Form (TH0). TPTP v6.4.0
+was the last release prior to the introduction of the polymorphic Typed Higher-order
+Form, and thus serves as the exemplar. This paper summarizes the aims and history
+of the TPTP, documents its growth up to v6.4.0, reviews the structure and contents
+of TPTP problems, and gives an overview of TPTP-related infrastructure.},
+journal = {J. Autom. Reason.},
+month = dec,
+pages = {483–502},
+numpages = {20},
+keywords = {ATP system evaluation, ATP standards and tools, TPTP}
+}
+
+@inproceedings{PardoGPV18,
+  author    = {Alberto Pardo and
+               Emmanuel Gunther and
+               Miguel Pagano and
+               Marcos Viera},
+  editor    = {David Sabel and
+               Peter Thiemann},
+  title     = {An Internalist Approach to Correct-by-Construction Compilers},
+  booktitle = {Proceedings of the 20th International Symposium on Principles and
+               Practice of Declarative Programming, {PPDP} 2018, Frankfurt am Main,
+               Germany, September 03-05, 2018},
+  pages     = {17:1--17:12},
+  publisher = {{ACM}},
+  year      = {2018},
+  url       = {https://doi.org/10.1145/3236950.3236965},
+  doi       = {10.1145/3236950.3236965},
+  timestamp = {Mon, 23 Mar 2020 12:22:51 +0100},
+  biburl    = {https://dblp.org/rec/conf/ppdp/PardoGPV18.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
 }
 
 @article{FeltyMP18,
@@ -1031,7 +1089,7 @@ series = {PPDP ’19} }
                Chad Nester and
                Philip Wadler},
   editor    = {Graham Hutton},
-  title     = {System {F} in Agda, for Fun and Profit},
+  title     = {System {F} in {A}gda, for Fun and Profit},
   booktitle = {Mathematics of Program Construction - 13th International Conference,
                {MPC} 2019, Porto, Portugal, October 7-9, 2019, Proceedings},
   series    = {Lecture Notes in Computer Science},

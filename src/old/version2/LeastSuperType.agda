@@ -111,13 +111,16 @@ data _⊔_~_ where
 
 lub : ∀ t1 t2 → ∃ (λ t3 → t1 ⊓ t2 ~ t3)
 
-postulate 
-  lubCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∩ Γ' ~ Γ'')
+
+lubCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∩ Γ' ~ Γ'')
+lubCtx [] Γ' = [] , lub-ctx-1
+lubCtx (t ∷ Γ) [] = [] , lub-ctx-2
+lubCtx (t ∷ Γ) (t' ∷ Γ') = {!!}
 
 glb : ∀ t1 t2 → ∃ (λ t3 → t1 ⊔ t2 ~ t3)
 
-postulate
-  glbCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∪ Γ' ~ Γ'')
+
+glbCtx : ∀ Γ Γ' → ∃ (λ Γ'' → Γ ∪ Γ' ~ Γ'')
 
 
 lub nil nil = nil , lub-0
@@ -152,12 +155,6 @@ lub (cont x) bot = cont x , lub-bot-r
 lub (cont x) (cont x₁) with glbCtx x x₁
 ...| k , k'  = cont k , lub-cont k'
 
-{-
-lubCtx [] Γ' = [] , lub-ctx-1
-lubCtx (t ∷ Γ) [] = [] , lub-ctx-2
-lubCtx (t ∷ Γ) (t' ∷ Γ') with lub t t' | lubCtx Γ Γ'
-...| t3 , p3 | Γ'' , p4 = t3 ∷ Γ'' , lub-ctx-3 p3 p4
--}
 
 glb nil nil = nil , glb-refl
 glb nil (list t') = nil , glb-listnil-l
@@ -191,13 +188,12 @@ glb (cont x) bot = bot , glb-top1
 glb (cont Γ) (cont Γ') with lubCtx Γ Γ'
 ...| Γ'' , p = cont Γ'' , glb-cont p
 
-{-
+
 glbCtx [] [] = [] , glb-ctx-1
 glbCtx [] (t' ∷ Γ') = t' ∷ Γ' , glb-ctx-1
 glbCtx (t ∷ Γ) [] = t ∷ Γ , glb-ctx-2
 glbCtx (t ∷ Γ) (t' ∷ Γ') with glb t t' | glbCtx Γ Γ'
 ...| t3 , p3 | Γ'' , p4 = t3 ∷ Γ'' , glb-ctx-3 p3 p4
--}
 
 -- relating subtyping and lub , glb
 
@@ -325,9 +321,9 @@ glbCtx-supertype-right = proj₂ ∘ glbCtx-supertype
 lub-comm : ∀ {t1 t2 t3} → t1 ⊓ t2 ~ t3 → t2 ⊓ t1 ~ t3
 glb-comm : ∀ {t1 t2 t3} → t1 ⊔ t2 ~ t3 → t2 ⊔ t1 ~ t3
 
-postulate 
-  lubCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∩ Γ' ~ Γ'' → Γ' ∩ Γ ~ Γ''
-  glbCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∪ Γ' ~ Γ'' → Γ' ∪ Γ ~ Γ''
+
+lubCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∩ Γ' ~ Γ'' → Γ' ∩ Γ ~ Γ''
+glbCtx-comm : ∀ {Γ Γ' Γ''} → Γ ∪ Γ' ~ Γ'' → Γ' ∪ Γ ~ Γ''
 
 lub-comm lub-bot-r = lub-bot-l
 lub-comm lub-bot-l = lub-bot-r
@@ -372,7 +368,7 @@ glb-comm (glb-cont x) = glb-cont (lubCtx-comm x)
 glb-comm glb-top1 = glb-top2
 glb-comm glb-top2 = glb-top1
 
-{-
+
 lubCtx-comm lub-ctx-1 = lub-ctx-2
 lubCtx-comm lub-ctx-2 = lub-ctx-1
 lubCtx-comm (lub-ctx-3 x p) with lub-comm x | lubCtx-comm p
@@ -381,7 +377,7 @@ lubCtx-comm (lub-ctx-3 x p) with lub-comm x | lubCtx-comm p
 glbCtx-comm glb-ctx-1 = glb-ctx-2
 glbCtx-comm glb-ctx-2 = glb-ctx-1
 glbCtx-comm (glb-ctx-3 x p) = glb-ctx-3 (glb-comm x) (glbCtx-comm p)
--}
+
 
 -- correctness lemmas
 

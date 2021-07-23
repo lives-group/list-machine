@@ -387,11 +387,11 @@ such errors is to encode models in a dependently-typed language in order
 to ensure its ``correctness-by-construction''. In this paper, we use this
 idea to build a verified interpreter for the list-machine benchmark in the
 Agda programming language, comparing the results with formalizations developed
-by Appel and Leroy. We formalize the 14 tasks of the benchmark
+by Appel et. al. We formalize the 14 tasks of the benchmark
 using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
 compared to a Coq solution, even without the use of proof automation. We also
 describe a solution to the second version of the benchmark and compare it with
-Appel's and Leroy Coq-based solution.
+Appel'et. al. Coq-based solution.
 \end{abstract}
 
 
@@ -434,7 +434,7 @@ semantics is ensured by a dependently-typed
 syntax\footnote{Also known as intrinsically-typed.}\cite{Poulsen18}.
 In this work, we follow Poulsen et. al. by using an intrinsically-typed
 representation to build a definitional interpreter for a low-level virtual
-machine, developed by Appel and Leroy, as a benchmark problem closer to
+machine, developed by Appel et. al., as a benchmark problem closer to
 real-world implementations such as typed assembly languages~\cite{CraryM99} and
 proof-carrying code~\cite{Necula97}.
 
@@ -444,7 +444,7 @@ machine benchmark~\cite{AppelDL12}. We provide detailed explanations of the need
 changes on the machine syntax, type system and interpreter to accomodate this extension, which
 allows the handling of more complex control flow structures, like the call/return model of function calls.
 
-More specifically, we contribute:
+Let us summarize our contributions. %More specifically, we contribute:
 
 \begin{itemize}
   \item We show how all the details of the list-machine type system
@@ -542,7 +542,8 @@ length-indexed lists, also known as vectors.
 \end{hscode}\resethooks
 
 
-Constructor \ensuremath{\Con{\lbrack\:\rbrack}} builds empty vectors. The cons-operator (\ensuremath{\Con{\_::\_}})
+Constructor \ensuremath{\Con{\lbrack\:\rbrack}} builds empty vectors. The cons-operator (\ensuremath{\Con{\_::\_}})\footnote{Agda supports the definition of mixfix operators.
+We can use underscores to mark arguments positions.}
 inserts a new element in front of a vector of $n$ elements (of type
 \ensuremath{\D{Vec}\;\V{A}\;\V{n}}) and returns a value of type \ensuremath{\D{Vec}\;\V{A}\;(\Con{suc}\;\V{n})}. The
 \ensuremath{\D{Vec}} datatype is an example of a dependent type, i.e., a type
@@ -619,36 +620,131 @@ representation of equality as the following Agda type:
 
 This type is called propositional equality. It defines that there is
 a unique evidence for equality, constructor \ensuremath{\Con{refl}} (for reflexivity),
-which asserts that the only value equal to \ensuremath{\V{x}} is itself. Given a predicate \ensuremath{\V{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set}}
-and a vector \ensuremath{\V{xs}}, the type \ensuremath{\D{All}\;\V{P}\;\V{xs}} is used to build proofs that \ensuremath{\V{P}} holds for all
-elements in \ensuremath{\V{xs}} and it is defined as:
+which asserts that the only value equal to \ensuremath{\V{x}} is itself.
+
+
+Dependently typed pattern matching is built by using the so-called
+\ensuremath{\mathkw{with}} construct, that allows for matching intermediate
+values~\cite{McBride2004}. If the matched value has a dependent type,
+then its result can affect the form of other values. For example,
+consider the following code that defines a type for natural number
+parity. If the natural number is even, it can be represented as the
+sum of two equal natural numbers; if it is odd, it is equal to one
+plus the sum of two equal values. Pattern matching on a value of
+\ensuremath{\D{Parity}\;\V{n}} allows to discover if $n = j + j$ or $n = S (k + k)$,
+for some $j$ and $k$ in each branch of \ensuremath{\mathkw{with}}.  Note that the
+value of $n$ is specialized accordingly, using information ``learned''
+by the type-checker.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{25}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{35}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{43}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{Parity}\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{4}{}\<[4]%
+\>[4]{}\Con{Even}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\;\mathbin{:}\;\D{\mathbb{N}}\mskip1.5mu\}\;\to \;\D{Parity}\;(\V{n}\;\F{+}\;\V{n}){}\<[E]%
+\\
+\>[B]{}\hsindent{4}{}\<[4]%
+\>[4]{}\Con{Odd}\;{}\<[9]%
+\>[9]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\;\mathbin{:}\;\D{\mathbb{N}}\mskip1.5mu\}\;\to \;\D{Parity}\;(\V{S}\;(\V{n}\;\F{+}\;\V{n})){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\F{parity}\;\mathbin{:}\;(\V{n}\;\mathbin{:}\;\D{\mathbb{N}})\;\to \;\D{Parity}\;\V{n}{}\<[E]%
+\\
+\>[B]{}\F{parity}\;\mathrel{=}\orange{\texttt{-- definition omitted}}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\F{natToBin}\;\mathbin{:}\;\D{\mathbb{N}}\;\to \;\D{List}\;\D{Bool}{}\<[E]%
+\\
+\>[B]{}\F{natToBin}\;\Con{zero}\;\mathrel{=}\;\Con{\lbrack\:\rbrack}{}\<[E]%
+\\
+\>[B]{}\F{natToBin}\;\V{k}\;\mathkw{with}\;(\F{parity}\;\V{k}){}\<[E]%
+\\
+\>[B]{}\hsindent{4}{}\<[4]%
+\>[4]{}\F{natToBin}\;(\V{j}\;\F{+}\;\V{j})\;{}\<[25]%
+\>[25]{}\mid \;\Con{Even}\;\mathrel{=}\;\Con{false}\;\Con{::}\;\F{natToBin}\;\V{j}{}\<[E]%
+\\
+\>[B]{}\hsindent{4}{}\<[4]%
+\>[4]{}\F{natToBin}\;(\Con{suc}\;(\V{j}\;\F{+}\;\V{j}))\;\mid \;\Con{Odd}\;{}\<[35]%
+\>[35]{}\mathrel{=}\;\Con{true}\;{}\<[43]%
+\>[43]{}\Con{::}\;\F{natToBin}\;\V{j}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+A important application of Agda's dependently-typed pattern matching is
+to rewrite a equality. As an example, consider the following code which
+postulates the commutativity of natural number addition and a predicate
+over natural numbers, \ensuremath{\D{P}}.
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{14}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{18}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{25}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{postulate}\;\F{plus\textrm{-}comm}\;\mathbin{:}\;(\V{a}\;\V{b}\;\mathbin{:}\;\D{\mathbb{N}})\;\V{→}\;\V{a}\;\F{+}\;\V{b}\;\D{\equiv}\;\V{b}\;\F{+}\;\V{a}{}\<[E]%
+\\
+\>[B]{}\mathkw{postulate}\;\D{P}\;\mathbin{:}\;\D{\mathbb{N}}\;\V{→}\;\D{Set}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\F{foo}\;\mathbin{:}\;(\V{a}\;\V{b}\;\mathbin{:}\;\D{\mathbb{N}})\;\V{→}\;\D{P}\;(\V{a}\;\F{+}\;\V{b})\;\V{→}\;\D{P}\;(\V{b}\;\F{+}\;\V{a}){}\<[E]%
+\\
+\>[B]{}\F{foo}\;\V{a}\;\V{b}\;\V{t}\;\mathkw{with}\;{}\<[18]%
+\>[18]{}\V{a}\;\F{+}\;\V{b}\;{}\<[25]%
+\>[25]{}\mid \;\F{plus\textrm{-}comm}\;\V{a}\;\V{b}{}\<[E]%
+\\
+\>[B]{}\F{foo}\;\V{a}\;\V{b}\;\V{t}\;{}\<[14]%
+\>[14]{}\mid \;.\;(\V{b}\;\F{+}\;\V{a})\;\mid \;\Con{refl}\;\mathrel{=}\;\V{t}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Function \ensuremath{\F{foo}} uses the \ensuremath{\mathkw{with}} construct to pattern-match on the equality produced
+by \ensuremath{\F{plus\textrm{-}comm}},  \ensuremath{\V{a}\;\F{+}\;\V{b}\;\D{\equiv}\;\V{b}\;\F{+}\;\V{a}}. Since the propositional equality type has only one
+constructor, \ensuremath{\Con{refl}}, matching over it makes Agda type checker to replace
+all occurrences of \ensuremath{\V{a}\;\F{+}\;\V{b}} to \ensuremath{\V{b}\;\F{+}\;\V{a}} in the current equation context. We can notice
+this by the use of the \empth{dotted-pattern} \ensuremath{.\;(\V{b}\;\F{+}\;\V{a})} which indicates that the
+only way that this equation is correct is when the first result of the \ensuremath{\mathkw{with}} construct
+is \ensuremath{\V{b}\;\F{+}\;\V{a}}. The use of dependent pattern matching to rewrite equalities in functions is
+so common in Agda that the language provides a syntax sugar that simplifies such structure.
+The \ensuremath{\mathkw{rewrite}} construct allows the substitution of an equality in all values in a certain
+equation. The \ensuremath{\F{foo}} function could be represented more concisely, using \ensuremath{\mathkw{rewrite}}, as:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{foo}\;\mathbin{:}\;(\V{a}\;\V{b}\;\mathbin{:}\;\D{\mathbb{N}})\;\V{→}\;\D{P}\;(\V{a}\;\F{+}\;\V{b})\;\V{→}\;\D{P}\;(\V{b}\;\F{+}\;\V{a}){}\<[E]%
+\\
+\>[B]{}\F{foo}\;\V{a}\;\V{b}\;\V{t}\;\mathkw{rewrite}\;\F{plus\textrm{-}comm}\;\V{a}\;\V{b}\;\mathrel{=}\;\V{t}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+Another inductive predicate used in our formalization is the type \ensuremath{\D{All}\;\D{P}\;\V{xs}} which
+ensures that all elements of a vector \ensuremath{\V{xs}} satisfy a predicate \ensuremath{\D{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set}}.
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{5}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{41}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[3]{}\mathkw{data}\;\D{All}\;(\V{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set})\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\;\to \;{}\<[41]%
+\>[3]{}\mathkw{data}\;\D{All}\;(\D{P}\;\mathbin{:}\;\V{A}\;\to \;\D{Set})\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\;\to \;{}\<[41]%
 \>[41]{}\D{Set}\;\mathkw{where}{}\<[E]%
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{\lbrack\:\rbrack}\;\mathbin{:}\;\D{All}\;\V{P}\;\Con{\lbrack\:\rbrack}{}\<[E]%
+\>[5]{}\Con{\lbrack\:\rbrack}\;\mathbin{:}\;\D{All}\;\D{P}\;\Con{\lbrack\:\rbrack}{}\<[E]%
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{\_::\_}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{x}\;\V{xs}\mskip1.5mu\}\;\to \;\V{P}\;\V{x}\;\to \;\D{All}\;\V{P}\;\V{xs}\;\to \;\D{All}\;\V{P}\;(\V{x}\;\Con{::}\;\V{xs}){}\<[E]%
+\>[5]{}\Con{\_::\_}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{x}\;\V{xs}\mskip1.5mu\}\;\to \;\D{P}\;\V{x}\;\to \;\D{All}\;\D{P}\;\V{xs}\;\to \;\D{All}\;\D{P}\;(\V{x}\;\Con{::}\;\V{xs}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
-The first constructor specifies that \ensuremath{\D{All}\;\V{P}} holds for the empty vector and
-constructor \ensuremath{\Con{\_::\_}} builds a proof of \ensuremath{\D{All}\;\V{P}\;(\V{x}\;\Con{::}\;\V{xs})} from proofs of
-\ensuremath{\V{P}\;\V{x}} and \ensuremath{\D{All}\;\V{P}\;\V{xs}}. Since this type has the same structure of vectors,
+The first constructor specifies that \ensuremath{\D{All}\;\D{P}} holds for the empty vector and
+constructor \ensuremath{\Con{\_::\_}} builds a proof of \ensuremath{\D{All}\;\D{P}\;(\V{x}\;\Con{::}\;\V{xs})} from proofs of
+\ensuremath{\D{P}\;\V{x}} and \ensuremath{\D{All}\;\D{P}\;\V{xs}}. Since this type has the same structure of vectors,
 some functions on \ensuremath{\D{Vec}} have similar definitions for type \ensuremath{\D{All}}. As an example
 used in our formalization, consider the function \ensuremath{\F{lookup}}, which extracts a
-proof of \ensuremath{\V{P}} for the element at position \ensuremath{\V{v}\;\mathbin{:}\;\D{Fin}\;\V{n}} in a \ensuremath{\D{Vec}}:
+proof of \ensuremath{\D{P}} for the element at position \ensuremath{\V{v}\;\mathbin{:}\;\D{Fin}\;\V{n}} in a \ensuremath{\D{Vec}}:
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{4}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[4]{}\F{lookup}\;\mathbin{:}\;\{\mskip1.5mu \V{xs}\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{All}\;\V{P}\;\V{xs}\;\to \;\V{P}\;\V{x}{}\<[E]%
+\>[4]{}\F{lookup}\;\mathbin{:}\;\{\mskip1.5mu \V{xs}\;\mathbin{:}\;\D{Vec}\;\V{A}\;\V{n}\mskip1.5mu\}\;\to \;\D{Fin}\;\V{n}\;\to \;\D{All}\;\D{P}\;\V{xs}\;\to \;\D{P}\;\V{x}{}\<[E]%
 \\
 \>[4]{}\F{lookup}\;\Con{zero}\;(\V{px}\;\Con{::}\;\anonymous )\;\mathrel{=}\;\V{px}{}\<[E]%
 \\
@@ -666,7 +762,10 @@ syntax. The role of dependent types in this domain is to encode programs that
 only allow well-typed and well-scoped terms~\cite{Benton2012}. Intuitively, we encode
 the static semantics of the object language in the host language AST's
 constructor, leaving the responsibility of checking type safety to the
-host's language type-checker. As an example, consider the following simple
+host's language type-checker. Before considering our solution to encode list-machine
+programs as instrisincally-typed syntax, we review this approach in a reduced example.
+
+Consider the following simple
 expression language. For this paper, we assume a basic knowledge of functional
 programming and Agda. %\footnote{For further information about Agda, see~\cite{Norell2009,Stump16}.}.
 
@@ -689,8 +788,7 @@ programming and Agda. %\footnote{For further information about Agda, see~\cite{N
 \ColumnHook
 \end{hscode}\resethooks
 
-With this data type\footnote{Agda supports the definition of mixfix operators.
-We can use underscores to mark arguments positions.}, we can construct expressions
+With this data type, we can construct expressions
 to denote terms that should not be considered well-typed like
 \ensuremath{(\Con{Num}\;\V{1})\;\F{+}\;\Con{True}}. Using this approach, we need to specify the static semantics
 as another definition, which should consider all possible cases to avoid the
@@ -733,33 +831,6 @@ Agda's type-checker will automatically reject a definition which uses the expres
 
 For further information about Agda, see~\cite{Norell2009,Stump16}.
 
-%Dependently typed pattern matching is built by using the so-called
-%|with| construct, that allows for matching intermediate
-%values~\cite{McBride2004}. If the matched value has a dependent type,
-%then its result can affect the form of other values. For example,
-%consider the following code that defines a type for natural number
-%parity. If the natural number is even, it can be represented as the
-%sum of two equal natural numbers; if it is odd, it is equal to one
-%plus the sum of two equal values. Pattern matching on a value of
-%|Parity n| allows to discover if $n = j + j$ or $n = S (k + k)$,
-%for some $j$ and $k$ in each branch of |with|.  Note that the
-%value of $n$ is specialized accordingly, using information ``learned''
-%by the type-checker.
-%\begin{spec}
-%data Parity : Nat -> Set where
-%   Even : forall {n : Nat} -> Parity (n + n)
-%   Odd  : forall {n : Nat} -> Parity (S (n + n))
-%
-%parity : (n : Nat) -> Parity n
-%parity = -- definition omitted
-
-%natToBin : Nat -> List Bool
-%natToBin zero = []
-%natToBin k with (parity k)
-%   natToBin (j + j)     | Even = false :: natToBin j
-%   natToBin (succ (j + j)) | Odd  = true  :: natToBin j
-%\end{spec}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% List-machine benchmark %%
@@ -768,7 +839,10 @@ For further information about Agda, see~\cite{Norell2009,Stump16}.
 
 \section{The List-Machine Benchmark}\label{sec:list}
 
-The list-machine, proposed by Appel et. al.~\cite{AppelDL12}, is a simple pointer virtual machine where values
+
+In this section, we review the syntax, semantics and typing rules for the
+list-machine, as originally proposed by Appel et. al.~\cite{AppelDL12}.
+The machine is a simple pointer virtual machine where values
 are empty lists and cons-cells:
 \[
 a ::= nil\,\mid\,cons(a_1,a_2)
@@ -776,7 +850,8 @@ a ::= nil\,\mid\,cons(a_1,a_2)
 Throughout this text, the meta-variable $a$ is used to denote an arbitrary value, $v$ denotes a variable
 and $l$ a program label. Following common practice, all meta-variables can
 appear primed or subscripted. The syntax of the virtual machine instructions are
-presented next and their meaning is as usual.
+presented next.
+\begin{figure}[H]
 \[
 \begin{array}{rcll}
   \iota & ::=  & \text{jump }l                       & \text{(jump instruction)}\\
@@ -790,11 +865,16 @@ presented next and their meaning is as usual.
         & \mid & \text{end}                          & \text{(end of block list)}\\
 \end{array}
 \]
+\centering
+\caption{Syntax of list-machine programs}
+\label{fig:list-syntax}
+\end{figure}
 A program is just a sequence of blocks referenced by a unique label.
 
-Each program variable is assigned to a list type, which is used to guarantee the safety when executing
+Each program variable is assigned to a list type (Figure~\ref{fig:type-syntax}), which is used to guarantee the safety of executing
 fetch-field instructions that demands non-empty list arguments. In order to express such refinements, types are subject to a
 subtyping relation. The meta-variable $\tau$ denotes an arbitrary type.
+\begin{figure}[H]
 \[
 \begin{array}{rcll}
   \tau & ::=  & \text{nil} & \text{(type for empty lists)}\\
@@ -802,35 +882,44 @@ subtyping relation. The meta-variable $\tau$ denotes an arbitrary type.
        & \mid & \text{listcons }\tau & \text{(non-empty lists of $\tau$)}\\
 \end{array}
 \]
+\centering
+\caption{Type syntax}
+\label{fig:type-syntax}
+\end{figure}
 The notation $\tau \subset \tau'$
 denotes the subtyping judgment, which is defined as follows.
+\begin{figure}[H]
 \[
-\begin{array}{ccc}
+\begin{array}{c}
   \inference{}
             {\tau\subset \tau}
-            [refl]
-  &
+            [subtype-refl]
+  \\ \\
   \inference{}
-            {nil \subset \tau}
-            [nil]
-  &
+            {nil \subset list\:\tau}
+            [subtype-nil]
+  \\ \\
   \inference{\tau \subset \tau'}
             {list\:\tau\subset list\:\tau'}
-            [list]\\\\
+            [subtype-list]\\ \\
   \multicolumn{3}{c}{
   \inference{\tau \subset \tau'}
             {listcons\:\tau\subset list\:\tau'}
-            [listcons]} \\\\
-            \multicolumn{3}{c}{
+            [subtype-listmixed]} \\ \\
+  \multicolumn{3}{c}{
             \inference{\tau \subset \tau'}
             {listcons\:\tau\subset listcons\:\tau'}
-            [mixed]} \\\\
+            [subtype-listcons]} \\ \\
 \end{array}
 \]
+\centering
+\caption{Subtyping relation}
+\label{fig:subtyping}
+\end{figure}
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
 The other rules specify that type constructors $list$ and $listcons$ respect
-the subtyping relation. The list common supertype $\tau = \tau_1 \sqcap \tau_2$ of
+the subtyping relation. The least common supertype $\tau = \tau_1 \sqcap \tau_2$ of
 $\tau_1$ and $\tau_2$ is defined as the smallest type such that $\tau_1$ and $\tau_2$
 are subtypes of $\tau$.
 
@@ -840,6 +929,7 @@ denotes the operation of including a new entry for variable $v$ with type $\tau$
 in $\Gamma$ and $\Gamma [v := \tau]$ denotes the environment which is identical to $\Gamma$, except
 by the entry which associates variable $v$ with type $\tau$.
 Subtyping is extended to contexts as follows.
+\begin{figure}[H]
 \[
 \begin{array}{cc}
   \inference{}
@@ -850,6 +940,10 @@ Subtyping is extended to contexts as follows.
             [b2]
 \end{array}
 \]
+\centering
+\caption{Subtyping relation for typing contexts.}
+\label{fig:subtyping-context}
+\end{figure}
 The variable $\Pi$ is used to denote \emph{program typings}, i.e. finite mappings between
 labels and typing contexts $\Gamma$, where notation $\Pi(l) = \Gamma$ denotes that
 $\Gamma$ stores the types of variables on the entry point of the block labeled by $l$.
@@ -862,84 +956,109 @@ rules for the list-machine instructions are defined as follows.
 The first typing rule we consider is the one for sequencing instructions inside a block. Basically,
 the rule just threads the output environment from the first instruction as the input typing for the
 second.
+\begin{figure}[H]
 \[
 \inference{\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 \}\Gamma'\:\:\:\:\:\:\:\:\Pi \vdash_{\text{instr}} \Gamma'\{ \iota_2 \}\Gamma''}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[seq]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \iota_1 ; \iota_2 \}\Gamma''}[check-instr-seq]
 \]
-The type system proposed by Appel and Leroy~\cite{AppelDL12} has three rules to deal with each of the possible
+\centering
+\caption{Typing rule for instruction sequencing}
+\label{fig:typing-seq}
+\end{figure}
+The type system proposed by Appel et. al.~\cite{AppelDL12} has three rules to deal with each of the possible
 types assigned to the branch variable in the current typing context. The first two rules deal with the $list$ and $listcon$
 types, specifying that the environment associated to the label $l$, $\Pi(l) = \Gamma_1$, is greater than
 $\Gamma[v := nil]$. The third rule applies whenever $\Gamma(v) = nil$ and it also demands that $\Gamma \subset \Pi(l)$.
-
+\begin{figure}[H]
 \[
 \begin{array}{c}
 \inference{\Gamma(v) = \text{list}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
                      \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}(v: \text{listcons}~\tau,~\Gamma')}
-          [branch-list]
+          [check-instr-branch-list]
 \\ \\
 
 \inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\:\:\:\:\Pi(l) = \Gamma_1\\
            \Gamma[v:=\text{nil}]=\Gamma'\:\:\:\:\:\:\:\:\Gamma' \subset_{env} \Gamma_1}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}[branch-listcons]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}
+          [check-instr-branch-listcons]
 
 \\ \\
 \inference{\Gamma(v) = \text{nil}\:\:\:\:\Pi(l) = \Gamma_1\:\:\:\:\Gamma \subset \Gamma_1}
           {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{branch-if-nil}~v~l \}\Gamma}
-          [branch-nil]
+          [check-instr-branch-nil]
 \end{array}
 \]
+\centering
+\caption{Typing rules for branching instructions}
+\label{fig:typing-branch}
+\end{figure}
 Next, we have the \emph{fetch} instructions, which can be used to store the head / tail of a list value in
 a variable. Rule \emph{fetch-0} retrieves the head of a value stored in a variable $v$ and \emph{fetch-1}
 does the same for the tail. Note that both rules demand that $\Gamma(v) = listcons\:\tau$, for some type
 $\tau$.
+\begin{figure}[H]
 \[
 \begin{array}{c}
 \inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\Gamma[v':=\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}[fetch-0]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~0~v' \}\Gamma'}
+          [check-instr-fetch-0]
           \\ \\
 \inference{\Gamma(v) = \text{listcons}~\tau\:\:\:\:\Gamma[v':=\text{list}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}[fetch-1]
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{fetch-field}~v~1~v' \}\Gamma'}
+          [check-instr-fetch-1]
 \end{array}
 \]
+\centering
+\caption{Typing rules for field fetching instructions}
+\label{fig:typing-fetching}
+\end{figure}
 The \emph{cons} instruction allows us to build a non-empty list value and this rule uses the least
 common supertype operator to check if the result of the operation is really a list type.
+\begin{figure}[H]
 \[
 \inference{\Gamma(v_0) = \tau_0\:\:\:\:\:\:\:\:\Gamma(v_1) = \tau_1 \\
-           (\text{list}~\tau_0) \sqcap \tau_1=\text{list}~\tau\:\:\:\:\:\:\:\:\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
-          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}[cons]
+           (\text{list}~\tau_0) \sqcup \tau_1=\text{list}~\tau\:\:\:\:\:\:\:\:\Gamma[v:=\text{listcons}~\tau]=\Gamma'}
+          {\Pi \vdash_{\text{instr}} \Gamma\{ \textbf{cons}~v_0~v_1~v \}\Gamma'}
+          [check-instr-cons]
 \]
+\centering
+\caption{Typing rule for cons instruction}
+\label{fig:typing-fetching}
+\end{figure}
 The final rules deal with the well-formedness of blocks and programs. The typing rules for the \textbf{halt} instruction and
 program \textbf{end} are completely trivial. Rule \emph{block-seq} does the typing context threading between sequential
 instructions inside a block and rule \emph{block-label} recursively applies the judgment $\vdash_{block}$ on the
 input program.
-
+\begin{figure}[H]
 \[
-\begin{array}{cc}
+\begin{array}{c}
    \inference{}
-             {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[halt]
-   &
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{halt}}[check-block-halt]
+   \\ \\
    \inference{}
-             {\Pi\vdash_{\text{blocks}} \textbf{end}}[empty]\\ \\
+             {\Pi\vdash_{\text{blocks}} \textbf{end}}[check-block-empty]\\ \\
 
    \inference{\Pi(l)=\Gamma_1\\ \Gamma \subset_{env} \Gamma_1}
-             {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[jump]
+             {\Pi;\Gamma\vdash_{\text{block}} \textbf{jump}~l}[check-block-jump]
 
-   &
+   \\ \\
 
    \inference{\Pi\vdash_{\text{instr}} \Gamma\{\iota_1\}\Gamma'\\ \Pi;\Gamma'\vdash_{\text{block}} \iota_2}
-             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[block-seq]
+             {\Pi;\Gamma\vdash_{\text{block}} \iota_1;\iota_2}[check-block-seq]
  \\ \\
 
-   \multicolumn{2}{c}{
    \inference{\Pi(l)=\Gamma\:\:\:\:\:\:\:\:\Pi;\Gamma\vdash_{\text{block}} \iota\:\:\:\:\:\:\:\:\Pi\vdash_{\text{blocks}} p}
-     {\Pi\vdash_{\text{blocks}} l: \iota;~p}[blocks-label]
-    }
+     {\Pi\vdash_{\text{blocks}} l: \iota;~p}[check-blocks-label]
 \end{array}
 \]
+\centering
+\caption{Typing rules for program blocks}
+\label{fig:typing-block}
+\end{figure}
 Inspired by the presented typing rules, in the next section, we define an
-intrinsically-typed syntax for list-machine programs which ensures that
-only well-typed programs can be built.
+intrinsically-typed syntax for list-machine programs which allows
+only well-typed pro\-grams.
 
 \section{Intrinsically-typed syntax}\label{sec:typing}
 
@@ -995,11 +1114,11 @@ the variables on entry to each basic block.
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\D{Ctx}\;\mathbin{:}\;\D{Set}{}\<[E]%
 \\
-\>[B]{}\D{Ctx}\;\mathrel{=}\;\D{List}\;(\D{String}\;\V{×}\;\D{Ty}){}\<[E]%
+\>[B]{}\D{Ctx}\;\mathrel{=}\;\D{List}\;\D{Ty}{}\<[E]%
 \\[\blanklineskip]%
-\>[B]{}\D{PCtx}\;\mathbin{:}\;\D{Set}{}\<[E]%
+\>[B]{}\D{PCtx}\;\mathbin{:}\;\D{\mathbb{N}}\;\rightarrow\;\D{Set}{}\<[E]%
 \\
-\>[B]{}\D{PCtx}\;\mathrel{=}\;\D{Vec}\;\D{Ctx}\;\V{n}{}\<[E]%
+\>[B]{}\D{PCtx}\;\V{n}\;\mathrel{=}\;\D{Vec}\;\D{Ctx}\;\V{n}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1009,7 +1128,7 @@ into two segments, one for instructions and one for blocks. We define two dataty
 to hold the well-typed terms accordingly, representing each judgment of the static semantics as a
 syntactical constructor. In Agda we use \emph{indexed inductive types} to define an intrinsically-typed syntax.
 The basic idea is to represent each type system rule as a constructor typed by an output context.
-Such representation scheme makes the Agda's type-checker allow only well-typed blocks and
+Such a representation scheme makes Agda's type-checker allow only well-typed blocks and
 instructions to be created and manipulated.
 
 
@@ -1043,73 +1162,73 @@ The representation of instructions is defined as follows.
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}branch\textrm{-}list}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{l}\;\V{\Gamma'}\;\V{x}\mskip1.5mu\}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x}\;\red{,}\,\;\Con{list}\;\V{\tau})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{l}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;\Con{list}\;\V{\tau}\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma'}\;\rightarrow\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{nil}))\;\D{\subset}\;\V{\Gamma'}\;{}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma'}\;\rightarrow\;(\V{idx}\;\F{::=}\;\Con{nil})\;\D{\subset}\;\V{\Gamma'}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})){}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;\Con{listcons}\;\V{\tau}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}branch\textrm{-}listcons}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{l}\;\V{\Gamma_1}\;\V{x}\mskip1.5mu\}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{l}\;\V{\Gamma_1}\mskip1.5mu\}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;(\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;\rightarrow\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{nil}))\;\D{\subset}\;\V{\Gamma_1}\;{}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;\rightarrow\;(\V{idx}\;\F{::=}\;\Con{nil})\;\D{\subset}\;\V{\Gamma_1}\;{}\<[E]%
 \\
 \>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}branch\textrm{-}nil}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma_1}\;\V{l}\;\V{x}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{nil})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma_1}\;\V{l}\mskip1.5mu\}\;\rightarrow\;\V{x}\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
 \>[26]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;\rightarrow\;\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\mskip1.5mu\}\;\rightarrow\;\Con{listcons}\;\V{\tau}\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;((\V{x'}\;\red{,}\,\;\V{\tau})\;\Con{::}\;\V{\Gamma}){}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{\tau}\;\Con{::}\;\V{\Gamma}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau'}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau'}\mskip1.5mu\}\;\rightarrow\;\Con{listcons}\;\V{\tau}\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;\V{\tau'}\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x'}\;\red{,}\,\;\V{\tau})){}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;\V{\tau}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\mskip1.5mu\}\;\rightarrow\;(\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;((\V{x'}\;\red{,}\,\;\Con{list}\;\V{\tau})\;\Con{::}\;\V{\Gamma}){}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\Con{list}\;\V{\tau}\;\Con{::}\;\V{\Gamma}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau'}\;\V{x}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau'}\mskip1.5mu\}\;\rightarrow\;(\Con{listcons}\;\V{\tau})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\>[26]{}\rightarrow\;(\V{idx}\;\mathbin{:}\;\V{\tau'}\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x'}\;\red{,}\,\;\Con{list}\;\V{\tau})){}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;\Con{list}\;\V{\tau}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}cons\textrm{-}new}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau_0}\;\V{\tau_1}\;\V{x₀}\;\V{x₁}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau_0}\;\V{\tau_1}\mskip1.5mu\}\;\rightarrow\;\V{\tau_0}\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}\;\rightarrow\;\Con{list}\;\V{\tau_0}\;\D{\sqcap}\;\V{\tau_1}\;\D{\sim}\;\Con{list}\;\V{\tau}\;{}\<[E]%
+\>[26]{}\rightarrow\;\V{\tau_1}\;\D{\in}\;\V{\Gamma}\;\rightarrow\;\Con{list}\;\V{\tau_0}\;\D{\sqcup}\;\V{\tau_1}\;\D{\sim}\;\Con{list}\;\V{\tau}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;((\V{x'}\;\red{,}\,\;\Con{listcons}\;\V{\tau})\;\Con{::}\;\V{\Gamma}){}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\Con{listcons}\;\V{\tau})\;\Con{::}\;\V{\Gamma}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}cons\textrm{-}upd}\;{}\<[26]%
-\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau_0}\;\V{\tau_1}\;\V{\tau_2}\;\V{x₀}\;\V{x₁}\;\V{x'}\mskip1.5mu\}\;\rightarrow\;(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[26]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{\tau_0}\;\V{\tau_1}\;\V{\tau_2}\mskip1.5mu\}\;\rightarrow\;\V{\tau_0}\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau_2})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\>[26]{}\rightarrow\;\V{\tau_1}\;\D{\in}\;\V{\Gamma}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;\V{\tau_2}\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\Con{list}\;\V{\tau_0}\;\D{\sqcap}\;\V{\tau_1}\;\D{\sim}\;\Con{list}\;\V{\tau}\;{}\<[E]%
+\>[26]{}\rightarrow\;\Con{list}\;\V{\tau_0}\;\D{\sqcup}\;\V{\tau_1}\;\D{\sim}\;\Con{list}\;\V{\tau}\;{}\<[E]%
 \\
-\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x'}\;\red{,}\,\;\Con{listcons}\;\V{\tau})){}\<[E]%
+\>[26]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;\Con{listcons}\;\V{\tau}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1117,7 +1236,7 @@ The representation of instructions is defined as follows.
 In our approach, all name binding is done with statically checked \emph{de Bruijn}
 indices~\cite{DEBRUIJN72}, a technique for handling binding by using a nameless,
 position-dependent naming scheme. For example, we use a well-typed \emph{de Bruijn}
-index \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma}}, which witnesses the existence of an element \ensuremath{(\V{x}\;\red{,}\,\;\V{\tau})} in \ensuremath{\V{\Gamma}},
+index \ensuremath{\V{\tau}\;\D{\in}\;\V{\Gamma}}, which witnesses the existence of an element \ensuremath{\V{\tau}} in \ensuremath{\V{\Gamma}},
 as defined by the standard library \ensuremath{\D{\_\hspace{-2pt}\in\hspace{-2pt}\_}} operator. This technique is well-known for
 avoiding out-of-bound errors.
 
@@ -1141,17 +1260,17 @@ non-empty list (of type \ensuremath{\Con{listcons}\;\V{\tau}}), and is used to r
 in a fresh new variable. The resulting typing context adds the information about the new
 variable. Constructor \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}} is also used to retrieve the head element of a
 list, however storing its value in an existing variable, represented by the \emph{de Bruijn}
-index \ensuremath{\V{idx}\;\mathbin{:}\;(\V{x'}\;\red{,}\,\;\V{\tau'})\;\D{\in}\;\V{\Gamma}}. The constructors \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}}
+index \ensuremath{\V{idx}\;\mathbin{:}\;\V{\tau'}\;\D{\in}\;\V{\Gamma}}. The constructors \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}}
 are similar, but fetching the tail of a list instead of the head.}
 
 
 \paragraph{List construction}{The \ensuremath{\Con{instr\textrm{-}cons\textrm{-}new}} and \ensuremath{\Con{instr\textrm{-}cons\textrm{-}upd}} constructors are
 used to create a new list. The first creates a new variable, and the second updates an
-existing variable. The list is created from two variables, \ensuremath{(\V{x₀}\;\red{,}\,\;\V{\tau_0})\;\D{\in}\;\V{\Gamma}} and \ensuremath{(\V{x₁}\;\red{,}\,\;\V{\tau_1})\;\D{\in}\;\V{\Gamma}},
+existing variable. The list is created from two variables, \ensuremath{\V{\tau_0}\;\D{\in}\;\V{\Gamma}} and \ensuremath{\V{\tau_1}\;\D{\in}\;\V{\Gamma}},
 which are represented as \emph{de Bruijn} indices. The type of the new list is defined by
 the least common supertype\footnote{A complete explanation about the least common supertype
 can be found in the original list-machine paper~\cite{Appel07}.}, which is defined by the
-type \ensuremath{\V{\tau_1}\;\D{\sqcap}\;\V{\tau_2}\;\D{\sim}\;\V{\tau}}, which encodes that the least common supertype of \ensuremath{\V{\tau_1}} and \ensuremath{\V{\tau_2}} is \ensuremath{\V{\tau}}.
+type \ensuremath{\V{\tau_1}\;\D{\sqcup}\;\V{\tau_2}\;\D{\sim}\;\V{\tau}}, which encodes that the least common supertype of \ensuremath{\V{\tau_1}} and \ensuremath{\V{\tau_2}} is \ensuremath{\V{\tau}}.
 The resulting typing context adds information about the newly created list.
 Subsection~\ref{sec:supertype} provides the details of an algorithm
 for calculating the least common supertype of two given types.}
@@ -1223,33 +1342,50 @@ supertype relation are specified as the following inductive type:
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{11}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{12}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{13}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\mathkw{data}\;\D{\_\sqcap\_\sim\_}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\>[B]{}\mathkw{data}\;\D{\_\sqcup\_\sim\_}\;\mathkw{where}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub0}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t}\;\D{\sim}\;\V{t}{}\<[E]%
+\>[3]{}\Con{lub0}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcup}\;\V{t}\;\D{\sim}\;\V{t}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub1}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{list}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\>[3]{}\Con{lub1}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{list}\;\V{t})\;\D{\sqcup}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub3}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\>[3]{}\Con{lub4}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\Con{nil}\;\D{\sqcup}\;(\Con{list}\;\V{t})\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub2}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;(\Con{list}\;\V{t})\;\D{\sqcup}\;(\Con{list}\;\V{t1})\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\\
+\>[3]{}\hsindent{8}{}\<[11]%
+\>[11]{}(\Con{list}\;\V{t})\;\D{\sqcup}\;(\Con{listcons}\;\V{t1})\;\D{\sim}\;\V{t'}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub2b}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;(\Con{list}\;\V{t})\;\D{\sqcup}\;(\Con{list}\;\V{t1})\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\\
+\>[3]{}\hsindent{9}{}\<[12]%
+\>[12]{}(\Con{listcons}\;\V{t})\;\D{\sqcup}\;(\Con{list}\;\V{t1})\;\D{\sim}\;\V{t'}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub3}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcup}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
 \\
 \>[3]{}\hsindent{10}{}\<[13]%
-\>[13]{}(\Con{list}\;\V{t})\;\D{\sqcap}\;(\Con{list}\;\V{t1})\;\D{\sim}\;(\Con{list}\;\V{t'}){}\<[E]%
+\>[13]{}(\Con{list}\;\V{t})\;\D{\sqcup}\;(\Con{list}\;\V{t1})\;\D{\sim}\;(\Con{list}\;\V{t'}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub5}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{listcons}\;\V{t})\;\D{\sqcap}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\>[3]{}\Con{lub5}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;(\Con{listcons}\;\V{t})\;\D{\sqcup}\;\Con{nil}\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\Con{lub7}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
+\>[3]{}\Con{lub6}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\mskip1.5mu\}\;\rightarrow\;\Con{nil}\;\D{\sqcup}\;(\Con{listcons}\;\V{t})\;\D{\sim}\;(\Con{list}\;\V{t}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{lub7}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{t}\;\V{t1}\;\V{t'}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\sqcup}\;\V{t1}\;\D{\sim}\;\V{t'}\;\rightarrow\;{}\<[E]%
 \\
 \>[3]{}\hsindent{10}{}\<[13]%
-\>[13]{}(\Con{listcons}\;\V{t})\;\D{\sqcap}\;(\Con{listcons}\;\V{t1})\;\D{\sim}\;(\Con{listcons}\;\V{t'}){}\<[E]%
-\\
-\>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\orange{\texttt{-- some code omitted for brevity}}{}\<[E]%
+\>[13]{}(\Con{listcons}\;\V{t})\;\D{\sqcup}\;(\Con{listcons}\;\V{t1})\;\D{\sim}\;(\Con{listcons}\;\V{t'}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 The presented constructors ensure that the relation is compatible with \emph{list} and \emph{listcons}
@@ -1258,18 +1394,18 @@ Agda theorem.
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{\sqcap\textrm{-}comm}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{\sqcap}\;\V{t1}\;\D{\sim}\;\V{t3}{}\<[E]%
+\>[B]{}\F{\sqcup\textrm{-}comm}\;\mathbin{:}\;\V{t1}\;\D{\sqcup}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{\sqcup}\;\V{t1}\;\D{\sim}\;\V{t3}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
-We omit the complete definition of \ensuremath{\F{\sqcap\textrm{-}comm}} for brevity. In the list-machine benchmark definition,
-Appel and Leroy~\cite{AppelDL12} also define that the least common supertype relation is sound and complete with respect to the
+We omit the complete definition of \ensuremath{\F{\sqcup\textrm{-}comm}} for brevity. In the list-machine benchmark definition,
+Appel et. al.~\cite{AppelDL12} also define that the least common supertype relation is sound and complete with respect to the
 subtyping relation. Again, we omit the definitions of these properties, however their types are presented below.
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{\sqcap\textrm{-}subtype}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;(\V{t1}\;\D{<:}\;\V{t3})\;\D{\land}\;(\V{t2}\;\D{<:}\;\V{t3}){}\<[E]%
+\>[B]{}\F{\sqcup\textrm{-}subtype}\;\mathbin{:}\;\V{t1}\;\D{\sqcup}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;(\V{t1}\;\D{<:}\;\V{t3})\;\D{\land}\;(\V{t2}\;\D{<:}\;\V{t3}){}\<[E]%
 \\
-\>[B]{}\F{\sqcap\textrm{-}least}\;\mathbin{:}\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t1}\;\D{<:}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{<:}\;\V{t4}\;\rightarrow\;\V{t3}\;\D{<:}\;\V{t4}{}\<[E]%
+\>[B]{}\F{\sqcup\textrm{-}least}\;\mathbin{:}\;\V{t1}\;\D{\sqcup}\;\V{t2}\;\D{\sim}\;\V{t3}\;\rightarrow\;\V{t1}\;\D{<:}\;\V{t3}\;\rightarrow\;\V{t2}\;\D{<:}\;\V{t3}\;\rightarrow\;\V{t3}\;\D{<:}\;\V{t4}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 An algorithm to construct the least supertype from two input types is
@@ -1280,7 +1416,7 @@ thus ensuring its correctness-by-construction.
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{lub}\;\mathbin{:}\;(\V{t1}\;\V{t2}\;\mathbin{:}\;\D{Ty})\;\rightarrow\;\V{∃}\;(\lambda\;\V{t}\;\rightarrow\;\V{t1}\;\D{\sqcap}\;\V{t2}\;\D{\sim}\;\V{t}){}\<[E]%
+\>[B]{}\F{lub}\;\mathbin{:}\;(\V{t1}\;\V{t2}\;\mathbin{:}\;\D{Ty})\;\rightarrow\;\V{∃}\;(\lambda\;\V{t}\;\rightarrow\;\V{t1}\;\D{\sqcup}\;\V{t2}\;\D{\sim}\;\V{t}){}\<[E]%
 \\
 \>[B]{}\F{lub}\;\Con{nil}\;\Con{nil}\;\mathrel{=}\;\Con{nil}\;\red{,}\,\;\Con{lub0}{}\<[E]%
 \\
@@ -1346,7 +1482,7 @@ two represent non-empty lists, considering the types \ensuremath{\Con{listcons}}
 We use the datatype \ensuremath{\D{All}} (and \ensuremath{\D{Allv}} for vectors) to define the notion of well-typed
 variable environments and well-typed programs. Thus, intuitively, \ensuremath{\D{Env}} is like a
 list of well-typed values. And \ensuremath{\D{PEnv}} is like a list of well-typed environments.
-Both type environments are used to type block instructions and sequences of
+Both typing contexts are used to type block instructions and sequences of
 block instructions.
 
 \begin{hscode}\SaveRestoreHook
@@ -1354,7 +1490,7 @@ block instructions.
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\D{Env}\;\mathbin{:}\;\D{Ctx}\;\rightarrow\;\D{Set}{}\<[E]%
 \\
-\>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\D{All}\;(\lambda\;(\V{x}\;\red{,}\,\;\V{\tau})\;\rightarrow\;\D{Val}\;\V{\tau})\;\V{\Gamma}{}\<[E]%
+\>[B]{}\D{Env}\;\V{\Gamma}\;\mathrel{=}\;\D{All}\;\D{Val}\;\V{\Gamma}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1404,7 +1540,7 @@ last one is the \ensuremath{\D{Block}} to be evaluated. This function returns a 
 environment (\ensuremath{\D{Env}\;\V{\Gamma'}}) in case of success, or \ensuremath{\Con{nothing}} when (and only) the \emph{fuel} runs out.
 
 From now on we describe how we implement some parts\footnote{The complete evaluation
-function can be found in our online repository.} of the dynamic semantics (reduction rules)
+function can be found in our online repository~\cite{list-rep}.} of the dynamic semantics (reduction rules)
 of the list-machine language in the function \ensuremath{\F{run\textrm{-}step}}. We mix the code with the explanation
 to make it easier for the reader.
 
@@ -1434,12 +1570,28 @@ meaning that there is still \emph{fuel} during the recursive processing of this 
 % run-step n p env b
 
 \paragraph{Conditional jump}{We show next only the case when the jump actually occurs,
-following the rule \emph{step-branch-taken} of \cite{Appel07}. In this case, variable \ensuremath{\V{v}} has value \ensuremath{\Con{nil}}, and
+following the rule \emph{step-branch-taken} of \cite{Appel07}. In this case, variable \ensuremath{\V{v}}
+has value \ensuremath{\Con{nil}}, and
 the step of evaluation should proceed with the block instruction defined in program \ensuremath{\V{p}}, with
 environment \ensuremath{\V{env}} respecting the subtyping constraint. We use the function \ensuremath{\F{lookupA}} to obtain
 the block instruction with index \ensuremath{\V{i}} on program \ensuremath{\V{p}}. Since we use \emph{de Bruijn} indices to
-represent the label, only valid values are accepted by the intrinsically-typed syntax.}
-
+represent the label, only valid values are accepted by the intrinsically-typed syntax. We use
+Agda's standard library function \ensuremath{\F{[]\textrm{=}{\Rightarrow}lookup}}:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{14}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{[]\textrm{=}{\Rightarrow}lookup}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{px}\;\mathbin{:}\;\D{P}\;\V{x}\mskip1.5mu\}\;\{\mskip1.5mu \V{pxs}\;\mathbin{:}\;\D{All}\;\D{P}\;\V{xs}\mskip1.5mu\}\;\{\mskip1.5mu \V{i}\;\mathbin{:}\;\V{x}\;\D{\in}\;\V{xs}\mskip1.5mu\}\;\rightarrow\;{}\<[E]%
+\\
+\>[B]{}\hsindent{14}{}\<[14]%
+\>[14]{}\V{pxs}\;\D{[}\;\V{i}\;\D{]=}\;\V{px}\;\rightarrow\;{}\<[E]%
+\\
+\>[B]{}\hsindent{14}{}\<[14]%
+\>[14]{}\F{lookupA}\;\V{pxs}\;\V{i}\;\D{\equiv}\;\V{px}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+which rewrites a lookup predicate (\ensuremath{\V{pxs}\;\D{[}\;\V{i}\;\D{]=}\;\V{px}}) into an equality using the \ensuremath{\F{lookupA}}
+function, \ensuremath{\F{lookupA}\;\V{pxs}\;\V{i}\;\D{\equiv}\;\V{px}}.}
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1463,7 +1615,8 @@ environment \ensuremath{\V{env}}, and this variable is added to the result envir
 indices guarantee that the projected value has the type demanded, since the environment \ensuremath{\V{env}} is typed
 by the context \ensuremath{\V{\Gamma}}. Similarly, the second instruction also retrieves the head element of a list, however
 it needs to update the run-time environment on the position of index \ensuremath{\V{v'}}. This process is done by the
-function \ensuremath{\F{update\textrm{-}env}}\footnote{The source-code of this function can be found in our online repository.}.}
+function \ensuremath{\F{update\textrm{-}env}}\footnote{The source-code of this function can be found in our online
+repository~\cite{list-rep}.}.}
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1499,7 +1652,7 @@ function to retrieve the type information using the \emph{de Bruijn} indices of 
 extend the run-time environment \ensuremath{\V{env}} with the type of the created list. To convince the Agda's
 type-checker the new environment is well-typed we use subtyping lemmas, such as \ensuremath{\F{<:\textrm{-}val}} and \ensuremath{\F{list\textrm{-}<:\textrm{-}inv}},
 and others lemmas to deal with the least common supertype, such as \ensuremath{\F{lub\textrm{-}subtype\textrm{-}left}}, \ensuremath{\F{lub\textrm{-}subtype\textrm{-}right}},
-and \ensuremath{\F{lub\textrm{-}of\textrm{-}subtype}}. These lemmas and their proofs can be found in our repository online. }
+and \ensuremath{\F{lub\textrm{-}of\textrm{-}subtype}}. These lemmas and their proofs can be found in our repository online~\cite{list-rep}. }
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1541,94 +1694,230 @@ This approach is promising to be investigated when formalizing even more complex
 
 \section{Type-Checker}\label{sec:typechecker}
 
-In practice, a source-code of a programming language runs through several phases, including lexing, parsing,
-scope checking, and most importantly \emph{type-checking}. Since we represent programs using a
-intrinsically-typed syntax, scope and type-checking is only a matter of elaborating an untyped syntax
-to a typed one.
-
-
-Since we use \emph{de Bruijn} indices to represent labels and variables, as the first step to type and scope
-check them, we need to provide an index from a named variable. This process is done by the
-\ensuremath{\F{lookup\textrm{-}var}} function, returning an index when the named variable is found, and \ensuremath{\Con{nothing}} otherwise.
-
+In practice, a source-code of a programming language runs through several phases,
+including lexing, parsing, scope checking, and most importantly \emph{type-checking}.
+Since we represent programs using a intrinsically-typed syntax, scope and
+type-checking is only a matter of elaborating an untyped syntax to a typed one.
+The definition of our type-checker follows McBride's~\cite{McBride2004} approach which
+specifies the type-checker function type as its correctness property: it should return
+a type annotated syntax such that it's erasure is equal to the type-checker input program.
+Before considering machine instructions, we will detail the type-checker correctness
+approach in the context of variables.
+Since we use \emph{de Bruijn} indices to represent labels and variables, as the first
+step to type and scope check them, we need to get the index from a given variable.
+The function \ensuremath{\F{index}} return the list position corresponding to a membership proof (variable):
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{22}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{lookup\textrm{-}var}\;{}\<[13]%
-\>[13]{}\mathbin{:}\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\rightarrow\;(\V{x}\;\mathbin{:}\;\D{String})\;{}\<[E]%
+\>[B]{}\F{index}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{A}\;\mathbin{:}\;\D{Set}\mskip1.5mu\}\;\{\mskip1.5mu \V{t}\;\mathbin{:}\;\V{A}\mskip1.5mu\}\;\{\mskip1.5mu \V{\Gamma}\;\mathbin{:}\;\D{List}\;\V{A}\mskip1.5mu\}\;\rightarrow\;\V{t}\;\D{\in}\;\V{\Gamma}\;\rightarrow\;\D{\mathbb{N}}{}\<[E]%
 \\
-\>[13]{}\rightarrow\;\D{Maybe}\;(\D{\exists}\;\lambda\;\V{\tau}\;\rightarrow\;(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma}){}\<[E]%
+\>[B]{}\F{index}\;(\Con{here}\;\V{px})\;\mathrel{=}\;\Con{zero}{}\<[E]%
 \\
-\>[B]{}\F{lookup\textrm{-}var}\;\Con{\lbrack\:\rbrack}\;\V{x}\;\mathrel{=}\;\Con{nothing}{}\<[E]%
-\\
-\>[B]{}\F{lookup\textrm{-}var}\;((\V{y}\;\red{,}\,\;\V{\tau})\;\Con{::}\;\V{\Gamma})\;\V{x}\;\mathkw{with}\;\V{x}\;\D{=}\;\V{y}{}\<[E]%
-\\
-\>[B]{}\V{...}\;\mid \;\Con{yes}\;\Con{refl}\;\mathrel{=}\;\Con{just}\;(\V{\tau}\;\red{,}\,\;\Con{here}\;\Con{refl}){}\<[E]%
-\\
-\>[B]{}\V{...}\;\mid \;(\Con{no}\;\V{¬p})\;\mathrel{=}\;\F{map}\;{}\<[22]%
-\>[22]{}(\lambda\;\V{v}\;\rightarrow\;\D{proj_1}\;\V{v}\;\red{,}\,\;\Con{there}\;(\D{proj_2}\;\V{v}))\;{}\<[E]%
-\\
-\>[22]{}(\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{x}){}\<[E]%
+\>[B]{}\F{index}\;(\Con{there}\;\V{p})\;\mathrel{=}\;\Con{suc}\;(\F{index}\;\V{p}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
-
-
-
-For brevity, we show how we type-check only one instruction\footnote{The curious reader can refer to our
-online repository for a complete implementation.}. Function \ensuremath{\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}}
-receives a program context, a typing context, and two named variables, and returns a \ensuremath{\D{TC}} value,
-which is an error message or a \ensuremath{\D{CheckedInstr}} indicating that the term type-checks.
+Next, we follow Norell's~\cite{Norell2009} approach and define a type that relates a
+natural number with a list as follows. Either the number correspond to some list position,
+in which it is of the form \ensuremath{\F{index}\;\V{p}} for some proof \ensuremath{\V{p}\;\mathbin{:}\;\V{x}\;\D{\in}\;\V{xs}} or it is invalid position.
+The type \ensuremath{\D{Lookup}} encodes this relation between lists and natural numbers.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{Lookup}\;\{\mskip1.5mu \V{A}\;\mathbin{:}\;\D{Set}\mskip1.5mu\}\;(\V{xs}\;\mathbin{:}\;\D{List}\;\V{A})\;\mathbin{:}\;\D{\mathbb{N}}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{inside}\;\mathbin{:}\;(\V{x}\;\mathbin{:}\;\V{A})\;(\V{p}\;\mathbin{:}\;\V{x}\;\D{\in}\;\V{xs})\;\rightarrow\;\D{Lookup}\;\V{xs}\;(\F{index}\;\V{p}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{outside}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\rightarrow\;\D{Lookup}\;\V{xs}\;\V{n}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Using this infrastructure we can build the function \ensuremath{\F{lookup\textrm{-}var}} which
+returns a value of type \ensuremath{\D{Lookup}\;\V{xs}\;\V{n}} that specifies whether \ensuremath{\V{n}} is
+a valid list position or not.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{lookup\textrm{-}var}\;\mathbin{:}\;\{\mskip1.5mu \V{A}\;\mathbin{:}\;\D{Set}\mskip1.5mu\}\;(\V{xs}\;\mathbin{:}\;\D{List}\;\V{A})\;(\V{n}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{Lookup}\;\V{xs}\;\V{n}{}\<[E]%
+\\
+\>[B]{}\F{lookup\textrm{-}var}\;\Con{\lbrack\:\rbrack}\;\V{n}\;\mathrel{=}\;\Con{outside}{}\<[E]%
+\\
+\>[B]{}\F{lookup\textrm{-}var}\;(\V{x}\;\Con{::}\;\V{xs})\;\Con{zero}\;\mathrel{=}\;\Con{inside}\;\V{x}\;(\Con{here}\;\Con{refl}){}\<[E]%
+\\
+\>[B]{}\F{lookup\textrm{-}var}\;(\V{x}\;\Con{::}\;\V{xs})\;(\Con{suc}\;\V{n})\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{xs}\;\V{n}{}\<[E]%
+\\
+\>[B]{}\F{lookup\textrm{-}var}\;(\V{x}\;\Con{::}\;\V{xs})\;(\Con{suc}\;.\;(\F{index}\;\V{p}))\;\mid \;\Con{inside}\;\V{y}\;\V{p}\;\mathrel{=}\;\Con{inside}\;\V{y}\;(\Con{there}\;\V{p}){}\<[E]%
+\\
+\>[B]{}\F{lookup\textrm{-}var}\;(\V{x}\;\Con{::}\;\V{xs})\;(\Con{suc}\;\anonymous )\;\mid \;\Con{outside}\;\mathrel{=}\;\Con{outside}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+In order to type-check instructions using this approach, we need to first define a
+datatype for untyped programs.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{34}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{17}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
-\>[B]{}\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}\;\mathbin{:}\;(\V{\Pi}\;\mathbin{:}\;\D{PCtx})\;\rightarrow\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\rightarrow\;(\V{v}\;\mathbin{:}\;\D{String})\;{}\<[E]%
+\>[B]{}\mathkw{data}\;\D{UInstr}\;(\V{n}\;\mathbin{:}\;\D{\mathbb{N}})\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
-\>[3]{}\rightarrow\;(\V{v'}\;\mathbin{:}\;\D{String})\;\rightarrow\;\D{TC}\;(\D{CheckedInstr}\;\V{\Pi}\;\V{\Gamma}\;(\Con{fetch\textrm{-}field\textrm{-}0}\;\V{v}\;\V{v'})){}\<[E]%
+\>[3]{}\Con{jump}\;{}\<[17]%
+\>[17]{}\mathbin{:}\;(\V{x}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{Label}\;\V{n}\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[B]{}\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{v'}\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v}\;\red{,}\,\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v'}{}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{branch\textrm{-}if\textrm{-}nil}\;\mathbin{:}\;(\V{v}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{Label}\;\V{n}\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{nothing}\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;(\text{\ttfamily \char34 variable~out~of~scope:~\char34}\;\F{++}\;\V{v}){}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{fetch\textrm{-}field\textrm{-}0}\;\mathbin{:}\;(\V{v}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;(\V{v′}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{nil}\;\red{,}\,\;\anonymous )\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;\text{\ttfamily \char34 type~error~[nil]\char34}{}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{fetch\textrm{-}field\textrm{-}1}\;\mathbin{:}\;(\V{v}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;(\V{v′}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{list}\;\V{\tau}\;\red{,}\,\;\anonymous )\;\red{,}\,\;\anonymous \;\mathrel{=}\;\F{type\textrm{-}error}\;\text{\ttfamily \char34 type~error~[list]\char34}{}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{get\textrm{-}label}\;{}\<[17]%
+\>[17]{}\mathbin{:}\;(\V{v}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{Label}\;\V{n}\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{listcons}\;\V{\tau}\;\red{,}\,\;\V{idx})\;\red{,}\,\;{}\<[34]%
-\>[34]{}\Con{nothing}\;\mathrel{=}\;{}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{cons}\;{}\<[17]%
+\>[17]{}\mathbin{:}\;(\V{v₀}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;(\V{v₁}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;(\V{v′}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[34]{}\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\V{idx})){}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{halt}\;{}\<[17]%
+\>[17]{}\mathbin{:}\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{just}\;(\Con{listcons}\;\V{\tau}\;\red{,}\,\;\V{idx})\;\red{,}\,\;{}\<[34]%
-\>[34]{}\Con{just}\;(\V{\tau'}\;\red{,}\,\;\V{idx'})\;\mathrel{=}\;{}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{seq}\;{}\<[17]%
+\>[17]{}\mathbin{:}\;\D{UInstr}\;\V{n}\;\rightarrow\;\D{UInstr}\;\V{n}\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Type \ensuremath{\D{UInstr}} has a constructor for each of the list machine instructions,
+type \ensuremath{\D{Label}\;\V{n}} denote a program label and it is represented by
+a value of type \ensuremath{\D{Fin}\;\V{n}}. Next, we define an erasure function for
+our intrinsically typed syntax:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\{\mskip1.5mu \V{\Pi}\;\mathbin{:}\;\D{PCtx}\;\V{n}\mskip1.5mu\}\;\{\mskip1.5mu \V{\Gamma}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma'}\;\rightarrow\;\D{UInstr}\;\V{n}{}\<[E]%
 \\
-\>[34]{}\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;\V{idx}\;\V{idx'})){}\<[E]%
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}seq}\;\V{p}\;\V{p₁})\;\mathrel{=}\;\Con{seq}\;(\F{forge\textrm{-}types\textrm{-}instr}\;\V{p})\;(\F{forge\textrm{-}types\textrm{-}instr}\;\V{p₁}){}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}branch\textrm{-}list}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{l}\mskip1.5mu\}\;\V{idx}\;\V{x}\;\V{x₁})\;\mathrel{=}\;\Con{branch\textrm{-}if\textrm{-}nil}\;(\F{index}\;\V{idx})\;\V{l}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}branch\textrm{-}listcons}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{l}\mskip1.5mu\}\;\V{idx}\;\V{x}\;\V{x₁})\;\mathrel{=}\;\Con{branch\textrm{-}if\textrm{-}nil}\;(\F{index}\;\V{idx})\;\V{l}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}branch\textrm{-}nil}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{l}\mskip1.5mu\}\;\V{x}\;\V{x₁}\;\V{x₂})\;\mathrel{=}\;\Con{branch\textrm{-}if\textrm{-}nil}\;(\F{index}\;\V{x})\;\V{l}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\{\mskip1.5mu \V{v'}\;\mathrel{=}\;\V{v'}\mskip1.5mu\}\;\V{x})\;\mathrel{=}\;\Con{fetch\textrm{-}field\textrm{-}0}\;(\F{index}\;\V{x})\;\V{v'}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;\V{x}\;\V{idx})\;\mathrel{=}\;\Con{fetch\textrm{-}field\textrm{-}0}\;(\F{index}\;\V{x})\;(\F{index}\;\V{idx}){}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}new}\;\{\mskip1.5mu \V{v'}\;\mathrel{=}\;\V{v'}\mskip1.5mu\}\;\V{x})\;\mathrel{=}\;\Con{fetch\textrm{-}field\textrm{-}1}\;(\F{index}\;\V{x})\;\V{v'}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}fetch\textrm{-}1\textrm{-}upd}\;\V{x}\;\V{idx})\;\mathrel{=}\;\Con{fetch\textrm{-}field\textrm{-}1}\;(\F{index}\;\V{x})\;(\F{index}\;\V{idx}){}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}cons\textrm{-}new}\;\{\mskip1.5mu \V{v'}\;\mathrel{=}\;\V{v'}\mskip1.5mu\}\;\V{x}\;\V{x₁}\;\V{x₂})\;\mathrel{=}\;\Con{cons}\;(\F{index}\;\V{x})\;(\F{index}\;\V{x₁})\;\V{v'}{}\<[E]%
+\\
+\>[B]{}\F{forge\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}cons\textrm{-}upd}\;\V{x}\;\V{x₁}\;\V{idx}\;\V{x₂})\;\mathrel{=}\;\Con{cons}\;(\F{index}\;\V{x})\;(\F{index}\;\V{x₁})\;(\F{index}\;\V{idx}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Finally, we can define a view of an untyped instruction (\ensuremath{\D{UInstr}\;\V{n}}) as being the
+erasure of an intrinsically-typed one using the type \ensuremath{\D{CheckedInstr}}:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{CheckedInstr}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;(\V{\Pi}\;\mathbin{:}\;\D{PCtx}\;\V{n})\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\mathbin{:}\;\D{UInstr}\;\V{n}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{ok}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;(\V{i}\;\mathbin{:}\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma'})\;\rightarrow\;\D{CheckedInstr}\;\V{\Pi}\;\V{\Gamma}\;(\F{forge\textrm{-}types\textrm{-}instr}\;\V{i}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
-In the code above, we use the function \ensuremath{\F{lookup\textrm{-}var}} to provide the \emph{de Bruijn} indices for
+
+For brevity, we show how we type-check only one instruction\footnote{The curious reader can refer to our
+online repository~\cite{list-rep} for a complete implementation.}. Function \ensuremath{\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}}
+receives a program context, a typing context, and two named variables, and returns a \ensuremath{\D{TC}} value:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\D{TC}\;\mathbin{:}\;\D{Set}\;\rightarrow\;\D{Set}{}\<[E]%
+\\
+\>[B]{}\D{TC}\;\V{i}\;\mathrel{=}\;\D{Either}\;\D{TypeError}\;\V{i}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+which is either an error message or a \ensuremath{\D{CheckedInstr}} indicating that the term type-checks.
+The \ensuremath{\D{TypeError}} contains one constructor for each of the possible failures causes for an
+input program.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{21}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{data}\;\D{TypeError}\;\mathbin{:}\;\D{Set}\;\mathkw{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{UnexpectedTy}\;\mathbin{:}\;\D{Ty}\;\rightarrow\;\D{TypeError}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{UndefinedVar}\;\mathbin{:}\;\D{\mathbb{N}}\;{}\<[21]%
+\>[21]{}\rightarrow\;\D{TypeError}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Con{UndefinedLabel}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;\rightarrow\;\D{Label}\;\V{n}\;\rightarrow\;\D{TypeError}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+In the code below, we use the function \ensuremath{\F{lookup\textrm{-}var}} to provide the \emph{de Bruijn} indices for
 each variable, and match the first with its possible forms. The first three cases indicate
-type errors: (1) when \ensuremath{\V{v}} is \ensuremath{\Con{nothing}} it means a variable scope error; (2) and (3) are typing errors,
+type errors: (1) when \ensuremath{\V{v}} is \ensuremath{\Con{outside}} it means a variable scope error; (2) and (3) are typing errors,
 since the type of variable \ensuremath{\V{v}} should be a \ensuremath{\Con{listcons}}. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{n}\mskip1.5mu\}\;(\V{\Pi}\;\mathbin{:}\;\D{PCtx}\;\V{n})\;\V{\Gamma}\;\V{v}\;\V{v'}\;\rightarrow\;\D{TC}\;(\D{CheckedInstr}\;\V{\Pi}\;\V{\Gamma}\;(\Con{fetch\textrm{-}field\textrm{-}0}\;\V{v}\;\V{v'})){}\<[E]%
+\\
+\>[B]{}\F{check\textrm{-}fetch\textrm{-}field\textrm{-}0}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{v'}\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v}\;\mid \;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v'}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{outside}\;\mid \;\anonymous \;\mathrel{=}\;\Con{undefined\textrm{-}var}\;\V{v}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{inside}\;\Con{nil}\;\V{p}\;\mid \;\V{q}\;\mathrel{=}\;\Con{type\textrm{-}error}\;\Con{nil}{}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{inside}\;(\Con{list}\;\V{x})\;\V{p}\;\mid \;\V{q}\;\mathrel{=}\;\Con{type\textrm{-}error}\;(\Con{list}\;\V{x}){}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{inside}\;(\Con{listcons}\;\V{x})\;\V{p}\;\mid \;\Con{inside}\;\V{x₁}\;\V{p₁}\;\mathrel{=}\;\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}upd}\;\V{p}\;\V{p₁})){}\<[E]%
+\\
+\>[B]{}\V{...}\;\mid \;\Con{inside}\;(\Con{listcons}\;\V{x})\;\V{p}\;\mid \;\Con{outside}\;\mathrel{=}\;\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}fetch\textrm{-}0\textrm{-}new}\;\V{p})){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Finally, functions \ensuremath{\Con{type\textrm{-}error}} and \ensuremath{\Con{undefined\textrm{-}var}} just build the corresponding
+type-checker error as follows:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Con{type\textrm{-}error}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{i}\mskip1.5mu\}\;\rightarrow\;\D{Ty}\;\rightarrow\;\D{TC}\;\V{i}{}\<[E]%
+\\
+\>[B]{}\Con{type\textrm{-}error}\;\mathrel{=}\;\Con{left}\;\V{∘}\;\Con{UnexpectedTy}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\Con{undefined\textrm{-}var}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{i}\mskip1.5mu\}\;\rightarrow\;\D{\mathbb{N}}\;\rightarrow\;\D{TC}\;\V{i}{}\<[E]%
+\\
+\>[B]{}\Con{undefined\textrm{-}var}\;\mathrel{=}\;\Con{left}\;\V{∘}\;\Con{UndefinedVar}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
 
 \section{Extending the List-Machine with Indirect Jumps}\label{sec:indirect}
 
 In this section we describe the necessary modifications to our formalization to include indirect jumps
-as proposed by Appel and Leroy~\cite{AppelDL12}. We start by describing the changes on the type system
+as proposed by Appel et. al.~\cite{AppelDL12}. We start by describing the changes on the type system
 and its impact on the intrinsically typed representation of programs in Section~\ref{sec:changestypes}.
 Updates on the type checker and the interpreter implementations are described in Sections~\ref{sec:changestypechecker}
 and ~\ref{sec:changesintep}, respectively.
 
 \subsection{Modifications in the type system and instruction set}\label{sec:changestypes}
 
-Since our solution relies on representing the program using intrinsically typed syntax, we describe
-first the changes on the list-machine type system. The first modification is the inclusion of a type for
+Since our solution relies on representing the program using intrinsically typed syntax, we first
+describe the changes on the list-machine type system. The first modification is the inclusion of a type for
 program labels, which denotes continuations in a program.
 
 
@@ -1649,22 +1938,23 @@ program labels, which denotes continuations in a program.
 \ColumnHook
 \end{hscode}\resethooks
 
-The type \ensuremath{\Con{cont}} $\Gamma$ for a label express that the machine can safely jump when its registers
-satisfies $\Gamma$. The inclusion of continuation types makes the type and context syntax mutually
-inductive.
+The type \ensuremath{\Con{cont}} $\Gamma$ is given to program labels and it
+express that the machine can safely jump when its registers
+satisfies $\Gamma$. The inclusion of continuation types makes
+the type and context syntax mutually inductive.
 
 Since we have changed the type syntax, we need to adapt the definition of the subtyping relation.
 The continuation type substantially changes the subtyping relation,
 since now we have ``incomparable'' types: list types are not subtypes neither supertypes for continuations.
-The solution is to complete the subtyping relation with a bottom and top types. The subtyping rules for these
+The solution is to complete the subtyping relation with bottom and top types. The subtyping rules for these
 new types are presented next.
 
 \[
 \begin{array}{cc}
-  \infer{\bot <: \tau}{} &
-  \infer{\tau <: \top}{} \\ & \\
+  \inference{}{\bot <: \tau}[subtype-bot] &
+  \inference{}{\tau <: \top}[subtype-top] \\ & \\
   \multicolumn{2}{c}{
-    \infer{cont\,\Gamma_1\:<:\:cont\,\Gamma_2}{\Gamma_2 \subset \Gamma_1}
+    \inference{\Gamma_2 \subset \Gamma_1}{cont\,\Gamma_1\:<:\:cont\,\Gamma_2}[subtype-cont]
   }
 \end{array}
 \]
@@ -1678,9 +1968,10 @@ First, we complete the least upper bound relation by specifying that the lub for
 $\top$.
 
 \[
-\begin{array}{cc}
-  \infer{cont\:\Gamma\:\sqcup\:nil = \top}{} & \infer{cont\:\Gamma\:\sqcup\:(list\:\tau) = \top}\\ & \\
-  \multicolumn{2}{c}{\infer{cont\:\Gamma\:\sqcup\:(listcons\:\tau) = \top}}
+\begin{array}{c}
+  \inference{}{cont\:\Gamma\:\sqcup\:nil = \top}[lub-cont-nil] \\ \\
+  \inference{}{cont\:\Gamma\:\sqcup\:(list\:\tau) = \top}[lub-cont-list]\\ & \\
+  \inference{}{cont\:\Gamma\:\sqcup\:(listcons\:\tau) = \top}[lub-cont-listcons]
 \end{array}
 \]
 
@@ -1688,41 +1979,47 @@ We omit rules that ensure the commutativity of the least upper bound relation fo
 Next, we present the rules for the least upper bound relation for top and bottom types.
 
 \[
-\begin{array}{cc}
-  \infer{\tau \sqcup \bot = \tau}{} & \infer{\tau \sqcup \top = \top}{}
+\begin{array}{c}
+  \inference{}{\tau \sqcup \bot = \tau}[lub-bot] \\ \\
+  \inference{}{\tau \sqcup \top = \top}[lub-top]
 \end{array}
 \]
 
 The last set of rules for the least upper bound relation deals with continuations.
-Because of the contravariance of the \ensuremath{\Con{cont}} type, we also need to define greatest lower bounds for both
-types and typing contexts. First, we present the rule for the least upper bound for continuation types.
+Because of the contravariance of the \ensuremath{\Con{cont}} type, we also need to define the greatest
+lower bound relation for both
+types and typing contexts.
+First, we present the rule for the least upper bound for continuation types.
 
 \[
 \begin{array}{c}
-  \infer{cont\:\Gamma_1\:\sqcap\: cont\:\Gamma_2=cont\:\Gamma_3}{\Gamma_1\cup\Gamma_2 = \Gamma_3}
+  \inference{\Gamma_1\cap\Gamma_2 = \Gamma_3}
+            {cont\:\Gamma_1\:\sqcup\: cont\:\Gamma_2=cont\:\Gamma_3}
+            [lub-cont]
 \end{array}
 \]
 
 The rule specifies that the least upper bound for types \ensuremath{\Con{cont}} $\Gamma_1$ and \ensuremath{\Con{cont}} $\Gamma_2$ is
 \ensuremath{\Con{cont}} $\Gamma_3$, where $\Gamma_3$ is greatest lower bound for typing contexts $\Gamma_1$ and $\Gamma_2$.
-The definition of the greatest lower bound for contexts is presented next.
+The definition of the greatest lower bound for contexts is as follows:
 \[
-  \begin{array}{cc}
-    \infer{\{\} \cup \Gamma = \Gamma}{} &
-    \infer{\Gamma \cup \{\} = \Gamma}{} \\ & \\
-    \multicolumn{2}{c}{
-      \infer{(\Gamma_1 , x : \tau_1) \cup (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
-            {\tau_1 \sqcup \tau_2 = \tau_3 & \Gamma_1 \cup \Gamma_2 = \Gamma_3}
-    }
+  \begin{array}{c}
+    \inference{}{\{\} \cup \Gamma = \Gamma}[glb-empty-left] \\ \\
+    \inference{}{\Gamma \cup \{\} = \Gamma}[glb-empty-right] \\ \\
+      \inference{\tau_1 \sqcup \tau_2 = \tau_3 & \Gamma_1 \cup \Gamma_2 = \Gamma_3}
+                {(\Gamma_1 , x : \tau_1) \cup (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
+                [glb-cons]
   \end{array}
 \]
 The definition of the greatest lower bound for types is as follows. The first set of rules specify the reflexivity,
-that $`\top$ type is an identity and $`\bot$ is for greastest lower bound for any type $\tau$.
-Again, rules to ensure commutativity of the relation are ommited for brevity.
+that $\top$ type is an identity and $\bot$ is for greastest lower bound for any type $\tau$.
+Again, rules to ensure commutativity of the relation are omitted for brevity.
 
 \[
-\begin{array}{ccc}
-  \infer{\tau \sqcup \tau = \tau}{} & \infer{\top \sqcup \tau = \tau}{} & \infer{\bot \sqcup \tau = \bot}{}\\
+\begin{array}{c}
+  \inference{}{\tau \sqcap \tau = \tau}[glb-refl] \\ \\
+  \inference{}{\top \sqcap \tau = \tau}[glb-top] \\ \\
+  \inference{}{\bot \sqcap \tau = \bot}[glb-bot]
 \end{array}
 \]
 Next, we define the greatest lower bound relation for list types. The first rule specifies that the bottom
@@ -1730,42 +2027,47 @@ type is the greatest lower bound for the empty list type and non-empty list type
 compatibility of \ensuremath{\Con{list}} and \ensuremath{\Con{listcons}} type constructors with the greatest lower bound relation. The last
 rule show that \ensuremath{\Con{listcons}} $\tau_3$ is the lower bound for \ensuremath{\Con{list}} $\tau_1$ and \ensuremath{\Con{listcons}} $\tau_2$.
 \[
-\begin{array}{cc}
-  \infer{nil \sqcup (listcons\: \tau) = \bot}{} &
-  \infer{(list\: \tau_1)\sqcup (list\:\tau_2) = list\:\tau_3}{\tau_1\sqcup \tau_2 = \tau_3} \\ & \\
-   \infer{(listcons\: \tau_1)\sqcup (listcons\:\tau_2) = listcons\:\tau_3}{\tau_1\sqcup \tau_2 = \tau_3} &
-  \infer{(list\: \tau_1)\sqcup (listcons\:\tau_2) = listcons\:\tau_3}{\tau_1\sqcup \tau_2 = \tau_3} \\ & \\
+\begin{array}{c}
+  \inference{}{nil \sqcap (listcons\: \tau) = \bot}[glb-nil-listcons] \\ \\
+  \inference{\tau_1\sqcap \tau_2 = \tau_3}
+            {(list\: \tau_1)\sqcap (list\:\tau_2) = list\:\tau_3}
+            [glb-list]\\ \\
+   \inference{\tau_1\sqcap \tau_2 = \tau_3}
+             {(listcons\: \tau_1)\sqcap (listcons\:\tau_2) = listcons\:\tau_3}
+             [glb-listcons] \\ \\
+
+   \inference{\tau_1\sqcap \tau_2 = \tau_3}
+             {(list\: \tau_1)\sqcap (listcons\:\tau_2) = listcons\:\tau_3}
+             [glb-list-listcons]
 \end{array}
 \]
 Rules for the greatest lower bound relation for continuation types show that the bottom type is the
-lower bound for the list and continuation types. The other rule stabishes the compatibility of
+lower bound for the list and continuation types. The other rule estabishes the compatibility of
 the continuation type with the lower bound relation and it uses the least upper bound for typing
 contexts relation.
 \[
-\begin{array}{ccc}
-  \infer{nil\sqcup(cont\:\Gamma) = \bot}{} &
-  \infer{(list\:\tau)\sqcup(cont\:\Gamma) = \bot}{} &
-  \infer{(listcons\:\tau)\sqcup(cont\:\Gamma) = \bot}{} \\ & & \\
-  \multicolumn{3}{c}{
-    \infer{(cont\:\Gamma_1)\sqcup(cont\:\Gamma_2) = (cont\:\Gamma_3)}{\Gamma_1\cap\Gamma_2 = \Gamma_3}
-  }
+\begin{array}{c}
+  \inference{}{nil\sqcap(cont\:\Gamma) = \bot}[glb-cont-nil] \\ \\
+  \inference{}{(list\:\tau)\sqcap(cont\:\Gamma) = \bot}[glb-cont-list] \\ \\
+  \inference{}{(listcons\:\tau)\sqcap(cont\:\Gamma) = \bot}[glb-cont-listcons] \\ \\
+  \inference{\Gamma_1\cup\Gamma_2 = \Gamma_3}
+            {(cont\:\Gamma_1)\sqcap(cont\:\Gamma_2) = (cont\:\Gamma_3)}
+            [glb-cont]
 \end{array}
 \]
 We omit several rules for the greatest lower bound relation that ensure the commutativity of the
 relation and that $\bot$ type is a lower bound for any type. Rules for the least upper bound for
 typing contexts are simply the dual version for greatest lower bound for contexts, as shown next.
 \[
-  \begin{array}{cc}
-    \infer{\{\} \cap \Gamma = \{\}}{} &
-    \infer{\Gamma \cap \{\} = \{\}}{} \\ & \\
-    \multicolumn{2}{c}{
-      \infer{(\Gamma_1 , x : \tau_1) \cap (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
-            {\tau_1 \sqcap \tau_2 = \tau_3 & \Gamma_1 \cap \Gamma_2 = \Gamma_3}
-    }
+  \begin{array}{c}
+    \inference{}{\{\} \cap \Gamma = \{\}}[glb-empty-left] \\ \\
+    \inference{}{\Gamma \cap \{\} = \{\}}[glb-empty-right] \\ \\
+    \inference{\tau_1 \sqcap \tau_2 = \tau_3 & \Gamma_1 \cap \Gamma_2 = \Gamma_3}
+              {(\Gamma_1 , x : \tau_1) \cap (\Gamma_2 , x : t_2) = \Gamma_3, x : \tau_3}
+              [glb-cons]
   \end{array}
 \]
-The Agda encoding of these relations is an immediate translation of the mathematical notation
-to code and are omitted for brevity.
+The Agda encoding of these relations is an immediate translation of the mathematical notation.
 
 The modifications on the subtyping and least upper bound induced changes on all theorems
 about these relations. On our first implementation, these results are just straightforward
@@ -1773,36 +2075,37 @@ inductive proofs. Because of the mutually inductive nature of the new relation v
 these proofs needed to be defined by mutually recursive functions.
 
 Once we have only modified the subtyping and the least upper bound relations, most of the type system
-rules remained unchanged from the original version. In order to support indirect jumps, Appel and Leroy.
+rules remained unchanged from the original version. In order to support indirect jumps, Appel's
 approach is to modify the jump instruction and add a new instruction for loading label values into
 machine registers. The typing rules for get-label and jump instructions are as follows.
 
 \[
-\begin{array}{cc}
-  \infer{\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:L_0\}\Gamma'}
-        {\Gamma[v\,:=\,nil] = \Gamma'} &
-  \infer{\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:l\}\Gamma'}
-        {\Pi(l) = \Gamma_1 & \Gamma[v\,:=\,cont\:\Gamma_1] = \Gamma'} \\ & \\
-  \multicolumn{2}{c}{
-    \infer{\Pi;\Gamma\vdash_{block}\,\textrm{jump}\:v}
-          {\Gamma(v) = cont\:\Gamma_1 & \Gamma \subset \Gamma_1}
-  }
+\begin{array}{c}
+  \inference{\Gamma[v\,:=\,nil] = \Gamma'}
+            {\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:L_0\}\Gamma'}
+            [check-instr-get-label-0] \\ \\
+  \inference{\Pi(l) = \Gamma_1 & \Gamma[v\,:=\,cont\:\Gamma_1] = \Gamma'}
+            {\Pi\vdash_{instr} \Gamma \{\textrm{get-label}\:v\:l\}\Gamma'}
+            [check-instr-get-label]\\ \\
+  \inference{\Gamma(v) = cont\:\Gamma_1 & \Gamma \subset \Gamma_1}
+            {\Pi;\Gamma\vdash_{block}\,\textrm{jump}\:v}
+            [check-block-jump]
 \end{array}
 \]
 The first rule shows that the type of label $L_0$, the starting label of a complete machine program,
 is $nil$ and the second specifies that the type for any other label is a continuation type formed by
-the context associated with label $l$ in $\Pi$. The last rule show that typing a jump instruction
+the context associated with label $l$ in $\Pi$. The last rule shows that typing a jump instruction
 requires that its register has a continuation type, $cont\:\Gamma_1$, that should be a subtype of
 the current block context $\Gamma$. Based on these rules, we add the following constructors to our
-instruction typed syntax:
+typed instruction syntax:
 
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{25}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{35}{@{}>{\hspre}l<{\hspost}@{}}%
-\column{40}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{33}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{38}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\mathkw{data}\;\D{\_\vdash\_\Rightarrow\_}\;(\V{\Pi}\;\mathbin{:}\;\D{PCtx})\;(\V{\Gamma}\;\mathbin{:}\;\D{Ctx})\;\mathbin{:}\;\D{Ctx}\;\rightarrow\;\D{Set}\;\mathkw{where}{}\<[E]%
 \\
@@ -1811,20 +2114,20 @@ instruction typed syntax:
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}getlabel\textrm{-}0}\;{}\<[25]%
-\>[25]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\;\V{x}\mskip1.5mu\}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\>[25]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\tau}\mskip1.5mu\}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;\V{\tau}\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
 \\
-\>[25]{}\hsindent{10}{}\<[35]%
-\>[35]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{nil})){}\<[E]%
+\>[25]{}\hsindent{8}{}\<[33]%
+\>[33]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;\Con{nil}){}\<[E]%
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{instr\textrm{-}getlabel}\;{}\<[25]%
-\>[25]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{l}\;\V{\tau}\;\V{\Gamma_1}\;\V{x}\mskip1.5mu\}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;(\V{x}\;\red{,}\,\;\V{\tau})\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
+\>[25]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{l}\;\V{\tau}\;\V{\Gamma_1}\mskip1.5mu\}\;\rightarrow\;(\V{idx}\;\mathbin{:}\;\V{\tau}\;\D{\in}\;\V{\Gamma})\;{}\<[E]%
 \\
-\>[25]{}\hsindent{15}{}\<[40]%
-\>[40]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;{}\<[E]%
+\>[25]{}\hsindent{13}{}\<[38]%
+\>[38]{}\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;{}\<[E]%
 \\
-\>[25]{}\hsindent{15}{}\<[40]%
-\>[40]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;(\V{x}\;\red{,}\,\;\Con{cont}\;\V{\Gamma_1})){}\<[E]%
+\>[25]{}\hsindent{13}{}\<[38]%
+\>[38]{}\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;(\V{idx}\;\F{::=}\;\Con{cont}\;\V{\Gamma_1}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 Constructor \ensuremath{\Con{instr\textrm{-}getlabel\textrm{-}0}} encodes the typing rule for the instruction \textrm{get-label} when
@@ -1848,7 +2151,7 @@ The needed modifications on block syntax are presented next.
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{block\textrm{-}jump}\;{}\<[25]%
-\>[25]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{l}\;\V{x}\;\V{\Gamma_1}\mskip1.5mu\}\;\rightarrow\;(\V{x}\;\red{,}\,\;\Con{cont}\;\V{\Gamma_1})\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
+\>[25]{}\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{l}\;\V{\Gamma_1}\mskip1.5mu\}\;\rightarrow\;\Con{cont}\;\V{\Gamma_1}\;\D{\in}\;\V{\Gamma}\;{}\<[E]%
 \\
 \>[25]{}\rightarrow\;\V{\Gamma}\;\D{\subset}\;\V{\Gamma_1}\;{}\<[E]%
 \\
@@ -1868,9 +2171,7 @@ continuation type.
 
 We also need to include code to check the well-typedness for the get-label instruction. First,
 we include a new constructor on type \ensuremath{\D{UInstr}} to represent untyped get-label instruction and
-add its corresponding equation on function \ensuremath{\F{forget\textrm{-}types\textrm{-}instr}}, which erases type information
-from the instrinsically typed syntax. This function is used by the type-checker to ensure its
-correctness.
+add its corresponding equation on function \ensuremath{\F{forget\textrm{-}types\textrm{-}instr}}.
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{3}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1883,24 +2184,26 @@ correctness.
 \\
 \>[B]{}\hsindent{3}{}\<[3]%
 \>[3]{}\Con{get\textrm{-}label}\;{}\<[17]%
-\>[17]{}\mathbin{:}\;(\V{v}\;\mathbin{:}\;\V{ℕ})\;\rightarrow\;\D{Label}\;\rightarrow\;\D{UInstr}{}\<[E]%
+\>[17]{}\mathbin{:}\;(\V{v}\;\mathbin{:}\;\D{\mathbb{N}})\;\rightarrow\;\D{Label}\;\rightarrow\;\D{UInstr}{}\<[E]%
 \\[\blanklineskip]%
 \>[B]{}\F{forget\textrm{-}types\textrm{-}instr}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Pi}\;\V{\Gamma}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{\vdash}\;\V{\Gamma}\;\D{\Rightarrow}\;\V{\Gamma'}\;\rightarrow\;\D{UInstr}{}\<[E]%
 \\
 \>[B]{}\orange{\texttt{-- same code as before...}}{}\<[E]%
 \\
-\>[B]{}\F{forget\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}getlabel\textrm{-}0}\;\{\mskip1.5mu \V{x}\;\mathrel{=}\;\V{x}\mskip1.5mu\}\;\V{v})\;\mathrel{=}\;\Con{get\textrm{-}label}\;\V{x}\;\Con{L_{0}}{}\<[E]%
+\>[B]{}\F{forget\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}getlabel\textrm{-}0}\;\{\mskip1.5mu \V{x}\;\mathrel{=}\;\V{x}\mskip1.5mu\}\;\V{v})\;\mathrel{=}\;\Con{get\textrm{-}label}\;\V{x}\;\Con{zero}{}\<[E]%
 \\
 \>[B]{}\F{forget\textrm{-}types\textrm{-}instr}\;(\Con{instr\textrm{-}getlabel}\;\{\mskip1.5mu \V{l}\;\mathrel{=}\;\V{l}\mskip1.5mu\}\;\{\mskip1.5mu \V{x}\;\mathrel{=}\;\V{x}\mskip1.5mu\}\;\V{v}\;\V{p})\;\mathrel{=}\;\Con{get\textrm{-}label}\;\V{x}\;\V{l}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 Constructor \ensuremath{\Con{get\textrm{-}label}} stores the name for a register and a label which is loaded into the register.
 Equations for erasing type information are immediate. The only peculiarity is that when the instruction
-\ensuremath{\Con{get\textrm{-}label}} is typed using rule \ensuremath{\Con{instr\textrm{-}getlabel\textrm{-}0}} we consider the initial label \ensuremath{\Con{L_{0}}}. Next, we implement
-the type checker logic for \ensuremath{\Con{get\textrm{-}label}}. Function \ensuremath{\F{check\textrm{-}get\textrm{-}label}} verifies if the label is present at
+\ensuremath{\Con{get\textrm{-}label}} is typed using rule \ensuremath{\Con{instr\textrm{-}getlabel\textrm{-}0}} we consider the initial label \ensuremath{\Con{zero}}.
+Next, we implement the type checker logic for \ensuremath{\Con{get\textrm{-}label}}. Function \ensuremath{\F{check\textrm{-}get\textrm{-}label}} verifies if the label is present at
 the program global typing context and if the variable is present on the current block typing context.
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{28}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{30}{@{}>{\hspre}l<{\hspost}@{}}%
 \column{E}{@{}>{\hspre}l<{\hspost}@{}}%
 \>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\mathbin{:}\;\D{\forall}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;{}\<[30]%
@@ -1908,11 +2211,15 @@ the program global typing context and if the variable is present on the current 
 \\
 \>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;\mathkw{with}\;\F{inspect}\;(\F{lookup}\;\V{\Pi}\;\V{l}){}\<[E]%
 \\
-\>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;\mid \;\V{\Gamma_1}\;\F{with\equiv}\;\V{p}\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v}{}\<[E]%
+\>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;\mid \;{}\<[28]%
+\>[28]{}\V{\Gamma_1}\;\F{with\equiv}\;\V{p}\;\mathkw{with}\;\F{lookup\textrm{-}var}\;\V{\Gamma}\;\V{v}{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{nothing}\;\mathrel{=}\;\F{type\textrm{-}error}\;\text{\ttfamily \char34 check-get-label:~variable~out~of~scope\char34}{}\<[E]%
+\>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\V{\Pi}\;\V{\Gamma}\;.\;(\F{index}\;\V{p₁})\;\V{l}\;\mid \;\V{\Gamma_1}\;\F{with\equiv}\;\V{p}\;\mid \;\Con{inside}\;\V{x}\;\V{p₁}\;{}\<[E]%
 \\
-\>[B]{}\V{...}\;\mid \;\Con{just}\;(\V{\tau}\;\red{,}\,\;\V{idx})\;\mathrel{=}\;\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}getlabel}\;\V{idx}\;(\F{lookup⇒[]=}\;\V{l}\;\V{\Pi}\;\V{p}))){}\<[E]%
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathrel{=}\;\Con{right}\;(\Con{ok}\;(\Con{instr\textrm{-}getlabel}\;\V{p₁}\;(\F{lookup⇒[]=}\;\V{l}\;\V{\Pi}\;\V{p}))){}\<[E]%
+\\
+\>[B]{}\F{check\textrm{-}get\textrm{-}label}\;\V{\Pi}\;\V{\Gamma}\;\V{v}\;\V{l}\;\mid \;\V{\Gamma_1}\;\F{with\equiv}\;\V{p}\;\mid \;\Con{outside}\;\mathrel{=}\;\Con{undefined\textrm{-}var}\;\V{v}{}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1921,7 +2228,7 @@ the program global typing context and if the variable is present on the current 
 The final piece of our formalization for the version 2.0 of the list-machine benchmark is the modification of
 the interpreter implementation. Our first step changed the definition of values to reflect
 the changes on the typed syntax, since now we have a new value for continuation types. A continuation
-value simply stores the label of the corresponding block.
+value stores the environment for its corresponding block.
 
 \begin{hscode}\SaveRestoreHook
 \column{B}{@{}>{\hspre}l<{\hspost}@{}}%
@@ -1934,7 +2241,7 @@ value simply stores the label of the corresponding block.
 \>[5]{}\orange{\texttt{-- same code as before}}{}\<[E]%
 \\
 \>[3]{}\hsindent{2}{}\<[5]%
-\>[5]{}\Con{cont}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{l}\;\V{\Gamma_1}\mskip1.5mu\}\;\rightarrow\;\V{\Pi}\;\D{[}\;\V{l}\;\D{]=}\;\V{\Gamma_1}\;\rightarrow\;\D{Val}\;(\Con{cont}\;\V{\Gamma_1}){}\<[E]%
+\>[5]{}\Con{cont}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma_1}\mskip1.5mu\}\;\rightarrow\;\D{Env}\;\V{\Gamma_1}\;\rightarrow\;\D{Val}\;(\Con{cont}\;\V{\Gamma_1}){}\<[E]%
 \ColumnHook
 \end{hscode}\resethooks
 
@@ -1982,20 +2289,20 @@ we jump to its corresponding block and its entry execution environment.
 \section{Comparison of Mechanized Proofs}\label{sec:comparison}
 
 We implemented all 14 tasks from the list-machine benchmark in the Agda programming language.
-The tasks considered by us are the same implemented and proved by Appel and Leroy.~\cite{Appel07}.
+The tasks considered by us are the same implemented and proved by Appel et. al.~\cite{Appel07}.
 The next table summarizes the total number of lines of code (LOC) for our results together with theirs.
 
 \begin{table}[!htb]
 \begin{tabular}{rl|rrr}
     & Task                                         & \multicolumn{1}{l}{Twelf} & \multicolumn{1}{l}{Coq} & \multicolumn{1}{l}{Agda} \\ \hline
-1.  & Operational Semantics                        & 126                       & 98                      & 109                      \\
+1.  & Operational Semantics                        & 126                       & 98                      & 101                      \\
 2.  & Derive $p \Downarrow$                        & 1                         & 8                       & 1                        \\ \hline
-3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 62                       \\
+3.  & Type System $\vDash_{\textrm{prog}} p : \Pi$ & 167                       & 130                     & 50                       \\
 4.  & $\sqcap$ algorithm                           & *                         & *                       & 13                       \\
 5.  & Derive $\vDash_{\textrm{prog}} p_{\textrm{sample}} : \Pi_{\textrm{sample}}$
                                                    & 1                         & no                      & 1                        \\
-6.  & State properties of $\sqcap$                 & 12                        & 13                      & 6                        \\
-7.  & Prove properties of $\sqcap$                 & 114                       & 21                      & 124                      \\
+6.  & State properties of $\sqcup$                 & 12                        & 13                      & 6                        \\
+7.  & Prove properties of $\sqcup$                 & 114                       & 21                      & 124                      \\
 8.  & State soundness theorem                      & 29                        & 15                      & *                        \\
 9.  & Prove soundness of $\vDash_{\textrm{prog}} p : \Pi$
                                                    & 2060                      & 315                     & *                        \\ \hline
@@ -2006,13 +2313,14 @@ The next table summarizes the total number of lines of code (LOC) for our result
                                                    & 18                        & 0                       & 0                        \\
 13. & Scalable type-checker                        & yes                       & yes                     & yes                      \\
 14. & Prove soundness of $\vdash_{\textrm{prog}} p : \Pi$
-                                                   & 347                       & 141                     & *
+                                                   & 347                       & 141                     & *                        \\
+15. & Generate~\LaTeX                              & no                        & no                      & no
 \end{tabular}
 \end{table}
 
 The total time for parsing and proof checking our Agda implementation was around 10 seconds
 on a machine with a Intel Core I7 1.7 GHz, 8GB RAM running Mac OS X 10.15.5. We briefly comment
-on our Agda encoding of these 14 tasks.
+on our Agda encoding of these 15 tasks.
 
 \begin{enumerate}
   \item \textbf{Operational semantics.} Instead of using an inductive type for representing the operational semantics, we chose to
@@ -2050,6 +2358,9 @@ on our Agda encoding of these 14 tasks.
         an industrial strength compiler, the back-end can generate an efficient executable for the machine interpreter and type-checker.
   \item \textbf{Prove soundness of type-checker.} In our approach, the soundness of the type-checker is ensured by construction,
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
+  \item \textbf{Generate~\LaTeX.} Agda's compiler does have a limited support for typesetting~\LaTeX code.
+        However, we find it lacking some important features like omitting code from typesetted output
+        and use~\LaTeX math-commands instead of unicode characters for mathematical symbols.
 \end{enumerate}
 
 As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel and Leroy's
@@ -2058,20 +2369,21 @@ Our implementation used 415 LOC to complete the tasks, while the Twelf solution 
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
 reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
 
-Appel and Leroy's list-machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
+Appel et. al. list-machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
 correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics.
-We stick to our initial proposal based on dependently typed syntax and definitional interpreters. Appel and Leroy's formalization for
-the version 2.0 of the benchmark demanded around 1750 LOC without considering his library for the
-``very modal model''~\cite{Appel07}. Our formalization demanded 1134 LOC and it depends only on the Agda standard library.
-Compared to our solution to the first version of the benchmark (which was implemented in 612 LOC), the inclusion of
-indirect jumps increased the formalization size by around 85\%.
-
-
-%As we could notice on the previous table, the approach taken in this paper avoids code repetition and decreases the number of LOCs necessary to
-%implement the proposed language and to prove its properties. The formalization of this benchmark took 2898 LOC to be done in Twelf, and 887 LOC
-%in Coq, while our implementation used only 415 LOC to achieve the same result. Our encoding uses approximately 14\% of the LOC when compared to
-%the Twelf formalization, and 47\% when compared to Coq's. The main reason for this difference is the fact that the soundness properties are
-%obtained for free when combining an intrinsically-typed syntax with an implementation of a definitional interpreter in a total language like Agda.
+However, we are not able to prove a lemma which stabilishes a coercion between continuation types:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathkw{postulate}\;\V{sub-env}\;\mathbin{:}\;\D{\forall}\;\{\mskip1.5mu \V{\Gamma}\;\V{\Gamma'}\mskip1.5mu\}\;\rightarrow\;\V{\Gamma'}\;\D{\subset}\;\V{\Gamma}\;\rightarrow\;\D{Env}\;\V{\Gamma}\;\rightarrow\;\D{Env}\;\V{\Gamma'}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Appel et. al. was able to prove this property in Coq by enconding the machine syntax and semantics using
+a shallow embedding based on his ``very modal model''~\cite{Appel07} and its complete formalization
+demanded around 1750 LOC without considering his auxiliar library.
+Our formalization demanded 1134 LOC and it depends only on the Agda standard library.
+Compared to our solution to the first version of the benchmark (which was implemented in 612 LOC),
+the inclusion of indirect jumps increased the formalization size by around 85\%.
 
 \section{Related work}\label{sec:related}
 
@@ -2092,7 +2404,7 @@ the correct manipulation of names by following the traditional \emph{de Bruijn} 
 was proposed by~\cite{Pientka18}, named POPLMark challenge reloaded, focusing on the mechanization
 of logical relation arguments, like strong normalization theorems.}
 
-\paragraph{Definitional interpreters}{
+\paragraph{Definitional interpreters and intrinsically-typed syntax}{
 The use of definitional interpreters for specifying semantics dates back to Reynold's pioneer work~\cite{Reynolds72}.
 Recently, the interest on such interpreters was revitalized by~\cite{Amin17}, which used definitional
 interpreters, implemented in Coq, to prove type soundness theorems for non-trivial typed languages like System F$_{<:}$.
@@ -2116,7 +2428,11 @@ the subject of \cite{ChapmanKNW19} work, which used an intrinsically-typed repre
 implement a normalization by evaluation for this calculus. The reason behind such formalization effort was
 the verification of a core language for smart-contracts which is based on System F$_{\omega\mu}$. As our work,
 Chapman's et al. formalization is an example of how intrisincally-typed syntax leads to clear interpreter code
-which avoids completely stuck states.}
+which avoids completely stuck states. Another application of intrisincally-typed syntax is Pardo's et. al. work on correct-by-construction
+compilers~\cite{PardoGPV18}. The approach used by the authors is to index the syntax of
+a language with its types and semantics in order to automatically derive a correctness proof for the
+compiler. Authors apply their metodology in an arithmetic expression languages and a imperative
+language with top-level variables, sequencing and looping statements. }
 
 \vspace{-3ex}
 
