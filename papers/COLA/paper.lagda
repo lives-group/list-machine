@@ -403,7 +403,7 @@ natToBin k with (parity k)
    natToBin (succ (j + j)) | Odd  = true  :: natToBin j
 \end{spec}
 A important application of Agda's dependently-typed pattern matching is
-to rewrite a equality. As an example, consider the following code which
+to rewrite an equality. As an example, consider the following code which
 postulates the commutativity of natural number addition and a predicate
 over natural numbers, |P|.
 
