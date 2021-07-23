@@ -245,7 +245,7 @@ Thanks!
 
 5. "It should be possible to understand the contributions without having read the rest of the paper."
 
-Answer: TODO
+Answer: We tried to improve the writing of our paper. Thanks for your careful reading.
 
 
 6. "I found reading this section a slog.
@@ -485,4 +485,10 @@ Your explanation seems to suggest you do not implement a symptotically efficient
 Answer: Our algorithm could be more efficient by using appropriate data structures like red-black
 trees. However, the support for such types in Agda standard library is quite limited and we decided 
 to use its support for lists and vectors. 
+
+
+Final remarks
+=============
+
+We have modified the paper, technical report and code repository in order to address all considerations from the anonymous reviewers. Finally, we would like to thank you for your careful reading and suggestions that have helped us to improve the presentation of our results.
 
