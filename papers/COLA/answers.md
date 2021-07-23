@@ -335,8 +335,6 @@ use vector to denote the set of program contexts
 and `Fin` type to encode program labels. The `n` is a
 paramater, which we erroneously omitted. Thanks!
 
-TODO
-
 18. "l220: Such representation scheme makes the Agda's type-checker
 
 Such _a_ representation scheme makes ~~the~~ Agda's type checker"
@@ -347,7 +345,7 @@ Answer: Fixed. Thanks!
 the instr-fetch-0-* rules?  I'd have expected 
 instr-fetch-0-new to suffice."
 
-Answer: Design decision... TODO
+Answer: We follow this design decision in order to ease the development of the type checker and interpreter.
 
 
 20. "Can you say something about how your ⊓ compares with the definition of ⊔ in, e.g., the Coq code of Appel et al.?"
