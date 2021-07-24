@@ -140,7 +140,7 @@ by Appel et. al. We formalize the 14 tasks of the benchmark
 using roughly 14\% of LOC compared to a Twelf solution, and 47\% of LOC
 compared to a Coq solution, even without the use of proof automation. We also
 describe a solution to the second version of the benchmark and compare it with
-Appel'et. al. Coq-based solution.
+Appel's et. al. Coq-based solution.
 \end{abstract}
 
 
@@ -217,7 +217,7 @@ Let us summarize our contributions. %More specifically, we contribute:
   \item We provide a provably correct implementation for testing the subtyping
         relation and to calculate the least common supertype of two input
         types for the machine registers.
-  \item We provide a correct-by-construction implementation of a type-checker for
+  \item We provide a correct-by-construction implementation of a type-checker for the
         list-machine programs. Our type-checker produces, as a result, an intrinsically-typed
         representation of the machine code.
   \item We compare the results of an intrinsic approach encoded in Agda with extrinsic
@@ -1256,7 +1256,7 @@ This approach is promising to be investigated when formalizing even more complex
 
 In practice, a source-code of a programming language runs through several phases,
 including lexing, parsing, scope checking, and most importantly \emph{type-checking}.
-Since we represent programs using a intrinsically-typed syntax, scope and
+Since we represent programs using an intrinsically-typed syntax, scope and
 type-checking is only a matter of elaborating an untyped syntax to a typed one.
 The definition of our type-checker follows McBride's~\cite{McBride2004} approach which
 specifies the type-checker function type as its correctness property: it should return
@@ -1279,8 +1279,8 @@ index (here px) = zero
 index (there p) = suc (index p)
 \end{spec}
 Next, we follow Norell's~\cite{Norell2009} approach and define a type that relates a
-natural number with a list as follows. Either the number correspond to some list position,
-in which it is of the form |index p| for some proof |p : x ∈ xs| or it is invalid position.
+natural number with a list as follows. Either the number corresponds to some list position,
+in which it is of the form |index p| for some proof |p : x ∈ xs| or it is an invalid position.
 The type |Lookup| encodes this relation between lists and natural numbers.
 \begin{spec}
 data Lookup {A : Set}(xs : List A) : ℕ → Set where
@@ -1315,7 +1315,7 @@ datatype for untyped programs.
 %format jump = "\Con{jump}"
 %format branch-if-nil = "\Con{branch\textrm{-}if\textrm{-}nil}"
 %format Label = "\D{Label}"
-%format forget-types-instr = "\F{forge\textrm{-}types\textrm{-}instr}"
+%format forget-types-instr = "\F{forget\textrm{-}types\textrm{-}instr}"
 %format fetch-field-0 = "\Con{fetch\textrm{-}field\textrm{-}0}"
 %format fetch-field-1 = "\Con{fetch\textrm{-}field\textrm{-}1}"
 %format get-label = "\Con{get\textrm{-}label}"
@@ -1398,7 +1398,8 @@ type errors: (1) when |v| is |outside| it means a variable scope error; (2) and 
 since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
 \begin{spec}
-check-fetch-field-0 : ∀ {n}(Π : PCtx n) Γ v v' → TC (CheckedInstr Π Γ (fetch-field-0 v v'))
+check-fetch-field-0 : ∀ {n}(Π : PCtx n) Γ v v' 
+                    → TC (CheckedInstr Π Γ (fetch-field-0 v v'))
 check-fetch-field-0 Π Γ v v' with lookup-var Γ v | lookup-var Γ v'
 ... | outside | _ = undefined-var v
 ... | inside nil p | q = type-error nil
@@ -1442,11 +1443,11 @@ data Ty : Set where
 \end{spec}
 
 The type |cont| $\Gamma$ is given to program labels and it
-express that the machine can safely jump when its registers
+expresses that the machine can safely jump when its registers
 satisfies $\Gamma$. The inclusion of continuation types makes
 the type and context syntax mutually inductive.
 
-Since we have changed the type syntax, we need to adapt the definition of the subtyping relation.
+Since we have changed the typed syntax, we need to adapt the definition of the subtyping relation.
 The continuation type substantially changes the subtyping relation,
 since now we have ``incomparable'' types: list types are not subtypes neither supertypes for continuations.
 The solution is to complete the subtyping relation with bottom and top types. The subtyping rules for these
@@ -1503,7 +1504,7 @@ First, we present the rule for the least upper bound for continuation types.
 \]
 
 The rule specifies that the least upper bound for types |cont| $\Gamma_1$ and |cont| $\Gamma_2$ is
-|cont| $\Gamma_3$, where $\Gamma_3$ is greatest lower bound for typing contexts $\Gamma_1$ and $\Gamma_2$.
+|cont| $\Gamma_3$, where $\Gamma_3$ is the greatest lower bound for typing contexts $\Gamma_1$ and $\Gamma_2$.
 The definition of the greatest lower bound for contexts is as follows:
 \[
   \begin{array}{c}
@@ -1528,7 +1529,7 @@ Again, rules to ensure commutativity of the relation are omitted for brevity.
 Next, we define the greatest lower bound relation for list types. The first rule specifies that the bottom
 type is the greatest lower bound for the empty list type and non-empty list type. Two rules specify the
 compatibility of |list| and |listcons| type constructors with the greatest lower bound relation. The last
-rule show that |listcons| $\tau_3$ is the lower bound for |list| $\tau_1$ and |listcons| $\tau_2$.
+rule shows that |listcons| $\tau_3$ is the lower bound for |list| $\tau_1$ and |listcons| $\tau_2$.
 \[
 \begin{array}{c}
   \inference{}{nil \sqcap (listcons\: \tau) = \bot}[glb-nil-listcons] \\ \\
@@ -1546,8 +1547,8 @@ rule show that |listcons| $\tau_3$ is the lower bound for |list| $\tau_1$ and |l
 \]
 Rules for the greatest lower bound relation for continuation types show that the bottom type is the
 lower bound for the list and continuation types. The other rule estabishes the compatibility of
-the continuation type with the lower bound relation and it uses the least upper bound for typing
-contexts relation.
+the continuation type with the lower bound relation and it uses the least upper bound for the typing
+context relation.
 \[
 \begin{array}{c}
   \inference{}{nil\sqcap(cont\:\Gamma) = \bot}[glb-cont-nil] \\ \\
@@ -1578,7 +1579,7 @@ inductive proofs. Because of the mutually inductive nature of the new relation v
 these proofs needed to be defined by mutually recursive functions.
 
 Once we have only modified the subtyping and the least upper bound relations, most of the type system
-rules remained unchanged from the original version. In order to support indirect jumps, Appel's
+rules remained unchanged from the original version. In order to support indirect jumps, Appel's et. al.
 approach is to modify the jump instruction and add a new instruction for loading label values into
 machine registers. The typing rules for get-label and jump instructions are as follows.
 
@@ -1620,7 +1621,7 @@ ensures that the type associated with the register for the instruction is the em
 Next, constructor |instr-getlabel| shows that any other label $l$ should be typed with a continuation
 holding the typing context associated with $l$ in $\Pi$.
 
-The needed modifications on block syntax are presented next.
+The needed modifications on the block syntax are presented next.
 \begin{spec}
 data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
   -- unchanged from the previous code version
@@ -1628,7 +1629,7 @@ data Block (Π : PCtx) (Γ : Ctx) : Ctx →  Set where
                         → Γ ⊂ Γ₁
                         → Block Π Γ Γ₁
 \end{spec}
-We only need to adapt the type of constructor for jump by requiring that the register has a
+We only need to adapt the type of the constructor for jump by requiring that the register has a
 continuation type whose typing context is a subtype of the current block type, which allows
 the safe jump to the next block.
 
@@ -1790,7 +1791,7 @@ on our Agda encoding of these 15 tasks.
         and use~\LaTeX math-commands instead of unicode characters for mathematical symbols.
 \end{enumerate}
 
-As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel and Leroy's
+As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel's et. al.
 \cite{Appel07} solution.
 Our implementation used 415 LOC to complete the tasks, while the Twelf solution demanded 2898 LOC and 887 LOC in Coq.
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
