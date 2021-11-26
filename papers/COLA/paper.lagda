@@ -205,7 +205,7 @@ proof-carrying code~\cite{Necula97}.
 In this work, we extend our previous SBLP 2020 paper~\cite{Feitosa2020} by including support to
 indirect jumps, as specified in the version 2.0 of the list
 machine benchmark~\cite{AppelDL12}. We provide detailed explanations of the needed
-changes on the machine syntax, type system and interpreter to accomodate this extension, which
+changes on the machine syntax, type system and interpreter to accommodate this extension, which
 allows the handling of more complex control flow structures, like the call/return model of function calls.
 
 Let us summarize our contributions. %More specifically, we contribute:
@@ -459,8 +459,8 @@ syntax. The role of dependent types in this domain is to encode programs that
 only allow well-typed and well-scoped terms~\cite{Benton2012}. Intuitively, we encode
 the static semantics of the object language in the host language AST's
 constructor, leaving the responsibility of checking type safety to the
-host's language type-checker. Before considering our solution to encode list-machine
-programs as instrisincally-typed syntax, we review this approach in a reduced example.
+host language type-checker. Before considering our solution to encode list-machine
+programs as intrinsically-typed syntax, we review this approach in a reduced example.
 
 Consider the following simple
 expression language. For this paper, we assume a basic knowledge of functional
@@ -599,7 +599,7 @@ denotes the subtyping judgment, which is defined as follows.
 Basically, the subtyping relation specifies that $nil$ (empty list type) is
 subtype of any list type and $listcons\:\tau$ is a subtype of the $list\:\tau$.
 The other rules specify that type constructors $list$ and $listcons$ respect
-the subtyping relation. The least common supertype $\tau = \tau_1 \sqcap \tau_2$ of
+the subtyping relation. The least common supertype $\tau = \tau_1 \sqcup \tau_2$ of
 $\tau_1$ and $\tau_2$ is defined as the smallest type such that $\tau_1$ and $\tau_2$
 are subtypes of $\tau$.
 
@@ -740,7 +740,7 @@ Inspired by the presented typing rules, in the next section, we define an
 intrinsically-typed syntax for list-machine programs which allows
 only well-typed pro\-grams.
 
-\section{Intrinsically-typed syntax}\label{sec:typing}
+\section{Intrinsically-Typed Syntax}\label{sec:typing}
 
 %format Ty = "\D{Ty}"
 %format nil = "\Con{nil}"
@@ -822,7 +822,7 @@ The representation of instructions is defined as follows.
 %format ∈ = "\D{\in}"
 %format ⊓ = "\D{\sqcap}"
 %format ⊔ = "\D{\sqcup}"
-%format ~ = "\D{\sim}"
+%format ~ = "\D{=}"
 %format ∷ = "\Con{::}"
 %format ∷= = "\F{::=}"
 %format Ctx = "\D{Ctx}"
@@ -919,7 +919,7 @@ list, however storing its value in an existing variable, represented by the \emp
 index |idx : τ' ∈ Γ|. The constructors |instr-fetch-1-new| and |instr-fetch-1-upd|
 are similar, but fetching the tail of a list instead of the head.}
 
-%format _⊔_~_ = "\D{\_\sqcup\_\sim\_}"
+%format _⊔_~_ = "\D{\_\sqcup\_=\_}"
 
 \paragraph{List construction}{The |instr-cons-new| and |instr-cons-upd| constructors are
 used to create a new list. The first creates a new variable, and the second updates an
@@ -1516,7 +1516,7 @@ The definition of the greatest lower bound for contexts is as follows:
   \end{array}
 \]
 The definition of the greatest lower bound for types is as follows. The first set of rules specify the reflexivity,
-that $\top$ type is an identity and $\bot$ is for greastest lower bound for any type $\tau$.
+that $\top$ type is an identity and $\bot$ is for greatest lower bound for any type $\tau$.
 Again, rules to ensure commutativity of the relation are omitted for brevity.
 
 \[
@@ -1546,7 +1546,7 @@ rule shows that |listcons| $\tau_3$ is the lower bound for |list| $\tau_1$ and |
 \end{array}
 \]
 Rules for the greatest lower bound relation for continuation types show that the bottom type is the
-lower bound for the list and continuation types. The other rule estabishes the compatibility of
+lower bound for the list and continuation types. The other rule establishes the compatibility of
 the continuation type with the lower bound relation and it uses the least upper bound for the typing
 context relation.
 \[
@@ -1616,7 +1616,7 @@ data _⊢_⇒_ (Π : PCtx)(Γ : Ctx) : Ctx → Set where
                                      → Π ⊢ Γ ⇒ (idx ∷= cont Γ₁)
 \end{spec}
 Constructor |instr-getlabel-0| encodes the typing rule for the instruction \textrm{get-label} when
-the label involved is the special label $L_0$. Intutively, the constructor |instr-getlabel-0| type
+the label involved is the special label $L_0$. Intuitively, the constructor |instr-getlabel-0| type
 ensures that the type associated with the register for the instruction is the empty list type.
 Next, constructor |instr-getlabel| shows that any other label $l$ should be typed with a continuation
 holding the typing context associated with $l$ in $\Pi$.
@@ -1677,7 +1677,7 @@ check-get-label Π Γ .(index p₁) l | Γ₁ with≡ p | inside x p₁
 check-get-label Π Γ v l | Γ₁ with≡ p | outside = undefined-var v
 \end{spec}
 
-\subsection{Modifications in the intepreter}\label{sec:changesintep}
+\subsection{Modifications in the interpreter}\label{sec:changesintep}
 
 The final piece of our formalization for the version 2.0 of the list-machine benchmark is the modification of
 the interpreter implementation. Our first step changed the definition of values to reflect
@@ -1786,9 +1786,9 @@ on our Agda encoding of these 15 tasks.
         an industrial strength compiler, the back-end can generate an efficient executable for the machine interpreter and type-checker.
   \item \textbf{Prove soundness of type-checker.} In our approach, the soundness of the type-checker is ensured by construction,
         since it returns the intrinsically-typed representation of the input program which corresponds to its typing derivation.
-  \item \textbf{Generate~\LaTeX.} Agda's compiler does have a limited support for typesetting~\LaTeX code.
-        However, we find it lacking some important features like omitting code from typesetted output
-        and use~\LaTeX math-commands instead of unicode characters for mathematical symbols.
+  \item \textbf{Generate~\LaTeX.} Agda's compiler does provide support for typesetting~\LaTeX~code.
+        However, we find it lacking some fine-grained formatting features like use~\LaTeX~math-commands instead of
+        unicode characters for mathematical symbols.
 \end{enumerate}
 
 As we could notice, our approach avoids code repetition and decreases the needed LOCs, when compared to Appel's et. al.
@@ -1796,17 +1796,22 @@ As we could notice, our approach avoids code repetition and decreases the needed
 Our implementation used 415 LOC to complete the tasks, while the Twelf solution demanded 2898 LOC and 887 LOC in Coq.
 Our encoding uses approximately 14\% of the LOC when compared to the Twelf formalization, and 47\% when compared to Coq's. The main
 reason for this difference is that our intrinsically-typed syntax granted us many properties for free (e.g. type soundness).
-
+%format sub-env = "\F{sub\textrm{-}env}"
 Appel et. al. list-machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
 correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics.
-However, we are not able to prove a lemma which stabilishes a coercion between continuation types:
+However, we are not able to prove a lemma which establishes a coercion between continuation types:
 \begin{spec}
 postulate sub-env : ∀ {Γ Γ'} → Γ' ⊂ Γ → Env Γ → Env Γ'
 \end{spec}
-Appel et. al. was able to prove this property in Coq by enconding the machine syntax and semantics using
-a shallow embedding based on his ``very modal model''~\cite{Appel07} and its complete formalization
-demanded around 1750 LOC without considering his auxiliar library.
-Our formalization demanded 1134 LOC and it depends only on the Agda standard library.
+Appel et. al. was able to prove this property in Coq by encoding the machine syntax and semantics using
+a shallow embedding based on his ``very modal model''~\cite{Appel07}. Using a semantics-based characterization
+of typing, like Appel's solution to the list machine benchmark, has the benefit of allowing a direct proof
+of the coercion property for continuation types. While is certainly possible to construct a modal logic
+inspired model and from it proving this type coercion result, such approach deviates from our main objective:
+construct a solution to the list machine benchmark using intrinsically-typed syntax and definitional interpreters.
+For this reason, we decided to postulate this coercion property and stick with our original proposal.
+Our formalization demanded 1134 LOC and it depends only on the Agda standard library, while Appel et. al.
+solution demanded around 1750 LOC without considering his ``very modal model'' library.
 Compared to our solution to the first version of the benchmark (which was implemented in 612 LOC),
 the inclusion of indirect jumps increased the formalization size by around 85\%.
 
@@ -1819,7 +1824,7 @@ we have the POPLMark challenge~\cite{Aydemir05}, which was developed by a renown
 at the collaboration between the PL community and the proof assistants researchers. The main objective of this challenge
 was to motivate authors to formalize all of their theorems using such tools. Since the focus of the POPLMark challenge
 was mainly the formalization of type soundness theorems, other benchmarks were proposed with different objectives. The list
-machine benchmark was proposed by~\cite{Appel07} as an exercise in formalizing results that interest
+machine benchmark was proposed by Appel and Leroy~\cite{Appel07} as an exercise in formalizing results that interest
 compiler oriented research and also provides Twelf and Coq solutions to this benchmark. Our work provides another
 solution to this benchmark using an intrinsically-typed approach in the Agda programming language. Representation of binding syntax
 was the subject of~\cite{FeltyMP18} which proposed a set of problems and research questions for tools
@@ -1852,11 +1857,11 @@ of linear and session types as in~\cite{Rouvoet20,Thiemann19}. A formalization o
 the subject of \cite{ChapmanKNW19} work, which used an intrinsically-typed representation to
 implement a normalization by evaluation for this calculus. The reason behind such formalization effort was
 the verification of a core language for smart-contracts which is based on System F$_{\omega\mu}$. As our work,
-Chapman's et al. formalization is an example of how intrisincally-typed syntax leads to clear interpreter code
-which avoids completely stuck states. Another application of intrisincally-typed syntax is Pardo's et. al. work on correct-by-construction
+Chapman's et al. formalization is an example of how intrinsically-typed syntax leads to clear interpreter code
+which avoids completely stuck states. Another application of intrinsically-typed syntax is Pardo's et. al. work on correct-by-construction
 compilers~\cite{PardoGPV18}. The approach used by the authors is to index the syntax of
 a language with its types and semantics in order to automatically derive a correctness proof for the
-compiler. Authors apply their metodology in an arithmetic expression languages and a imperative
+compiler. Authors apply their methodology in an arithmetic expression languages and a imperative
 language with top-level variables, sequencing and looping statements. }
 
 \vspace{-3ex}
