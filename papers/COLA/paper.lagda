@@ -210,6 +210,8 @@ allows the handling of more complex control flow structures, like the call/retur
 
 Let us summarize our contributions. %More specifically, we contribute:
 
+\pagebreak
+
 \begin{itemize}
   \item We show how all the details of the list-machine type system
         can be encoded in a dependently-typed syntax setting, which avoids, by construction,
@@ -1059,6 +1061,8 @@ transforming an initial memory state into a new one, represented by a run-time e
 environment to hold values associated to variables and their types. This way, we define the
 notion of a well-typed value as follows.}
 
+\pagebreak
+
 \begin{spec}
 data Val : Ty → Set where
   nil : Val nil
@@ -1175,18 +1179,29 @@ environment |env| respecting the subtyping constraint. We use the function |look
 the block instruction with index |i| on program |p|. Since we use \emph{de Bruijn} indices to
 represent the label, only valid values are accepted by the intrinsically-typed syntax. We use
 Agda's standard library function |[]=⇒lookup|:
+
+\vspace{-1ex}
+
 \begin{spec}
 []=⇒lookup : ∀ {px : P x} {pxs : All P xs} {i : x ∈ xs} →
              pxs [ i ]= px →
              lookupA pxs i == px
 \end{spec}
+
+\vspace{-1ex}
+
 which rewrites a lookup predicate (|pxs [ i ]= px|) into an equality using the |lookupA|
 function, |lookupA pxs i == px|.}
+
+\vspace{-1ex}
+
 \begin{spec}
 run-step (suc n) p env (block-seq (instr-branch-nil {l = i} v l s) b)
   rewrite sym ([]=⇒lookup l)
     = run-step n p (⊂-Ctx s env) (lookupA i p)
 \end{spec}
+
+\vspace{-1ex}
 
 %format lookup = "\F{lookup}"
 
@@ -1200,6 +1215,8 @@ it needs to update the run-time environment on the position of index |v'|. This 
 function |update-env|\footnote{The source-code of this function can be found in our online
 repository~\cite{list-rep}.}.}
 
+\vspace{-1ex}
+
 \begin{spec}
 run-step (suc n) p env (block-seq (instr-fetch-0-new v) b)
   with lookup env v
@@ -1208,6 +1225,8 @@ run-step (suc n) p env (block-seq (instr-fetch-0-upd v v') b)
   with lookup env v
 ...| v₁ ∷ v₂ = run-step n p (update-env env v' v₁) b
 \end{spec}
+
+\vspace{-1ex}
 
 %run-step (suc n) p env (block-seq (instr-fetch-1-new v) b)
 %  with lookup env v
@@ -1290,6 +1309,9 @@ data Lookup {A : Set}(xs : List A) : ℕ → Set where
 Using this infrastructure we can build the function |lookup-var| which
 returns a value of type |Lookup xs n| that specifies whether |n| is
 a valid list position or not.
+
+\pagebreak
+
 \begin{spec}
 lookup-var : {A : Set}(xs : List A)(n : ℕ) → Lookup xs n
 lookup-var [] n = outside
@@ -1298,6 +1320,7 @@ lookup-var (x ∷ xs) (suc n) with lookup-var xs n
 lookup-var (x ∷ xs) (suc .(index p)) | inside y p = inside y (there p)
 lookup-var (x ∷ xs) (suc _) | outside = outside
 \end{spec}
+
 In order to type-check instructions using this approach, we need to first define a
 datatype for untyped programs.
 
@@ -1324,6 +1347,7 @@ datatype for untyped programs.
 %format seq = "\Con{seq}"
 %format CheckedInstr = "\D{CheckedInstr}"
 %format ok = "\Con{ok}"
+
 \begin{spec}
 data UInstr (n : ℕ) : Set where
   jump          : (x : ℕ) → Label n → UInstr n
@@ -1335,10 +1359,12 @@ data UInstr (n : ℕ) : Set where
   halt          : UInstr n
   seq           : UInstr n → UInstr n → UInstr n
 \end{spec}
+
 Type |UInstr| has a constructor for each of the list machine instructions,
 type |Label n| denote a program label and it is represented by
 a value of type |Fin n|. Next, we define an erasure function for
 our intrinsically typed syntax:
+
 \begin{spec}
 forget-types-instr : ∀ {n}{Π : PCtx n}{Γ Γ'} → Π ⊢ Γ ⇒ Γ' → UInstr n
 forget-types-instr (instr-seq p p₁) = seq (forget-types-instr p) (forget-types-instr p₁)
@@ -1352,6 +1378,7 @@ forget-types-instr (instr-fetch-1-upd x idx) = fetch-field-1 (index x) (index id
 forget-types-instr (instr-cons-new {v' = v'} x x₁ x₂) = cons (index x) (index x₁) v'
 forget-types-instr (instr-cons-upd x x₁ idx x₂) = cons (index x) (index x₁) (index idx)
 \end{spec}
+
 Finally, we can define a view of an untyped instruction (|UInstr n|) as being the
 erasure of an intrinsically-typed one using the type |CheckedInstr|:
 \begin{spec}
@@ -1397,6 +1424,9 @@ each variable, and match the first with its possible forms. The first three case
 type errors: (1) when |v| is |outside| it means a variable scope error; (2) and (3) are typing errors,
 since the type of variable |v| should be a |listcons|. Last two cases represent that the instruction
 is well-typed. The process for type-checking different instructions follows a similar setting.
+
+\pagebreak
+
 \begin{spec}
 check-fetch-field-0 : ∀ {n}(Π : PCtx n) Γ v v' 
                     → TC (CheckedInstr Π Γ (fetch-field-0 v v'))
@@ -1434,6 +1464,8 @@ program labels, which denotes continuations in a program.
 %format top = "\Con{\top}"
 %format bot = "\Con{\bot}"
 %format cont = "\Con{cont}"
+
+\pagebreak
 
 \begin{spec}
 data Ty : Set where
@@ -1549,6 +1581,7 @@ Rules for the greatest lower bound relation for continuation types show that the
 lower bound for the list and continuation types. The other rule establishes the compatibility of
 the continuation type with the lower bound relation and it uses the least upper bound for the typing
 context relation.
+
 \[
 \begin{array}{c}
   \inference{}{nil\sqcap(cont\:\Gamma) = \bot}[glb-cont-nil] \\ \\
@@ -1800,15 +1833,17 @@ reason for this difference is that our intrinsically-typed syntax granted us man
 Appel et. al. list-machine benchmark 2.0 uses a semantic-based approach to prove type soundness and the
 correctness of the type checker~\cite{AppelMRV07}, which rely on a Coq library inspired by modal logics.
 However, we are not able to prove a lemma which establishes a coercion between continuation types:
+
 \begin{spec}
 postulate sub-env : ∀ {Γ Γ'} → Γ' ⊂ Γ → Env Γ → Env Γ'
 \end{spec}
-Appel et. al. was able to prove this property in Coq by encoding the machine syntax and semantics using
-a shallow embedding based on his ``very modal model''~\cite{Appel07}. Using a semantics-based characterization
-of typing, like Appel's solution to the list machine benchmark, has the benefit of allowing a direct proof
-of the coercion property for continuation types. While is certainly possible to construct a modal logic
-inspired model and from it proving this type coercion result, such approach deviates from our main objective:
-construct a solution to the list machine benchmark using intrinsically-typed syntax and definitional interpreters.
+
+Appel et al. was able to prove this property in Coq by encoding the machine syntax and semantics using
+a shallow embedding based on his ``very modal model''~\cite{Appel07}. Using a semantic-based characterization
+of typing, like Appel's solution to the list machine benchmark, it has the benefit of allowing a direct proof
+of the coercion property for continuation types. While it is certainly possible to construct a modal logic
+inspired from their model and from it proving this type coercion result, such approach deviates from our main objective:
+to construct a solution to the list machine benchmark using intrinsically-typed syntax and definitional interpreters.
 For this reason, we decided to postulate this coercion property and stick with our original proposal.
 Our formalization demanded 1134 LOC and it depends only on the Agda standard library, while Appel et. al.
 solution demanded around 1750 LOC without considering his ``very modal model'' library.
